@@ -59,6 +59,18 @@ A comprehensive, AI-powered inventory and job allocation system specifically des
 - ✅ **Customer Notifications** - Automated job status updates
 - ✅ **Smart Reordering** - AI-powered purchase order creation
 
+### New in v6.0 (UX Enhancements) 🎉
+- ✅ **Toast Notifications** - Beautiful feedback system (success, error, warning, info)
+- ✅ **Command Palette** - Quick access to all actions (Cmd+K / Ctrl+K)
+- ✅ **Interactive Onboarding** - Guided tours for new users
+- ✅ **Loading States** - Skeleton screens and progress indicators
+- ✅ **Contextual Help** - Inline tooltips and help icons throughout
+- ✅ **Keyboard Shortcuts** - Power user features (12+ shortcuts)
+- ✅ **Empty States** - Helpful CTAs when no data exists
+- ✅ **Bulk Operations** - Multi-select and batch actions
+- ✅ **Advanced Search** - Quick search with autocomplete
+- ✅ **WCAG 2.1 AA Accessibility** - Screen reader support, keyboard navigation, focus management
+
 ## 🚀 Quick Start
 
 ### One-Command Installation (Recommended)
@@ -202,14 +214,23 @@ PlumbPro-Inventory/
 
 ## 📖 Documentation
 
+### Installation & Setup
+- **[QUICK_INSTALL.md](QUICK_INSTALL.md)** - Quick installation guide
+- **[INSTALLATION_GUIDE.md](INSTALLATION_GUIDE.md)** - Complete installation instructions
 - **[SETUP.md](SETUP.md)** - Complete setup guide with troubleshooting
 - **[server/README.md](server/README.md)** - Backend API documentation
+
+### Features
+- **[UX_INTEGRATION_GUIDE.md](UX_INTEGRATION_GUIDE.md)** - ⭐ **NEW v6.0** - UX features usage guide
+- **[UX_FEATURES.md](UX_FEATURES.md)** - Complete UX component reference
+- **[UX_IMPLEMENTATION_SUMMARY.md](UX_IMPLEMENTATION_SUMMARY.md)** - Technical UX implementation details
+- **[WORKFLOW_AUTOMATION.md](WORKFLOW_AUTOMATION.md)** - Workflow engine complete guide
+- **[MOBILE_FEATURES.md](MOBILE_FEATURES.md)** - Mobile & field service complete guide
+- **[AI_FEATURES.md](AI_FEATURES.md)** - Advanced AI features comprehensive guide
+- **[AI_PROVIDER_SETUP.md](AI_PROVIDER_SETUP.md)** - AI provider configuration (Gemini/Ollama/OpenAI/Claude)
 - **[ANALYTICS_FEATURES.md](ANALYTICS_FEATURES.md)** - Analytics and reporting guide
 - **[NOTIFICATIONS_FEATURES.md](NOTIFICATIONS_FEATURES.md)** - Notifications system guide
 - **[DASHBOARD_ENHANCEMENTS.md](DASHBOARD_ENHANCEMENTS.md)** - Enhanced dashboard guide
-- **[AI_FEATURES.md](AI_FEATURES.md)** - Advanced AI features comprehensive guide
-- **[AI_PROVIDER_SETUP.md](AI_PROVIDER_SETUP.md)** - AI provider configuration (Gemini/Ollama/OpenAI/Claude)
-- **[MOBILE_FEATURES.md](MOBILE_FEATURES.md)** - Mobile & field service complete guide
 
 ## 🎯 Use Cases
 

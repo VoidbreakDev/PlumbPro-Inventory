@@ -1,11 +1,11 @@
 
-import React, { useState, useMemo } from 'react';
-import { 
-  Package, 
-  Users, 
-  Calendar, 
-  TrendingUp, 
-  ShoppingCart, 
+import React, { useState, useMemo, useEffect } from 'react';
+import {
+  Package,
+  Users,
+  Calendar,
+  TrendingUp,
+  ShoppingCart,
   ArrowRightLeft,
   Settings,
   Menu,
@@ -24,20 +24,20 @@ import {
   UserPlus,
   Clock
 } from 'lucide-react';
-import { 
-  Contact, 
-  InventoryItem, 
-  Job, 
-  StockMovement, 
-  JobTemplate, 
+import {
+  Contact,
+  InventoryItem,
+  Job,
+  StockMovement,
+  JobTemplate,
   AllocatedItem
 } from './types';
-import { 
-  INITIAL_CONTACTS, 
-  INITIAL_INVENTORY, 
-  INITIAL_JOBS, 
-  INITIAL_MOVEMENTS, 
-  JOB_TEMPLATES 
+import {
+  INITIAL_CONTACTS,
+  INITIAL_INVENTORY,
+  INITIAL_JOBS,
+  INITIAL_MOVEMENTS,
+  JOB_TEMPLATES
 } from './constants';
 
 import { NavItem, getStockStatus, StockMeter, Badge } from './components/Shared';
@@ -48,7 +48,14 @@ import { OrderingView } from './views/OrderingView';
 import { HistoryView } from './views/HistoryView';
 import { ContactsView } from './views/ContactsView';
 
-export default function App() {
+// UX Components
+import { ToastProvider, useToast } from './components/ToastNotification';
+import CommandPalette from './components/CommandPalette';
+import { onboardingService, tours } from './lib/onboardingService';
+import { addSkipLink } from './lib/accessibility';
+
+function AppContent() {
+  const toast = useToast();
   const [activeTab, setActiveTab] = useState<'dashboard' | 'inventory' | 'jobs' | 'contacts' | 'ordering' | 'history'>('dashboard');
   const [inventory, setInventory] = useState<InventoryItem[]>(INITIAL_INVENTORY);
   const [contacts, setContacts] = useState<Contact[]>(INITIAL_CONTACTS);
@@ -56,6 +63,48 @@ export default function App() {
   const [movements, setMovements] = useState<StockMovement[]>(INITIAL_MOVEMENTS);
   const [templates, setTemplates] = useState<JobTemplate[]>(JOB_TEMPLATES);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
+  // Initialize UX features on mount
+  useEffect(() => {
+    // Add skip link for accessibility
+    addSkipLink('main-content', 'Skip to main content');
+
+    // Show welcome tour for new users (after 1 second delay)
+    if (!onboardingService.hasCompletedTour('welcome')) {
+      setTimeout(() => {
+        onboardingService.startTour(tours.welcome);
+      }, 1000);
+    }
+
+    // Custom event listeners for command palette actions
+    const handleNavigate = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      const tab = customEvent.detail as 'dashboard' | 'inventory' | 'jobs' | 'contacts' | 'ordering' | 'history';
+      setActiveTab(tab);
+    };
+
+    const handleCreateNewItem = () => {
+      setActiveTab('inventory');
+    };
+    const handleCreateNewJob = () => {
+      setIsNewJobModalOpen(true);
+    };
+    const handleCreateNewContact = () => {
+      setActiveTab('contacts');
+    };
+
+    window.addEventListener('navigate', handleNavigate);
+    window.addEventListener('create-new-item', handleCreateNewItem);
+    window.addEventListener('create-new-job', handleCreateNewJob);
+    window.addEventListener('create-new-contact', handleCreateNewContact);
+
+    return () => {
+      window.removeEventListener('navigate', handleNavigate);
+      window.removeEventListener('create-new-item', handleCreateNewItem);
+      window.removeEventListener('create-new-job', handleCreateNewJob);
+      window.removeEventListener('create-new-contact', handleCreateNewContact);
+    };
+  }, []);
   
   // Inventory Filtering & Sorting
   const [inventorySearch, setInventorySearch] = useState('');
@@ -140,7 +189,10 @@ export default function App() {
 
   const handleCreateJob = () => {
     const { title, builder, date, workerIds, templateId } = newJobData;
-    if (!title || !date || workerIds.length === 0) return;
+    if (!title || !date || workerIds.length === 0) {
+      toast.warning('Please fill in all required fields');
+      return;
+    }
 
     let allocatedItems: AllocatedItem[] = [];
     if (templateId) {
@@ -165,6 +217,7 @@ export default function App() {
     setJobs(prev => [...prev, newJob]);
     setIsNewJobModalOpen(false);
     setNewJobData({ title: '', builder: '', date: '', workerIds: [], templateId: '' });
+    toast.success(`Job "${title}" created successfully!`);
   };
 
   const handleConfirmPick = (jobId: string) => {
@@ -178,7 +231,7 @@ export default function App() {
         if (itemIdx >= 0) {
           const item = newInv[itemIdx];
           newInv[itemIdx] = { ...item, quantity: Math.max(0, item.quantity - allocated.quantity) };
-          
+
           // Record movement
           const movement: StockMovement = {
             id: `m-pick-${Date.now()}-${allocated.itemId}`,
@@ -195,6 +248,7 @@ export default function App() {
     });
 
     setJobs(prevJobs => prevJobs.map(j => j.id === jobId ? { ...j, isPicked: true, status: 'In Progress' } : j));
+    toast.success(`Job "${job.title}" picked successfully!`, 'Items Allocated');
   };
 
   const handleImportCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -220,13 +274,16 @@ export default function App() {
         });
       });
       setInventory(prev => [...prev, ...newItems]);
-      alert(`Imported ${newItems.length} items successfully!`);
+      toast.success(`Imported ${newItems.length} items successfully!`, 'CSV Import Complete');
     };
     reader.readAsText(file);
   };
 
   const handleManualAdjustment = () => {
-    if (!itemToAdjust || adjustmentValue === 0 || !adjustmentReason.trim()) return;
+    if (!itemToAdjust || adjustmentValue === 0 || !adjustmentReason.trim()) {
+      toast.warning('Please provide adjustment value and reason');
+      return;
+    }
     const newQuantity = Math.max(0, itemToAdjust.quantity + adjustmentValue);
     setInventory(prev => prev.map(i => i.id === itemToAdjust.id ? { ...i, quantity: newQuantity } : i));
     const movement: StockMovement = {
@@ -239,6 +296,7 @@ export default function App() {
     };
     setMovements(prev => [movement, ...prev]);
     setIsAdjustModalOpen(false);
+    toast.success(`Stock adjusted for ${itemToAdjust.name}`, 'Adjustment Complete');
   };
 
   const applyTemplateAllocation = () => {
@@ -329,36 +387,47 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen flex bg-slate-50">
-      <aside className={`${isSidebarOpen ? 'w-64' : 'w-20'} bg-slate-900 text-slate-400 transition-all duration-300 flex flex-col fixed h-full z-20`}>
-        <div className="p-6 flex items-center space-x-3 text-white">
-          <Package className="w-8 h-8 text-blue-400 shrink-0" />
-          {isSidebarOpen && <span className="font-bold text-xl tracking-tight">PlumbStock</span>}
-        </div>
-        <nav className="flex-1 mt-4">
-          <NavItem icon={TrendingUp} label="Dashboard" active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} collapsed={!isSidebarOpen} />
-          <NavItem icon={Package} label="Inventory" active={activeTab === 'inventory'} onClick={() => setActiveTab('inventory')} collapsed={!isSidebarOpen} />
-          <NavItem icon={Calendar} label="Jobs & Planning" active={activeTab === 'jobs'} onClick={() => setActiveTab('jobs')} collapsed={!isSidebarOpen} />
-          <NavItem icon={ShoppingCart} label="Smart Ordering" active={activeTab === 'ordering'} onClick={() => setActiveTab('ordering')} collapsed={!isSidebarOpen} />
-          <NavItem icon={ArrowRightLeft} label="Stock History" active={activeTab === 'history'} onClick={() => setActiveTab('history')} collapsed={!isSidebarOpen} />
-          <NavItem icon={Users} label="Contacts" active={activeTab === 'contacts'} onClick={() => setActiveTab('contacts')} collapsed={!isSidebarOpen} />
-        </nav>
-        <div className="p-4 border-t border-slate-800">
-          <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="flex items-center w-full p-3 rounded-lg hover:bg-slate-800 transition-colors">
-            {isSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5 mx-auto" />}
-            {isSidebarOpen && <span className="ml-3">Collapse</span>}
-          </button>
-        </div>
-      </aside>
+    <>
+      <CommandPalette />
 
-      <main className={`flex-1 ${isSidebarOpen ? 'ml-64' : 'ml-20'} transition-all duration-300 p-8`}>
-        <header className="mb-8 flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-extrabold text-slate-800 capitalize">{activeTab.replace('-', ' ')}</h1>
-            <p className="text-slate-500 mt-1">Manage your plumbing warehouse efficiently.</p>
+      <div className="min-h-screen flex bg-slate-50">
+        <aside className={`${isSidebarOpen ? 'w-64' : 'w-20'} bg-slate-900 text-slate-400 transition-all duration-300 flex flex-col fixed h-full z-20`}>
+          <div className="p-6 flex items-center space-x-3 text-white" data-tour="logo">
+            <Package className="w-8 h-8 text-blue-400 shrink-0" />
+            {isSidebarOpen && <span className="font-bold text-xl tracking-tight">PlumbStock</span>}
           </div>
-          <button className="p-2 text-slate-400 hover:text-blue-500 transition-colors"><Settings className="w-6 h-6" /></button>
-        </header>
+          <nav className="flex-1 mt-4" data-tour="navigation">
+            <NavItem icon={TrendingUp} label="Dashboard" active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} collapsed={!isSidebarOpen} />
+            <div data-tour="inventory">
+              <NavItem icon={Package} label="Inventory" active={activeTab === 'inventory'} onClick={() => setActiveTab('inventory')} collapsed={!isSidebarOpen} />
+            </div>
+            <div data-tour="jobs">
+              <NavItem icon={Calendar} label="Jobs & Planning" active={activeTab === 'jobs'} onClick={() => setActiveTab('jobs')} collapsed={!isSidebarOpen} />
+            </div>
+            <NavItem icon={ShoppingCart} label="Smart Ordering" active={activeTab === 'ordering'} onClick={() => setActiveTab('ordering')} collapsed={!isSidebarOpen} />
+            <NavItem icon={ArrowRightLeft} label="Stock History" active={activeTab === 'history'} onClick={() => setActiveTab('history')} collapsed={!isSidebarOpen} />
+            <div data-tour="contacts">
+              <NavItem icon={Users} label="Contacts" active={activeTab === 'contacts'} onClick={() => setActiveTab('contacts')} collapsed={!isSidebarOpen} />
+            </div>
+          </nav>
+          <div className="p-4 border-t border-slate-800">
+            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="flex items-center w-full p-3 rounded-lg hover:bg-slate-800 transition-colors">
+              {isSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5 mx-auto" />}
+              {isSidebarOpen && <span className="ml-3">Collapse</span>}
+            </button>
+          </div>
+        </aside>
+
+        <main id="main-content" className={`flex-1 ${isSidebarOpen ? 'ml-64' : 'ml-20'} transition-all duration-300 p-8`}>
+          <header className="mb-8 flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-extrabold text-slate-800 capitalize">{activeTab.replace('-', ' ')}</h1>
+              <p className="text-slate-500 mt-1">Manage your plumbing warehouse efficiently.</p>
+            </div>
+            <button className="p-2 text-slate-400 hover:text-blue-500 transition-colors" data-tour="settings">
+              <Settings className="w-6 h-6" />
+            </button>
+          </header>
 
         {activeTab === 'dashboard' && <DashboardView inventory={inventory} jobs={jobs} contacts={contacts} onNavigate={setActiveTab} />}
         {activeTab === 'inventory' && (
@@ -771,6 +840,16 @@ export default function App() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </>
+  );
+}
+
+// Main App component with providers
+export default function App() {
+  return (
+    <ToastProvider>
+      <AppContent />
+    </ToastProvider>
   );
 }
