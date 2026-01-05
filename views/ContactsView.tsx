@@ -1,14 +1,16 @@
 
 import React from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { Contact } from '../types';
 import { Badge } from '../components/Shared';
 
 interface ContactsViewProps {
   contacts: Contact[];
+  onEditContact?: (contact: Contact) => void;
+  onDeleteContact?: (contact: Contact) => void;
 }
 
-export const ContactsView: React.FC<ContactsViewProps> = ({ contacts }) => {
+export const ContactsView: React.FC<ContactsViewProps> = ({ contacts, onEditContact, onDeleteContact }) => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {contacts.map(contact => (
@@ -16,14 +18,34 @@ export const ContactsView: React.FC<ContactsViewProps> = ({ contacts }) => {
           <div className="absolute top-4 right-4"><Badge variant={contact.type === 'Supplier' ? 'yellow' : 'green'}>{contact.type}</Badge></div>
           <div className="flex items-center space-x-4 mb-6">
             <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-xl ${contact.type === 'Supplier' ? 'bg-amber-500' : 'bg-green-500'}`}>{contact.name.charAt(0)}</div>
-            <div>
+            <div className="flex-1">
               <h4 className="font-bold text-slate-800 text-lg">{contact.name}</h4>
               {contact.company && <p className="text-slate-500 text-sm font-medium">{contact.company}</p>}
             </div>
           </div>
-          <div className="space-y-3 text-sm text-slate-600">
+          <div className="space-y-3 text-sm text-slate-600 mb-4">
             <div className="flex items-center"><span className="font-semibold w-16">Email:</span><a href={`mailto:${contact.email}`} className="text-blue-600 hover:underline">{contact.email}</a></div>
             <div className="flex items-center"><span className="font-semibold w-16">Phone:</span><span>{contact.phone}</span></div>
+          </div>
+          <div className="flex space-x-2 pt-4 border-t border-slate-100">
+            {onEditContact && (
+              <button
+                onClick={() => onEditContact(contact)}
+                className="flex-1 flex items-center justify-center space-x-2 px-3 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors font-medium"
+              >
+                <Edit2 className="w-4 h-4" />
+                <span>Edit</span>
+              </button>
+            )}
+            {onDeleteContact && (
+              <button
+                onClick={() => onDeleteContact(contact)}
+                className="flex-1 flex items-center justify-center space-x-2 px-3 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors font-medium"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Delete</span>
+              </button>
+            )}
           </div>
         </div>
       ))}

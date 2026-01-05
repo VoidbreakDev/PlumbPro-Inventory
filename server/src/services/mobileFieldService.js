@@ -288,7 +288,7 @@ export const getFieldNotes = async (jobId, userId) => {
 /**
  * Process barcode scan
  */
-export const processBarcodeS can = async (userId, scanData) => {
+export const processBarcodeScan = async (userId, scanData) => {
   const { barcodeValue, barcodeType, scanType, quantity, location, jobId } = scanData;
 
   // Look up item by barcode

@@ -33,7 +33,7 @@ import type {
 } from '../lib/analyticsAPI';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import { format, subDays, subMonths } from 'date-fns';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
@@ -163,108 +163,176 @@ export function AnalyticsView() {
     doc.save(`plumbpro-analytics-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
   };
 
-  const exportToExcel = () => {
-    const wb = XLSX.utils.book_new();
+  const exportToExcel = async () => {
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'PlumbPro Inventory';
+    workbook.created = new Date();
 
     if (activeTab === 'inventory' && inventoryData) {
       // Category value sheet
-      const ws1 = XLSX.utils.json_to_sheet(
-        inventoryData.categoryValue.map(cat => ({
-          Category: cat.category,
-          'Item Count': cat.itemCount,
-          'Total Stock': cat.totalQuantity,
-          'Total Value': cat.totalValue
-        }))
-      );
-      XLSX.utils.book_append_sheet(wb, ws1, 'Category Values');
+      const ws1 = workbook.addWorksheet('Category Values');
+      ws1.columns = [
+        { header: 'Category', key: 'category', width: 20 },
+        { header: 'Item Count', key: 'itemCount', width: 15 },
+        { header: 'Total Stock', key: 'totalStock', width: 15 },
+        { header: 'Total Value', key: 'totalValue', width: 15 }
+      ];
+      inventoryData.categoryValue.forEach(cat => {
+        ws1.addRow({
+          category: cat.category,
+          itemCount: cat.itemCount,
+          totalStock: cat.totalQuantity,
+          totalValue: cat.totalValue
+        });
+      });
 
       // Turnover sheet
-      const ws2 = XLSX.utils.json_to_sheet(
-        inventoryData.turnover.map(item => ({
-          Item: item.name,
-          Category: item.category,
-          'Current Stock': item.currentStock,
-          'Total Used': item.totalUsed,
-          'Turnover Rate': item.turnoverRate
-        }))
-      );
-      XLSX.utils.book_append_sheet(wb, ws2, 'Turnover Analysis');
+      const ws2 = workbook.addWorksheet('Turnover Analysis');
+      ws2.columns = [
+        { header: 'Item', key: 'item', width: 30 },
+        { header: 'Category', key: 'category', width: 20 },
+        { header: 'Current Stock', key: 'currentStock', width: 15 },
+        { header: 'Total Used', key: 'totalUsed', width: 15 },
+        { header: 'Turnover Rate', key: 'turnoverRate', width: 15 }
+      ];
+      inventoryData.turnover.forEach(item => {
+        ws2.addRow({
+          item: item.name,
+          category: item.category,
+          currentStock: item.currentStock,
+          totalUsed: item.totalUsed,
+          turnoverRate: item.turnoverRate
+        });
+      });
 
       // Aging stock sheet
-      const ws3 = XLSX.utils.json_to_sheet(
-        inventoryData.stockAging.map(item => ({
-          Item: item.name,
-          Category: item.category,
-          Quantity: item.quantity,
-          Price: item.price,
-          'Days Idle': item.daysIdle || 'Never moved'
-        }))
-      );
-      XLSX.utils.book_append_sheet(wb, ws3, 'Aging Stock');
+      const ws3 = workbook.addWorksheet('Aging Stock');
+      ws3.columns = [
+        { header: 'Item', key: 'item', width: 30 },
+        { header: 'Category', key: 'category', width: 20 },
+        { header: 'Quantity', key: 'quantity', width: 15 },
+        { header: 'Price', key: 'price', width: 15 },
+        { header: 'Days Idle', key: 'daysIdle', width: 15 }
+      ];
+      inventoryData.stockAging.forEach(item => {
+        ws3.addRow({
+          item: item.name,
+          category: item.category,
+          quantity: item.quantity,
+          price: item.price,
+          daysIdle: item.daysIdle || 'Never moved'
+        });
+      });
     } else if (activeTab === 'jobs' && jobData) {
       // Job type stats
-      const ws1 = XLSX.utils.json_to_sheet(
-        jobData.jobTypeStats.map(jt => ({
-          'Job Type': jt.jobType,
-          'Job Count': jt.jobCount,
-          'Avg Material Cost': jt.avgMaterialCost,
-          'Total Material Cost': jt.totalMaterialCost
-        }))
-      );
-      XLSX.utils.book_append_sheet(wb, ws1, 'Job Type Stats');
+      const ws1 = workbook.addWorksheet('Job Type Stats');
+      ws1.columns = [
+        { header: 'Job Type', key: 'jobType', width: 25 },
+        { header: 'Job Count', key: 'jobCount', width: 15 },
+        { header: 'Avg Material Cost', key: 'avgCost', width: 20 },
+        { header: 'Total Material Cost', key: 'totalCost', width: 20 }
+      ];
+      jobData.jobTypeStats.forEach(jt => {
+        ws1.addRow({
+          jobType: jt.jobType,
+          jobCount: jt.jobCount,
+          avgCost: jt.avgMaterialCost,
+          totalCost: jt.totalMaterialCost
+        });
+      });
 
       // Monthly trends
-      const ws2 = XLSX.utils.json_to_sheet(
-        jobData.monthlyTrends.map(mt => ({
-          Month: mt.month,
-          'Job Count': mt.jobCount,
-          'Completed': mt.completedCount,
-          'Material Cost': mt.totalMaterialCost
-        }))
-      );
-      XLSX.utils.book_append_sheet(wb, ws2, 'Monthly Trends');
+      const ws2 = workbook.addWorksheet('Monthly Trends');
+      ws2.columns = [
+        { header: 'Month', key: 'month', width: 15 },
+        { header: 'Job Count', key: 'jobCount', width: 15 },
+        { header: 'Completed', key: 'completed', width: 15 },
+        { header: 'Material Cost', key: 'materialCost', width: 20 }
+      ];
+      jobData.monthlyTrends.forEach(mt => {
+        ws2.addRow({
+          month: mt.month,
+          jobCount: mt.jobCount,
+          completed: mt.completedCount,
+          materialCost: mt.totalMaterialCost
+        });
+      });
 
       // Individual jobs
-      const ws3 = XLSX.utils.json_to_sheet(
-        jobData.jobs.map(job => ({
-          Title: job.title,
-          'Job Type': job.jobType,
-          Builder: job.builder,
-          Status: job.status,
-          Date: job.date,
-          'Material Cost': job.materialCost,
-          Workers: job.workerCount,
-          Items: job.itemCount
-        }))
-      );
-      XLSX.utils.book_append_sheet(wb, ws3, 'Jobs');
+      const ws3 = workbook.addWorksheet('Jobs');
+      ws3.columns = [
+        { header: 'Title', key: 'title', width: 30 },
+        { header: 'Job Type', key: 'jobType', width: 20 },
+        { header: 'Builder', key: 'builder', width: 25 },
+        { header: 'Status', key: 'status', width: 15 },
+        { header: 'Date', key: 'date', width: 15 },
+        { header: 'Material Cost', key: 'materialCost', width: 15 },
+        { header: 'Workers', key: 'workers', width: 12 },
+        { header: 'Items', key: 'items', width: 12 }
+      ];
+      jobData.jobs.forEach(job => {
+        ws3.addRow({
+          title: job.title,
+          jobType: job.jobType,
+          builder: job.builder,
+          status: job.status,
+          date: job.date,
+          materialCost: job.materialCost,
+          workers: job.workerCount,
+          items: job.itemCount
+        });
+      });
     } else if (activeTab === 'workers' && workerData) {
-      const ws = XLSX.utils.json_to_sheet(
-        workerData.workers.map(w => ({
-          Worker: w.name,
-          'Total Jobs': w.totalJobs,
-          Completed: w.completedJobs,
-          'In Progress': w.inProgressJobs,
-          'Completion Rate': `${w.completionRate}%`,
-          'Materials Handled': w.totalMaterialsHandled
-        }))
-      );
-      XLSX.utils.book_append_sheet(wb, ws, 'Worker Performance');
+      const ws = workbook.addWorksheet('Worker Performance');
+      ws.columns = [
+        { header: 'Worker', key: 'worker', width: 25 },
+        { header: 'Total Jobs', key: 'totalJobs', width: 15 },
+        { header: 'Completed', key: 'completed', width: 15 },
+        { header: 'In Progress', key: 'inProgress', width: 15 },
+        { header: 'Completion Rate', key: 'completionRate', width: 18 },
+        { header: 'Materials Handled', key: 'materialsHandled', width: 20 }
+      ];
+      workerData.workers.forEach(w => {
+        ws.addRow({
+          worker: w.name,
+          totalJobs: w.totalJobs,
+          completed: w.completedJobs,
+          inProgress: w.inProgressJobs,
+          completionRate: `${w.completionRate}%`,
+          materialsHandled: w.totalMaterialsHandled
+        });
+      });
     } else if (activeTab === 'suppliers' && supplierData) {
-      const ws = XLSX.utils.json_to_sheet(
-        supplierData.suppliers.map(s => ({
-          Supplier: s.name,
-          Company: s.company,
-          'Total Items': s.totalItems,
-          'Total Stock': s.totalStock,
-          'Total Value': s.totalValue,
-          'Low Stock Items': s.lowStockItems
-        }))
-      );
-      XLSX.utils.book_append_sheet(wb, ws, 'Supplier Performance');
+      const ws = workbook.addWorksheet('Supplier Performance');
+      ws.columns = [
+        { header: 'Supplier', key: 'supplier', width: 25 },
+        { header: 'Company', key: 'company', width: 30 },
+        { header: 'Total Items', key: 'totalItems', width: 15 },
+        { header: 'Total Stock', key: 'totalStock', width: 15 },
+        { header: 'Total Value', key: 'totalValue', width: 15 },
+        { header: 'Low Stock Items', key: 'lowStockItems', width: 18 }
+      ];
+      supplierData.suppliers.forEach(s => {
+        ws.addRow({
+          supplier: s.name,
+          company: s.company,
+          totalItems: s.totalItems,
+          totalStock: s.totalStock,
+          totalValue: s.totalValue,
+          lowStockItems: s.lowStockItems
+        });
+      });
     }
 
-    XLSX.writeFile(wb, `plumbpro-analytics-${activeTab}-${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+    // Generate and download the file
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `plumbpro-analytics-${activeTab}-${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
+    link.click();
+    window.URL.revokeObjectURL(url);
   };
 
   return (

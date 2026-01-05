@@ -48,6 +48,16 @@ export function ApprovalsView() {
       setStats(statsData);
     } catch (error) {
       console.error('Failed to load approval data:', error);
+      // Set empty data on error instead of crashing
+      setApprovals([]);
+      setPendingApprovals([]);
+      setStats({
+        total_approvals: 0,
+        pending_approvals: 0,
+        approved_approvals: 0,
+        rejected_approvals: 0,
+        pending_my_approvals: 0
+      });
     } finally {
       setLoading(false);
     }

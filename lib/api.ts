@@ -32,10 +32,11 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401 || error.response?.status === 403) {
-      // Clear token and redirect to login
+      // Clear token but don't redirect - let the app handle it
       localStorage.removeItem('authToken');
       localStorage.removeItem('user');
-      window.location.href = '/login';
+      // Dispatch custom event for auth error
+      window.dispatchEvent(new CustomEvent('auth-error'));
     }
     return Promise.reject(error);
   }

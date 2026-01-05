@@ -120,6 +120,10 @@ function AppContent() {
   const [itemToAdjust, setItemToAdjust] = useState<InventoryItem | null>(null);
   const [adjustmentValue, setAdjustmentValue] = useState<number>(0);
   const [adjustmentReason, setAdjustmentReason] = useState<string>('');
+  const [isEditItemModalOpen, setIsEditItemModalOpen] = useState(false);
+  const [itemToEdit, setItemToEdit] = useState<InventoryItem | null>(null);
+  const [isEditContactModalOpen, setIsEditContactModalOpen] = useState(false);
+  const [contactToEdit, setContactToEdit] = useState<Contact | null>(null);
 
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [itemToShow, setItemToShow] = useState<InventoryItem | null>(null);
@@ -304,6 +308,46 @@ function AppContent() {
     toast.success(`Stock adjusted for ${itemToAdjust.name}`, 'Adjustment Complete');
   };
 
+  const handleEditItem = (item: InventoryItem) => {
+    setItemToEdit(item);
+    setIsEditItemModalOpen(true);
+  };
+
+  const handleSaveEditItem = () => {
+    if (!itemToEdit) return;
+    if (!itemToEdit.name.trim() || !itemToEdit.category.trim()) {
+      toast.warning('Please fill in all required fields');
+      return;
+    }
+    setInventory(prev => prev.map(i => i.id === itemToEdit.id ? itemToEdit : i));
+    setIsEditItemModalOpen(false);
+    toast.success(`${itemToEdit.name} updated successfully!`);
+    setItemToEdit(null);
+  };
+
+  const handleEditContact = (contact: Contact) => {
+    setContactToEdit(contact);
+    setIsEditContactModalOpen(true);
+  };
+
+  const handleSaveEditContact = () => {
+    if (!contactToEdit) return;
+    if (!contactToEdit.name.trim() || !contactToEdit.email.trim()) {
+      toast.warning('Please fill in name and email');
+      return;
+    }
+    setContacts(prev => prev.map(c => c.id === contactToEdit.id ? contactToEdit : c));
+    setIsEditContactModalOpen(false);
+    toast.success(`${contactToEdit.name} updated successfully!`);
+    setContactToEdit(null);
+  };
+
+  const handleDeleteContact = (contact: Contact) => {
+    if (!confirm(`Delete ${contact.name}? This cannot be undone.`)) return;
+    setContacts(prev => prev.filter(c => c.id !== contact.id));
+    toast.success(`${contact.name} deleted successfully`);
+  };
+
   const applyTemplateAllocation = () => {
     if (!templateJob || !templateItems.length) return;
     setJobs(prev => prev.map(job => {
@@ -440,9 +484,9 @@ function AppContent() {
 
         {activeTab === 'dashboard' && <DashboardView inventory={inventory} jobs={jobs} contacts={contacts} onNavigate={setActiveTab} />}
         {activeTab === 'inventory' && (
-          <InventoryView 
-            inventory={filteredInventory} 
-            contacts={contacts} 
+          <InventoryView
+            inventory={filteredInventory}
+            contacts={contacts}
             search={inventorySearch}
             onSearchChange={setInventorySearch}
             sortConfig={inventorySortConfig}
@@ -450,6 +494,7 @@ function AppContent() {
             onImportCSV={handleImportCSV}
             onViewDetails={(item) => { setItemToShow(item); setIsDetailModalOpen(true); }}
             onAdjustStock={(item) => { setItemToAdjust(item); setAdjustmentValue(0); setIsAdjustModalOpen(true); }}
+            onEditItem={handleEditItem}
           />
         )}
         {activeTab === 'jobs' && (
@@ -479,7 +524,13 @@ function AppContent() {
         )}
         {activeTab === 'ordering' && <OrderingView inventory={inventory} jobs={jobs} />}
         {activeTab === 'history' && <HistoryView movements={movements} inventory={inventory} />}
-        {activeTab === 'contacts' && <ContactsView contacts={contacts} />}
+        {activeTab === 'contacts' && (
+          <ContactsView
+            contacts={contacts}
+            onEditContact={handleEditContact}
+            onDeleteContact={handleDeleteContact}
+          />
+        )}
         {activeTab === 'approvals' && <ApprovalsView />}
       </main>
 
@@ -822,7 +873,7 @@ function AppContent() {
               </div>
               <div>
                 <label className="block text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2">Adjustment Quantity</label>
-                <input 
+                <input
                   type="number" value={adjustmentValue}
                   onChange={(e) => setAdjustmentValue(parseInt(e.target.value) || 0)}
                   className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none text-lg font-bold"
@@ -831,7 +882,7 @@ function AppContent() {
               </div>
               <div>
                 <label className="block text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2">Reason</label>
-                <select 
+                <select
                   value={adjustmentReason}
                   onChange={(e) => setAdjustmentReason(e.target.value)}
                   className="w-full px-4 py-3 border border-slate-200 rounded-xl bg-white shadow-sm"
@@ -846,6 +897,168 @@ function AppContent() {
             <div className="p-6 bg-slate-50 border-t border-slate-100 flex space-x-3">
               <button onClick={() => setIsAdjustModalOpen(false)} className="flex-1 px-4 py-3 bg-white border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-100">Cancel</button>
               <button disabled={adjustmentValue === 0 || !adjustmentReason} onClick={handleManualAdjustment} className="flex-1 px-4 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 shadow-lg">Apply</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Item Modal */}
+      {isEditItemModalOpen && itemToEdit && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+              <h3 className="text-xl font-bold text-slate-800">Edit Inventory Item</h3>
+              <button onClick={() => setIsEditItemModalOpen(false)} className="text-slate-400 hover:text-slate-600"><X className="w-6 h-6" /></button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2">Item Name *</label>
+                  <input
+                    type="text"
+                    value={itemToEdit.name}
+                    onChange={(e) => setItemToEdit({ ...itemToEdit, name: e.target.value })}
+                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    placeholder="Item name"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2">Category *</label>
+                  <input
+                    type="text"
+                    value={itemToEdit.category}
+                    onChange={(e) => setItemToEdit({ ...itemToEdit, category: e.target.value })}
+                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    placeholder="Category"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2">Price ($)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={itemToEdit.price}
+                    onChange={(e) => setItemToEdit({ ...itemToEdit, price: parseFloat(e.target.value) || 0 })}
+                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    placeholder="0.00"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2">Reorder Level</label>
+                  <input
+                    type="number"
+                    value={itemToEdit.reorderLevel}
+                    onChange={(e) => setItemToEdit({ ...itemToEdit, reorderLevel: parseInt(e.target.value) || 0 })}
+                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    placeholder="5"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2">Supplier</label>
+                  <select
+                    value={itemToEdit.supplierId}
+                    onChange={(e) => setItemToEdit({ ...itemToEdit, supplierId: e.target.value })}
+                    className="w-full px-4 py-3 border border-slate-200 rounded-xl bg-white shadow-sm"
+                  >
+                    <option value="">Select supplier...</option>
+                    {contacts.filter(c => c.type === 'Supplier').map(supplier => (
+                      <option key={supplier.id} value={supplier.id}>{supplier.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2">Supplier Code</label>
+                  <input
+                    type="text"
+                    value={itemToEdit.supplierCode}
+                    onChange={(e) => setItemToEdit({ ...itemToEdit, supplierCode: e.target.value })}
+                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    placeholder="Product code"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="p-6 bg-slate-50 border-t border-slate-100 flex space-x-3">
+              <button onClick={() => setIsEditItemModalOpen(false)} className="flex-1 px-4 py-3 bg-white border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-100">Cancel</button>
+              <button onClick={handleSaveEditItem} className="flex-1 px-4 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 shadow-lg">Save Changes</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Contact Modal */}
+      {isEditContactModalOpen && contactToEdit && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+              <h3 className="text-xl font-bold text-slate-800">Edit Contact</h3>
+              <button onClick={() => setIsEditContactModalOpen(false)} className="text-slate-400 hover:text-slate-600"><X className="w-6 h-6" /></button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2">Name *</label>
+                  <input
+                    type="text"
+                    value={contactToEdit.name}
+                    onChange={(e) => setContactToEdit({ ...contactToEdit, name: e.target.value })}
+                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    placeholder="Contact name"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2">Company</label>
+                  <input
+                    type="text"
+                    value={contactToEdit.company || ''}
+                    onChange={(e) => setContactToEdit({ ...contactToEdit, company: e.target.value })}
+                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    placeholder="Company name"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2">Email *</label>
+                  <input
+                    type="email"
+                    value={contactToEdit.email}
+                    onChange={(e) => setContactToEdit({ ...contactToEdit, email: e.target.value })}
+                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    placeholder="email@example.com"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2">Phone</label>
+                  <input
+                    type="tel"
+                    value={contactToEdit.phone}
+                    onChange={(e) => setContactToEdit({ ...contactToEdit, phone: e.target.value })}
+                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    placeholder="(555) 123-4567"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2">Type</label>
+                <select
+                  value={contactToEdit.type}
+                  onChange={(e) => setContactToEdit({ ...contactToEdit, type: e.target.value as 'Supplier' | 'Plumber' | 'Customer' })}
+                  className="w-full px-4 py-3 border border-slate-200 rounded-xl bg-white shadow-sm"
+                >
+                  <option value="Supplier">Supplier</option>
+                  <option value="Plumber">Plumber</option>
+                  <option value="Customer">Customer</option>
+                </select>
+              </div>
+            </div>
+            <div className="p-6 bg-slate-50 border-t border-slate-100 flex space-x-3">
+              <button onClick={() => setIsEditContactModalOpen(false)} className="flex-1 px-4 py-3 bg-white border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-100">Cancel</button>
+              <button onClick={handleSaveEditContact} className="flex-1 px-4 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 shadow-lg">Save Changes</button>
             </div>
           </div>
         </div>

@@ -16,6 +16,7 @@ interface InventoryViewProps {
   onImportCSV: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onViewDetails: (item: InventoryItem) => void;
   onAdjustStock: (item: InventoryItem) => void;
+  onEditItem: (item: InventoryItem) => void;
 }
 
 export const InventoryView: React.FC<InventoryViewProps> = ({
@@ -28,6 +29,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   onImportCSV,
   onViewDetails,
   onAdjustStock,
+  onEditItem,
 }) => {
   const InventoryTableHeader = ({ label, column }: { label: string, column?: keyof InventoryItem }) => {
     const isSortable = !!column;
@@ -162,7 +164,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         <button title="Adjust Stock" onClick={() => onAdjustStock(item)} className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors">
                           <SlidersHorizontal className="w-4 h-4" />
                         </button>
-                        <button title="Edit Item" className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
+                        <button title="Edit Item" onClick={() => onEditItem(item)} className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
                           <Edit2 className="w-4 h-4" />
                         </button>
                       </div>
