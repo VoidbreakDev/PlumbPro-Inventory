@@ -13,6 +13,7 @@ import notificationsRoutes from './routes/notifications.js';
 import aiRoutes from './routes/ai.js';
 import mobileRoutes from './routes/mobile.js';
 import workflowRoutes from './routes/workflow.js';
+import approvalsRoutes from './routes/approvals.js';
 import cron from 'node-cron';
 import { checkLowStockAlerts, checkJobReminders, sendDailySummary } from './services/notificationService.js';
 import { processEmailQueue } from './services/emailService.js';
@@ -60,6 +61,7 @@ app.use('/api/notifications', notificationsRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/mobile', mobileRoutes);
 app.use('/api/workflows', workflowRoutes);
+app.use('/api/approvals', approvalsRoutes);
 
 // 404 handler
 app.use((req, res) => {
