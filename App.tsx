@@ -1,5 +1,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import './lib/i18n';
 import {
   Package,
   Users,
@@ -22,7 +24,8 @@ import {
   Phone,
   Search,
   UserPlus,
-  Clock
+  Clock,
+  Languages
 } from 'lucide-react';
 import {
   Contact,
@@ -47,16 +50,18 @@ import { JobsView } from './views/JobsView';
 import { OrderingView } from './views/OrderingView';
 import { HistoryView } from './views/HistoryView';
 import { ContactsView } from './views/ContactsView';
+import { ApprovalsView } from './views/ApprovalsView';
 
 // UX Components
 import { ToastProvider, useToast } from './components/ToastNotification';
 import CommandPalette from './components/CommandPalette';
+import LanguageSwitcher from './components/LanguageSwitcher';
 import { onboardingService, tours } from './lib/onboardingService';
 import { addSkipLink } from './lib/accessibility';
 
 function AppContent() {
   const toast = useToast();
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'inventory' | 'jobs' | 'contacts' | 'ordering' | 'history'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'inventory' | 'jobs' | 'contacts' | 'ordering' | 'history' | 'approvals'>('dashboard');
   const [inventory, setInventory] = useState<InventoryItem[]>(INITIAL_INVENTORY);
   const [contacts, setContacts] = useState<Contact[]>(INITIAL_CONTACTS);
   const [jobs, setJobs] = useState<Job[]>(INITIAL_JOBS);
@@ -79,7 +84,7 @@ function AppContent() {
     // Custom event listeners for command palette actions
     const handleNavigate = (e: Event) => {
       const customEvent = e as CustomEvent;
-      const tab = customEvent.detail as 'dashboard' | 'inventory' | 'jobs' | 'contacts' | 'ordering' | 'history';
+      const tab = customEvent.detail as 'dashboard' | 'inventory' | 'jobs' | 'contacts' | 'ordering' | 'history' | 'approvals';
       setActiveTab(tab);
     };
 
@@ -409,6 +414,7 @@ function AppContent() {
             <div data-tour="contacts">
               <NavItem icon={Users} label="Contacts" active={activeTab === 'contacts'} onClick={() => setActiveTab('contacts')} collapsed={!isSidebarOpen} />
             </div>
+            <NavItem icon={CheckCircle} label="Approvals" active={activeTab === 'approvals'} onClick={() => setActiveTab('approvals')} collapsed={!isSidebarOpen} />
           </nav>
           <div className="p-4 border-t border-slate-800">
             <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="flex items-center w-full p-3 rounded-lg hover:bg-slate-800 transition-colors">
@@ -424,9 +430,12 @@ function AppContent() {
               <h1 className="text-3xl font-extrabold text-slate-800 capitalize">{activeTab.replace('-', ' ')}</h1>
               <p className="text-slate-500 mt-1">Manage your plumbing warehouse efficiently.</p>
             </div>
-            <button className="p-2 text-slate-400 hover:text-blue-500 transition-colors" data-tour="settings">
-              <Settings className="w-6 h-6" />
-            </button>
+            <div className="flex items-center gap-3">
+              <LanguageSwitcher />
+              <button className="p-2 text-slate-400 hover:text-blue-500 transition-colors" data-tour="settings">
+                <Settings className="w-6 h-6" />
+              </button>
+            </div>
           </header>
 
         {activeTab === 'dashboard' && <DashboardView inventory={inventory} jobs={jobs} contacts={contacts} onNavigate={setActiveTab} />}
@@ -471,6 +480,7 @@ function AppContent() {
         {activeTab === 'ordering' && <OrderingView inventory={inventory} jobs={jobs} />}
         {activeTab === 'history' && <HistoryView movements={movements} inventory={inventory} />}
         {activeTab === 'contacts' && <ContactsView contacts={contacts} />}
+        {activeTab === 'approvals' && <ApprovalsView />}
       </main>
 
       {/* New Job Modal */}
