@@ -52,15 +52,26 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ commands: customCommand
       keywords: ['stock', 'items', 'products']
     },
     {
-      id: 'nav-jobs',
-      label: 'Go to Jobs',
-      description: 'View and manage jobs',
+      id: 'nav-calendar',
+      label: 'Go to Calendar',
+      description: 'View jobs in calendar format',
+      icon: '📅',
+      category: 'Navigation',
+      action: () => {
+        window.dispatchEvent(new CustomEvent('navigate', { detail: 'calendar' }));
+      },
+      keywords: ['jobs', 'schedule', 'dates']
+    },
+    {
+      id: 'nav-job-planning',
+      label: 'Go to Job Planning',
+      description: 'Create and manage jobs',
       icon: '🔧',
       category: 'Navigation',
       action: () => {
-        window.dispatchEvent(new CustomEvent('navigate', { detail: 'jobs' }));
+        window.dispatchEvent(new CustomEvent('navigate', { detail: 'job-planning' }));
       },
-      keywords: ['work', 'tasks', 'appointments']
+      keywords: ['work', 'tasks', 'planning', 'create job']
     },
     {
       id: 'nav-contacts',
@@ -94,6 +105,28 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ commands: customCommand
         window.dispatchEvent(new CustomEvent('navigate', { detail: 'history' }));
       },
       keywords: ['movements', 'log', 'history']
+    },
+    {
+      id: 'nav-approvals',
+      label: 'Go to Approvals',
+      description: 'Manage approval workflows',
+      icon: '✅',
+      category: 'Navigation',
+      action: () => {
+        window.dispatchEvent(new CustomEvent('navigate', { detail: 'approvals' }));
+      },
+      keywords: ['approve', 'review', 'workflow']
+    },
+    {
+      id: 'nav-settings',
+      label: 'Go to Settings',
+      description: 'Configure application settings',
+      icon: '⚙️',
+      category: 'Navigation',
+      action: () => {
+        window.dispatchEvent(new CustomEvent('navigate', { detail: 'settings' }));
+      },
+      keywords: ['preferences', 'config', 'options']
     },
 
     // Actions

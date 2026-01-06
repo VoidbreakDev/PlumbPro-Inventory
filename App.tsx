@@ -42,32 +42,216 @@ import {
   INITIAL_MOVEMENTS,
   JOB_TEMPLATES
 } from './constants';
+import {
+  contactsAPI,
+  inventoryAPI,
+  jobsAPI,
+  templatesAPI,
+  movementsAPI
+} from './lib/api';
 
 import { NavItem, getStockStatus, StockMeter, Badge } from './components/Shared';
 import { DashboardView } from './views/DashboardView';
 import { InventoryView } from './views/InventoryView';
 import { JobsView } from './views/JobsView';
+import { CalendarView } from './views/CalendarView';
+import { JobPlanningView } from './views/JobPlanningView';
 import { OrderingView } from './views/OrderingView';
 import { HistoryView } from './views/HistoryView';
 import { ContactsView } from './views/ContactsView';
 import { ApprovalsView } from './views/ApprovalsView';
+import { SettingsView } from './views/SettingsView';
+import { MobileStockCountView } from './views/MobileStockCountView';
 
 // UX Components
 import { ToastProvider, useToast } from './components/ToastNotification';
 import CommandPalette from './components/CommandPalette';
 import LanguageSwitcher from './components/LanguageSwitcher';
+import { MobileBottomNav } from './components/MobileBottomNav';
 import { onboardingService, tours } from './lib/onboardingService';
 import { addSkipLink } from './lib/accessibility';
 
 function AppContent() {
   const toast = useToast();
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'inventory' | 'jobs' | 'contacts' | 'ordering' | 'history' | 'approvals'>('dashboard');
-  const [inventory, setInventory] = useState<InventoryItem[]>(INITIAL_INVENTORY);
-  const [contacts, setContacts] = useState<Contact[]>(INITIAL_CONTACTS);
-  const [jobs, setJobs] = useState<Job[]>(INITIAL_JOBS);
-  const [movements, setMovements] = useState<StockMovement[]>(INITIAL_MOVEMENTS);
-  const [templates, setTemplates] = useState<JobTemplate[]>(JOB_TEMPLATES);
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'inventory' | 'calendar' | 'job-planning' | 'contacts' | 'ordering' | 'history' | 'approvals' | 'settings'>('dashboard');
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [movements, setMovements] = useState<StockMovement[]>([]);
+  const [templates, setTemplates] = useState<JobTemplate[]>([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [theme, setTheme] = useState<'light' | 'dark' | 'auto'>('light');
+  const [isMobileStockCountOpen, setIsMobileStockCountOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detect mobile device
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Initialize theme from localStorage
+  useEffect(() => {
+    const savedSettings = localStorage.getItem('plumbpro-settings');
+    if (savedSettings) {
+      try {
+        const settings = JSON.parse(savedSettings);
+        if (settings.appearance?.theme) {
+          setTheme(settings.appearance.theme);
+        }
+      } catch (e) {
+        console.error('Failed to load theme settings:', e);
+      }
+    }
+  }, []);
+
+  // Load all data from database on mount
+  useEffect(() => {
+    const loadDataFromDatabase = async () => {
+      try {
+        console.log('🔄 Loading data from database...');
+
+        // Load contacts
+        try {
+          const contactsData = await contactsAPI.getAll();
+          if (contactsData && contactsData.length > 0) {
+            setContacts(contactsData);
+            console.log('✅ Loaded contacts from database:', contactsData.length);
+          } else {
+            console.log('ℹ️ No contacts in database, using initial data');
+          }
+        } catch (err: any) {
+          console.error('❌ Failed to load contacts from database:', err.message);
+          // Fallback to localStorage
+          const savedContacts = localStorage.getItem('plumbpro-contacts');
+          if (savedContacts) {
+            setContacts(JSON.parse(savedContacts));
+            console.log('📦 Loaded contacts from localStorage fallback');
+          }
+        }
+
+        // Load inventory
+        try {
+          const inventoryData = await inventoryAPI.getAll();
+          if (inventoryData && inventoryData.length > 0) {
+            setInventory(inventoryData);
+            console.log('✅ Loaded inventory from database:', inventoryData.length);
+          } else {
+            console.log('ℹ️ No inventory in database, using initial data');
+          }
+        } catch (err: any) {
+          console.error('❌ Failed to load inventory from database:', err.message);
+          // Fallback to localStorage
+          const savedInventory = localStorage.getItem('plumbpro-inventory');
+          if (savedInventory) {
+            setInventory(JSON.parse(savedInventory));
+            console.log('📦 Loaded inventory from localStorage fallback');
+          }
+        }
+
+        // Load jobs
+        try {
+          const jobsData = await jobsAPI.getAll();
+          if (jobsData && jobsData.length > 0) {
+            setJobs(jobsData);
+            console.log('✅ Loaded jobs from database:', jobsData.length);
+          } else {
+            console.log('ℹ️ No jobs in database, using initial data');
+          }
+        } catch (err: any) {
+          console.error('❌ Failed to load jobs from database:', err.message);
+          // Fallback to localStorage
+          const savedJobs = localStorage.getItem('plumbpro-jobs');
+          if (savedJobs) {
+            setJobs(JSON.parse(savedJobs));
+            console.log('📦 Loaded jobs from localStorage fallback');
+          }
+        }
+
+        // Load movements
+        try {
+          const movementsData = await movementsAPI.getAll();
+          if (movementsData && movementsData.length > 0) {
+            setMovements(movementsData);
+            console.log('✅ Loaded movements from database:', movementsData.length);
+          } else {
+            console.log('ℹ️ No movements in database, using initial data');
+          }
+        } catch (err: any) {
+          console.error('❌ Failed to load movements from database:', err.message);
+          // Fallback to localStorage
+          const savedMovements = localStorage.getItem('plumbpro-movements');
+          if (savedMovements) {
+            setMovements(JSON.parse(savedMovements));
+            console.log('📦 Loaded movements from localStorage fallback');
+          }
+        }
+
+        // Load templates
+        try {
+          const templatesData = await templatesAPI.getAll();
+          if (templatesData && templatesData.length > 0) {
+            setTemplates(templatesData);
+            console.log('✅ Loaded templates from database:', templatesData.length);
+          } else {
+            console.log('ℹ️ No templates in database, using initial data');
+          }
+        } catch (err: any) {
+          console.error('❌ Failed to load templates from database:', err.message);
+          // Fallback to localStorage
+          const savedTemplates = localStorage.getItem('plumbpro-templates');
+          if (savedTemplates) {
+            setTemplates(JSON.parse(savedTemplates));
+            console.log('📦 Loaded templates from localStorage fallback');
+          }
+        }
+
+      } catch (error) {
+        console.error('❌ Failed to load data from database:', error);
+        toast.error('Failed to load data from database. Using local data.');
+      }
+    };
+
+    loadDataFromDatabase();
+  }, []);
+
+  // Apply theme to document
+  useEffect(() => {
+    const root = document.documentElement;
+
+    if (theme === 'dark') {
+      root.classList.add('dark');
+    } else if (theme === 'light') {
+      root.classList.remove('dark');
+    } else if (theme === 'auto') {
+      // Auto mode: use system preference
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      if (prefersDark) {
+        root.classList.add('dark');
+      } else {
+        root.classList.remove('dark');
+      }
+    }
+  }, [theme]);
+
+  // Listen for settings changes
+  useEffect(() => {
+    const handleSettingsChange = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent.detail?.appearance?.theme) {
+        setTheme(customEvent.detail.appearance.theme);
+      }
+    };
+
+    window.addEventListener('settings-changed', handleSettingsChange);
+    return () => {
+      window.removeEventListener('settings-changed', handleSettingsChange);
+    };
+  }, []);
 
   // Initialize UX features on mount
   useEffect(() => {
@@ -84,7 +268,7 @@ function AppContent() {
     // Custom event listeners for command palette actions
     const handleNavigate = (e: Event) => {
       const customEvent = e as CustomEvent;
-      const tab = customEvent.detail as 'dashboard' | 'inventory' | 'jobs' | 'contacts' | 'ordering' | 'history' | 'approvals';
+      const tab = customEvent.detail as 'dashboard' | 'inventory' | 'calendar' | 'job-planning' | 'contacts' | 'ordering' | 'history' | 'approvals' | 'settings';
       setActiveTab(tab);
     };
 
@@ -122,6 +306,7 @@ function AppContent() {
   const [adjustmentReason, setAdjustmentReason] = useState<string>('');
   const [isEditItemModalOpen, setIsEditItemModalOpen] = useState(false);
   const [itemToEdit, setItemToEdit] = useState<InventoryItem | null>(null);
+  const [isAddItemModalOpen, setIsAddItemModalOpen] = useState(false);
   const [isEditContactModalOpen, setIsEditContactModalOpen] = useState(false);
   const [contactToEdit, setContactToEdit] = useState<Contact | null>(null);
 
@@ -196,68 +381,69 @@ function AppContent() {
     setInventorySortConfig({ key, direction });
   };
 
-  const handleCreateJob = () => {
+  const handleCreateJob = async () => {
     const { title, builder, date, workerIds, templateId } = newJobData;
     if (!title || !date || workerIds.length === 0) {
       toast.warning('Please fill in all required fields');
       return;
     }
 
-    let allocatedItems: AllocatedItem[] = [];
-    if (templateId) {
-      const template = templates.find(t => t.id === templateId);
-      if (template) {
-        allocatedItems = template.items.map(i => ({ ...i }));
+    try {
+      let allocatedItems: AllocatedItem[] = [];
+      if (templateId) {
+        const template = templates.find(t => t.id === templateId);
+        if (template) {
+          allocatedItems = template.items.map(i => ({ ...i }));
+        }
       }
+
+      const newJob = {
+        title,
+        builder,
+        date,
+        assignedWorkerIds: workerIds,
+        jobType: 'Custom' as const,
+        status: 'Scheduled' as const,
+        allocatedItems,
+        isPicked: false,
+      };
+
+      const createdJob = await jobsAPI.create(newJob);
+      setJobs(prev => [...prev, createdJob]);
+      setIsNewJobModalOpen(false);
+      setNewJobData({ title: '', builder: '', date: '', workerIds: [], templateId: '' });
+      toast.success(`Job "${title}" created successfully!`);
+      console.log('✅ Job created in database:', createdJob.id);
+    } catch (error: any) {
+      console.error('❌ Failed to create job:', error);
+      toast.error(`Failed to create job: ${error.message}`);
     }
-
-    const newJob: Job = {
-      id: `j-${Date.now()}`,
-      title,
-      builder,
-      date,
-      assignedWorkerIds: workerIds,
-      jobType: 'Custom',
-      status: 'Scheduled',
-      allocatedItems,
-      isPicked: false,
-    };
-
-    setJobs(prev => [...prev, newJob]);
-    setIsNewJobModalOpen(false);
-    setNewJobData({ title: '', builder: '', date: '', workerIds: [], templateId: '' });
-    toast.success(`Job "${title}" created successfully!`);
   };
 
-  const handleConfirmPick = (jobId: string) => {
+  const handleConfirmPick = async (jobId: string) => {
     const job = jobs.find(j => j.id === jobId);
     if (!job || job.isPicked) return;
 
-    setInventory(prevInv => {
-      const newInv = [...prevInv];
-      job.allocatedItems.forEach(allocated => {
-        const itemIdx = newInv.findIndex(i => i.id === allocated.itemId);
-        if (itemIdx >= 0) {
-          const item = newInv[itemIdx];
-          newInv[itemIdx] = { ...item, quantity: Math.max(0, item.quantity - allocated.quantity) };
+    try {
+      // Call the backend API to pick the job
+      await jobsAPI.pick(jobId);
 
-          // Record movement
-          const movement: StockMovement = {
-            id: `m-pick-${Date.now()}-${allocated.itemId}`,
-            itemId: allocated.itemId,
-            type: 'Out',
-            quantity: allocated.quantity,
-            timestamp: Date.now(),
-            reference: `Picked for Job: ${job.title}`,
-          };
-          setMovements(prevMove => [movement, ...prevMove]);
-        }
-      });
-      return newInv;
-    });
+      // Update local state
+      setJobs(prevJobs => prevJobs.map(j => j.id === jobId ? { ...j, isPicked: true, status: 'In Progress' as const } : j));
+      toast.success(`Job "${job.title}" picked successfully!`, 'Items Allocated');
+      console.log('✅ Job picked in database:', jobId);
 
-    setJobs(prevJobs => prevJobs.map(j => j.id === jobId ? { ...j, isPicked: true, status: 'In Progress' } : j));
-    toast.success(`Job "${job.title}" picked successfully!`, 'Items Allocated');
+      // Reload inventory and movements to reflect the changes made by backend
+      const [inventoryData, movementsData] = await Promise.all([
+        inventoryAPI.getAll(),
+        movementsAPI.getAll()
+      ]);
+      setInventory(inventoryData);
+      setMovements(movementsData);
+    } catch (error: any) {
+      console.error('❌ Failed to pick job:', error);
+      toast.error(`Failed to pick job: ${error.message}`);
+    }
   };
 
   const handleImportCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -288,24 +474,31 @@ function AppContent() {
     reader.readAsText(file);
   };
 
-  const handleManualAdjustment = () => {
+  const handleManualAdjustment = async () => {
     if (!itemToAdjust || adjustmentValue === 0 || !adjustmentReason.trim()) {
       toast.warning('Please provide adjustment value and reason');
       return;
     }
-    const newQuantity = Math.max(0, itemToAdjust.quantity + adjustmentValue);
-    setInventory(prev => prev.map(i => i.id === itemToAdjust.id ? { ...i, quantity: newQuantity } : i));
-    const movement: StockMovement = {
-      id: `m-adj-${Date.now()}`,
-      itemId: itemToAdjust.id,
-      type: 'Adjustment',
-      quantity: Math.abs(adjustmentValue),
-      timestamp: Date.now(),
-      reference: `${adjustmentValue > 0 ? 'Added' : 'Removed'}: ${adjustmentReason}`,
-    };
-    setMovements(prev => [movement, ...prev]);
-    setIsAdjustModalOpen(false);
-    toast.success(`Stock adjusted for ${itemToAdjust.name}`, 'Adjustment Complete');
+
+    try {
+      const newQuantity = Math.max(0, itemToAdjust.quantity + adjustmentValue);
+
+      // Update inventory in database
+      await inventoryAPI.adjust(itemToAdjust.id, adjustmentValue, adjustmentReason);
+      setInventory(prev => prev.map(i => i.id === itemToAdjust.id ? { ...i, quantity: newQuantity } : i));
+
+      // Movement will be created by the backend automatically
+      setIsAdjustModalOpen(false);
+      toast.success(`Stock adjusted for ${itemToAdjust.name}`, 'Adjustment Complete');
+      console.log('✅ Stock adjusted in database:', itemToAdjust.id);
+
+      // Reload movements to get the new one created by backend
+      const movementsData = await movementsAPI.getAll();
+      setMovements(movementsData);
+    } catch (error: any) {
+      console.error('❌ Failed to adjust stock:', error);
+      toast.error(`Failed to adjust stock: ${error.message}`);
+    }
   };
 
   const handleEditItem = (item: InventoryItem) => {
@@ -313,16 +506,102 @@ function AppContent() {
     setIsEditItemModalOpen(true);
   };
 
-  const handleSaveEditItem = () => {
+  const handleSaveEditItem = async () => {
     if (!itemToEdit) return;
     if (!itemToEdit.name.trim() || !itemToEdit.category.trim()) {
       toast.warning('Please fill in all required fields');
       return;
     }
-    setInventory(prev => prev.map(i => i.id === itemToEdit.id ? itemToEdit : i));
-    setIsEditItemModalOpen(false);
-    toast.success(`${itemToEdit.name} updated successfully!`);
-    setItemToEdit(null);
+
+    try {
+      const updatedItem = await inventoryAPI.update(itemToEdit.id, itemToEdit);
+      setInventory(prev => prev.map(i => i.id === itemToEdit.id ? updatedItem : i));
+      setIsEditItemModalOpen(false);
+      toast.success(`${itemToEdit.name} updated successfully!`);
+      console.log('✅ Inventory item updated in database:', updatedItem.id);
+      setItemToEdit(null);
+    } catch (error: any) {
+      console.error('❌ Failed to update item:', error);
+      toast.error(`Failed to update item: ${error.message}`);
+    }
+  };
+
+  const handleAddItem = () => {
+    const newItem: InventoryItem = {
+      id: `inv-${Date.now()}`,
+      name: '',
+      category: '',
+      quantity: 0,
+      price: 0,
+      reorderLevel: 5,
+      supplierId: contacts.find(c => c.type === 'Supplier')?.id || '',
+      supplierCode: '',
+      location: '',
+      lastUpdated: new Date().toISOString().split('T')[0]
+    };
+    setItemToEdit(newItem);
+    setIsAddItemModalOpen(true);
+  };
+
+  const handleSaveNewItem = async () => {
+    if (!itemToEdit) return;
+    if (!itemToEdit.name.trim() || !itemToEdit.category.trim()) {
+      toast.warning('Please fill in all required fields');
+      return;
+    }
+
+    try {
+      const createdItem = await inventoryAPI.create(itemToEdit);
+      setInventory(prev => [...prev, createdItem]);
+      setIsAddItemModalOpen(false);
+      toast.success(`${itemToEdit.name} added successfully!`);
+      console.log('✅ Inventory item created in database:', createdItem.id);
+      setItemToEdit(null);
+    } catch (error: any) {
+      console.error('❌ Failed to create item:', error);
+      toast.error(`Failed to create item: ${error.message}`);
+    }
+  };
+
+  const handleMobileStockUpdate = async (itemId: string, newQuantity: number) => {
+    try {
+      const item = inventory.find(i => i.id === itemId);
+      if (!item) return;
+
+      const delta = newQuantity - item.quantity;
+
+      // Update via inventory adjust API
+      await inventoryAPI.adjust(itemId, delta, 'Mobile stock count adjustment');
+
+      setInventory(prev => prev.map(i => {
+        if (i.id === itemId) {
+          return { ...i, quantity: newQuantity, lastUpdated: new Date().toISOString().split('T')[0] };
+        }
+        return i;
+      }));
+
+      toast.success('Stock count updated');
+      console.log('✅ Mobile stock updated in database:', itemId);
+
+      // Reload movements to get the new one created by backend
+      const movementsData = await movementsAPI.getAll();
+      setMovements(movementsData);
+    } catch (error: any) {
+      console.error('❌ Failed to update mobile stock:', error);
+      toast.error(`Failed to update stock: ${error.message}`);
+    }
+  };
+
+  const handleAddContact = () => {
+    setContactToEdit({
+      id: `c-${Date.now()}`,
+      name: '',
+      company: '',
+      email: '',
+      phone: '',
+      type: 'Supplier'
+    });
+    setIsEditContactModalOpen(true);
   };
 
   const handleEditContact = (contact: Contact) => {
@@ -330,22 +609,51 @@ function AppContent() {
     setIsEditContactModalOpen(true);
   };
 
-  const handleSaveEditContact = () => {
+  const handleSaveEditContact = async () => {
     if (!contactToEdit) return;
     if (!contactToEdit.name.trim() || !contactToEdit.email.trim()) {
       toast.warning('Please fill in name and email');
       return;
     }
-    setContacts(prev => prev.map(c => c.id === contactToEdit.id ? contactToEdit : c));
-    setIsEditContactModalOpen(false);
-    toast.success(`${contactToEdit.name} updated successfully!`);
-    setContactToEdit(null);
+
+    try {
+      // Check if this is a new contact or editing existing
+      const isNewContact = !contacts.find(c => c.id === contactToEdit.id);
+
+      if (isNewContact) {
+        // Create new contact in database
+        const createdContact = await contactsAPI.create(contactToEdit);
+        setContacts(prev => [...prev, createdContact]);
+        toast.success(`${contactToEdit.name} added successfully!`);
+        console.log('✅ Contact created in database:', createdContact.id);
+      } else {
+        // Update existing contact in database
+        const updatedContact = await contactsAPI.update(contactToEdit.id, contactToEdit);
+        setContacts(prev => prev.map(c => c.id === contactToEdit.id ? updatedContact : c));
+        toast.success(`${contactToEdit.name} updated successfully!`);
+        console.log('✅ Contact updated in database:', updatedContact.id);
+      }
+
+      setIsEditContactModalOpen(false);
+      setContactToEdit(null);
+    } catch (error: any) {
+      console.error('❌ Failed to save contact:', error);
+      toast.error(`Failed to save contact: ${error.message}`);
+    }
   };
 
-  const handleDeleteContact = (contact: Contact) => {
+  const handleDeleteContact = async (contact: Contact) => {
     if (!confirm(`Delete ${contact.name}? This cannot be undone.`)) return;
-    setContacts(prev => prev.filter(c => c.id !== contact.id));
-    toast.success(`${contact.name} deleted successfully`);
+
+    try {
+      await contactsAPI.delete(contact.id);
+      setContacts(prev => prev.filter(c => c.id !== contact.id));
+      toast.success(`${contact.name} deleted successfully`);
+      console.log('✅ Contact deleted from database:', contact.id);
+    } catch (error: any) {
+      console.error('❌ Failed to delete contact:', error);
+      toast.error(`Failed to delete contact: ${error.message}`);
+    }
   };
 
   const applyTemplateAllocation = () => {
@@ -418,29 +726,52 @@ function AppContent() {
   };
 
   // Template Management Handlers
-  const handleAddTemplate = (name: string, items: AllocatedItem[]) => {
-    const newTemplate: JobTemplate = {
-      id: `t-${Date.now()}`,
-      name,
-      items
-    };
-    setTemplates(prev => [...prev, newTemplate]);
+  const handleAddTemplate = async (name: string, items: AllocatedItem[]) => {
+    try {
+      const newTemplate = {
+        name,
+        items
+      };
+      const createdTemplate = await templatesAPI.create(newTemplate);
+      setTemplates(prev => [...prev, createdTemplate]);
+      toast.success(`Template "${name}" created successfully!`);
+      console.log('✅ Template created in database:', createdTemplate.id);
+    } catch (error: any) {
+      console.error('❌ Failed to create template:', error);
+      toast.error(`Failed to create template: ${error.message}`);
+    }
   };
 
-  const handleUpdateTemplate = (id: string, name: string, items: AllocatedItem[]) => {
-    setTemplates(prev => prev.map(t => t.id === id ? { ...t, name, items } : t));
+  const handleUpdateTemplate = async (id: string, name: string, items: AllocatedItem[]) => {
+    try {
+      const updatedTemplate = await templatesAPI.update(id, { name, items });
+      setTemplates(prev => prev.map(t => t.id === id ? updatedTemplate : t));
+      toast.success(`Template "${name}" updated successfully!`);
+      console.log('✅ Template updated in database:', id);
+    } catch (error: any) {
+      console.error('❌ Failed to update template:', error);
+      toast.error(`Failed to update template: ${error.message}`);
+    }
   };
 
-  const handleDeleteTemplate = (id: string) => {
-    setTemplates(prev => prev.filter(t => t.id !== id));
+  const handleDeleteTemplate = async (id: string) => {
+    try {
+      await templatesAPI.delete(id);
+      setTemplates(prev => prev.filter(t => t.id !== id));
+      toast.success('Template deleted successfully!');
+      console.log('✅ Template deleted from database:', id);
+    } catch (error: any) {
+      console.error('❌ Failed to delete template:', error);
+      toast.error(`Failed to delete template: ${error.message}`);
+    }
   };
 
   return (
     <>
       <CommandPalette />
 
-      <div className="min-h-screen flex bg-slate-50">
-        <aside className={`${isSidebarOpen ? 'w-64' : 'w-20'} bg-slate-900 text-slate-400 transition-all duration-300 flex flex-col fixed h-full z-20`}>
+      <div className="min-h-screen flex bg-slate-50 dark:bg-slate-900">
+        <aside className={`hidden md:flex ${isSidebarOpen ? 'w-64' : 'w-20'} bg-slate-900 dark:bg-slate-950 text-slate-400 dark:text-slate-500 transition-all duration-300 flex-col fixed h-full z-20`}>
           <div className="p-6 flex items-center space-x-3 text-white" data-tour="logo">
             <Package className="w-8 h-8 text-blue-400 shrink-0" />
             {isSidebarOpen && <span className="font-bold text-xl tracking-tight">PlumbStock</span>}
@@ -450,8 +781,11 @@ function AppContent() {
             <div data-tour="inventory">
               <NavItem icon={Package} label="Inventory" active={activeTab === 'inventory'} onClick={() => setActiveTab('inventory')} collapsed={!isSidebarOpen} />
             </div>
-            <div data-tour="jobs">
-              <NavItem icon={Calendar} label="Jobs & Planning" active={activeTab === 'jobs'} onClick={() => setActiveTab('jobs')} collapsed={!isSidebarOpen} />
+            <div data-tour="calendar">
+              <NavItem icon={Calendar} label="Calendar" active={activeTab === 'calendar'} onClick={() => setActiveTab('calendar')} collapsed={!isSidebarOpen} />
+            </div>
+            <div data-tour="job-planning">
+              <NavItem icon={ClipboardList} label="Job Planning" active={activeTab === 'job-planning'} onClick={() => setActiveTab('job-planning')} collapsed={!isSidebarOpen} />
             </div>
             <NavItem icon={ShoppingCart} label="Smart Ordering" active={activeTab === 'ordering'} onClick={() => setActiveTab('ordering')} collapsed={!isSidebarOpen} />
             <NavItem icon={ArrowRightLeft} label="Stock History" active={activeTab === 'history'} onClick={() => setActiveTab('history')} collapsed={!isSidebarOpen} />
@@ -459,6 +793,7 @@ function AppContent() {
               <NavItem icon={Users} label="Contacts" active={activeTab === 'contacts'} onClick={() => setActiveTab('contacts')} collapsed={!isSidebarOpen} />
             </div>
             <NavItem icon={CheckCircle} label="Approvals" active={activeTab === 'approvals'} onClick={() => setActiveTab('approvals')} collapsed={!isSidebarOpen} />
+            <NavItem icon={Settings} label="Settings" active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} collapsed={!isSidebarOpen} />
           </nav>
           <div className="p-4 border-t border-slate-800">
             <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="flex items-center w-full p-3 rounded-lg hover:bg-slate-800 transition-colors">
@@ -468,15 +803,15 @@ function AppContent() {
           </div>
         </aside>
 
-        <main id="main-content" className={`flex-1 ${isSidebarOpen ? 'ml-64' : 'ml-20'} transition-all duration-300 p-8`}>
+        <main id="main-content" className={`flex-1 md:${isSidebarOpen ? 'ml-64' : 'ml-20'} transition-all duration-300 p-4 md:p-8 pb-20 md:pb-8`}>
           <header className="mb-8 flex justify-between items-center">
             <div>
-              <h1 className="text-3xl font-extrabold text-slate-800 capitalize">{activeTab.replace('-', ' ')}</h1>
-              <p className="text-slate-500 mt-1">Manage your plumbing warehouse efficiently.</p>
+              <h1 className="text-3xl font-extrabold text-slate-800 dark:text-slate-100 capitalize">{activeTab.replace('-', ' ')}</h1>
+              <p className="text-slate-500 dark:text-slate-400 mt-1">Manage your plumbing warehouse efficiently.</p>
             </div>
             <div className="flex items-center gap-3">
               <LanguageSwitcher />
-              <button className="p-2 text-slate-400 hover:text-blue-500 transition-colors" data-tour="settings">
+              <button onClick={() => setActiveTab('settings')} className="p-2 text-slate-400 dark:text-slate-500 hover:text-blue-500 dark:hover:text-blue-400 transition-colors" data-tour="settings">
                 <Settings className="w-6 h-6" />
               </button>
             </div>
@@ -495,13 +830,24 @@ function AppContent() {
             onViewDetails={(item) => { setItemToShow(item); setIsDetailModalOpen(true); }}
             onAdjustStock={(item) => { setItemToAdjust(item); setAdjustmentValue(0); setIsAdjustModalOpen(true); }}
             onEditItem={handleEditItem}
+            onAddItem={handleAddItem}
           />
         )}
-        {activeTab === 'jobs' && (
-          <JobsView 
-            jobs={jobs} 
-            contacts={contacts} 
-            inventory={inventory} 
+        {activeTab === 'calendar' && (
+          <CalendarView
+            jobs={jobs}
+            contacts={contacts}
+            onJobClick={(job) => {
+              // Switch to job planning view when clicking a job
+              setActiveTab('job-planning');
+            }}
+          />
+        )}
+        {activeTab === 'job-planning' && (
+          <JobPlanningView
+            jobs={jobs}
+            contacts={contacts}
+            inventory={inventory}
             templates={templates}
             onOpenNewJobModal={() => setIsNewJobModalOpen(true)}
             onConfirmPick={handleConfirmPick}
@@ -527,11 +873,13 @@ function AppContent() {
         {activeTab === 'contacts' && (
           <ContactsView
             contacts={contacts}
+            onAddContact={handleAddContact}
             onEditContact={handleEditContact}
             onDeleteContact={handleDeleteContact}
           />
         )}
         {activeTab === 'approvals' && <ApprovalsView />}
+        {activeTab === 'settings' && <SettingsView onSave={(settings) => toast.success('Settings saved successfully!')} />}
       </main>
 
       {/* New Job Modal */}
@@ -990,6 +1338,114 @@ function AppContent() {
         </div>
       )}
 
+      {/* Add Item Modal */}
+      {isAddItemModalOpen && itemToEdit && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-900">
+              <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">Add New Inventory Item</h3>
+              <button onClick={() => setIsAddItemModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"><X className="w-6 h-6" /></button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Item Name *</label>
+                  <input
+                    type="text"
+                    value={itemToEdit.name}
+                    onChange={(e) => setItemToEdit({ ...itemToEdit, name: e.target.value })}
+                    className="w-full px-4 py-3 border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    placeholder="Item name"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Category *</label>
+                  <input
+                    type="text"
+                    value={itemToEdit.category}
+                    onChange={(e) => setItemToEdit({ ...itemToEdit, category: e.target.value })}
+                    className="w-full px-4 py-3 border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    placeholder="Category"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Price ($)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={itemToEdit.price}
+                    onChange={(e) => setItemToEdit({ ...itemToEdit, price: parseFloat(e.target.value) || 0 })}
+                    className="w-full px-4 py-3 border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    placeholder="0.00"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Initial Quantity</label>
+                  <input
+                    type="number"
+                    value={itemToEdit.quantity}
+                    onChange={(e) => setItemToEdit({ ...itemToEdit, quantity: parseInt(e.target.value) || 0 })}
+                    className="w-full px-4 py-3 border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    placeholder="0"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Reorder Level</label>
+                  <input
+                    type="number"
+                    value={itemToEdit.reorderLevel}
+                    onChange={(e) => setItemToEdit({ ...itemToEdit, reorderLevel: parseInt(e.target.value) || 0 })}
+                    className="w-full px-4 py-3 border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    placeholder="5"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Supplier</label>
+                  <select
+                    value={itemToEdit.supplierId}
+                    onChange={(e) => setItemToEdit({ ...itemToEdit, supplierId: e.target.value })}
+                    className="w-full px-4 py-3 border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 rounded-xl shadow-sm"
+                  >
+                    <option value="">Select supplier...</option>
+                    {contacts.filter(c => c.type === 'Supplier').map(supplier => (
+                      <option key={supplier.id} value={supplier.id}>{supplier.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Supplier Code</label>
+                  <input
+                    type="text"
+                    value={itemToEdit.supplierCode}
+                    onChange={(e) => setItemToEdit({ ...itemToEdit, supplierCode: e.target.value })}
+                    className="w-full px-4 py-3 border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    placeholder="Product code"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Location</label>
+                <input
+                  type="text"
+                  value={itemToEdit.location}
+                  onChange={(e) => setItemToEdit({ ...itemToEdit, location: e.target.value })}
+                  className="w-full px-4 py-3 border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  placeholder="Warehouse location (e.g., Aisle 3, Shelf B)"
+                />
+              </div>
+            </div>
+            <div className="p-6 bg-slate-50 dark:bg-slate-900 border-t border-slate-100 dark:border-slate-700 flex space-x-3">
+              <button onClick={() => setIsAddItemModalOpen(false)} className="flex-1 px-4 py-3 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 font-bold rounded-xl hover:bg-slate-100 dark:hover:bg-slate-600">Cancel</button>
+              <button onClick={handleSaveNewItem} className="flex-1 px-4 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 shadow-lg">Add Item</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Edit Contact Modal */}
       {isEditContactModalOpen && contactToEdit && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
@@ -1062,6 +1518,39 @@ function AppContent() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Mobile Stock Count View */}
+      {isMobileStockCountOpen && (
+        <MobileStockCountView
+          inventory={inventory}
+          onUpdateStock={handleMobileStockUpdate}
+          onClose={() => setIsMobileStockCountOpen(false)}
+        />
+      )}
+
+      {/* Mobile Bottom Navigation */}
+      {isMobile && (
+        <MobileBottomNav
+          activeTab={activeTab === 'menu' ? 'menu' : activeTab}
+          onNavigate={(tab) => {
+            if (tab === 'menu') {
+              setActiveTab('settings');
+            } else {
+              setActiveTab(tab as any);
+            }
+          }}
+        />
+      )}
+
+      {/* Mobile FAB for Stock Count */}
+      {isMobile && activeTab === 'inventory' && !isMobileStockCountOpen && (
+        <button
+          onClick={() => setIsMobileStockCountOpen(true)}
+          className="md:hidden fixed bottom-20 right-6 w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg flex items-center justify-center z-20 active:scale-95 transition-transform"
+        >
+          <Package className="w-6 h-6" />
+        </button>
       )}
       </div>
     </>

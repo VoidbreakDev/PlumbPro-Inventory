@@ -6,11 +6,12 @@ import { Badge } from '../components/Shared';
 
 interface ContactsViewProps {
   contacts: Contact[];
+  onAddContact?: () => void;
   onEditContact?: (contact: Contact) => void;
   onDeleteContact?: (contact: Contact) => void;
 }
 
-export const ContactsView: React.FC<ContactsViewProps> = ({ contacts, onEditContact, onDeleteContact }) => {
+export const ContactsView: React.FC<ContactsViewProps> = ({ contacts, onAddContact, onEditContact, onDeleteContact }) => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {contacts.map(contact => (
@@ -49,7 +50,10 @@ export const ContactsView: React.FC<ContactsViewProps> = ({ contacts, onEditCont
           </div>
         </div>
       ))}
-      <button className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center p-8 hover:border-blue-400 hover:bg-blue-50 group transition-all">
+      <button
+        onClick={onAddContact}
+        className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center p-8 hover:border-blue-400 hover:bg-blue-50 group transition-all"
+      >
         <Plus className="w-10 h-10 text-slate-300 group-hover:text-blue-500 mb-2 transition-colors" />
         <span className="text-slate-500 font-bold group-hover:text-blue-700">Add New Contact</span>
       </button>

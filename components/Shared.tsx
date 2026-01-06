@@ -10,11 +10,11 @@ import { InventoryItem } from '../types';
 
 export const Badge = ({ children, variant = 'blue' }: { children: React.ReactNode, variant?: string }) => {
   const styles: Record<string, string> = {
-    blue: 'bg-blue-100 text-blue-700',
-    yellow: 'bg-yellow-100 text-yellow-700',
-    green: 'bg-green-100 text-green-700',
-    red: 'bg-red-100 text-red-700',
-    slate: 'bg-slate-100 text-slate-700',
+    blue: 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300',
+    yellow: 'bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300',
+    green: 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300',
+    red: 'bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300',
+    slate: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300',
   };
   return <span className={`px-2 py-1 rounded-full text-xs font-semibold ${styles[variant]}`}>{children}</span>;
 };
@@ -28,12 +28,12 @@ export const getStockStatus = (quantity: number, reorderLevel: number) => {
 export const StockMeter = ({ quantity, reorderLevel }: { quantity: number, reorderLevel: number }) => {
   const percentage = Math.min(100, (quantity / (reorderLevel * 2 || 1)) * 100);
   const status = getStockStatus(quantity, reorderLevel);
-  const barColor = status.variant === 'red' ? 'bg-red-500' : status.variant === 'yellow' ? 'bg-amber-500' : 'bg-emerald-500';
+  const barColor = status.variant === 'red' ? 'bg-red-500 dark:bg-red-600' : status.variant === 'yellow' ? 'bg-amber-500 dark:bg-amber-600' : 'bg-emerald-500 dark:bg-emerald-600';
 
   return (
-    <div className="w-full bg-slate-200 h-1.5 rounded-full mt-1 overflow-hidden">
-      <div 
-        className={`${barColor} h-full transition-all duration-500`} 
+    <div className="w-full bg-slate-200 dark:bg-slate-700 h-1.5 rounded-full mt-1 overflow-hidden">
+      <div
+        className={`${barColor} h-full transition-all duration-500`}
         style={{ width: `${percentage}%` }}
       />
     </div>
@@ -41,25 +41,25 @@ export const StockMeter = ({ quantity, reorderLevel }: { quantity: number, reord
 };
 
 export const StatCard = ({ title, value, icon: Icon, color }: { title: string, value: string | number, icon: any, color: string }) => (
-  <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex items-center space-x-4">
+  <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center space-x-4">
     <div className={`p-3 rounded-lg ${color}`}>
       <Icon className="w-6 h-6 text-white" />
     </div>
     <div>
-      <p className="text-sm text-slate-500 font-medium uppercase tracking-wider">{title}</p>
-      <p className="text-2xl font-bold text-slate-800">{value}</p>
+      <p className="text-sm text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider">{title}</p>
+      <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">{value}</p>
     </div>
   </div>
 );
 
 export const NavItem = ({ icon: Icon, label, active, onClick, collapsed }: { icon: any, label: string, active: boolean, onClick: () => void, collapsed: boolean }) => {
   return (
-    <button 
+    <button
       onClick={onClick}
-      className={`w-full flex items-center px-6 py-4 transition-all relative ${active ? 'text-white' : 'hover:bg-slate-800 text-slate-400 hover:text-slate-200'}`}
+      className={`w-full flex items-center px-6 py-4 transition-all relative ${active ? 'text-white dark:text-slate-100' : 'hover:bg-slate-800 dark:hover:bg-slate-900 text-slate-400 dark:text-slate-500 hover:text-slate-200 dark:hover:text-slate-300'}`}
     >
-      {active && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-500 rounded-r-full" />}
-      <Icon className={`w-6 h-6 shrink-0 ${active ? 'text-blue-400' : ''}`} />
+      {active && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-500 dark:bg-blue-400 rounded-r-full" />}
+      <Icon className={`w-6 h-6 shrink-0 ${active ? 'text-blue-400 dark:text-blue-300' : ''}`} />
       {!collapsed && <span className="ml-4 font-bold text-sm tracking-wide">{label}</span>}
     </button>
   );

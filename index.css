@@ -1,0 +1,128 @@
+/* Global Dark Mode Styles */
+
+/* Input fields */
+input[type="text"],
+input[type="email"],
+input[type="tel"],
+input[type="password"],
+input[type="number"],
+input[type="date"],
+input[type="search"],
+textarea,
+select {
+  @apply dark:bg-slate-700 dark:border-slate-600 dark:text-slate-100;
+}
+
+/* Buttons */
+button.bg-white {
+  @apply dark:bg-slate-700 dark:border-slate-600;
+}
+
+/* Cards and containers */
+.bg-white {
+  @apply dark:bg-slate-800;
+}
+
+/* Borders */
+.border-slate-100 {
+  @apply dark:border-slate-700;
+}
+
+.border-slate-200 {
+  @apply dark:border-slate-600;
+}
+
+/* Text colors */
+.text-slate-800 {
+  @apply dark:text-slate-100;
+}
+
+.text-slate-700 {
+  @apply dark:text-slate-200;
+}
+
+.text-slate-600 {
+  @apply dark:text-slate-300;
+}
+
+.text-slate-500 {
+  @apply dark:text-slate-400;
+}
+
+/* Smooth theme transitions */
+* {
+  transition-property: background-color, border-color, color;
+  transition-duration: 150ms;
+  transition-timing-function: ease-in-out;
+}
+
+/* Mobile PWA Styles */
+
+/* Safe area support for notched devices */
+.safe-area-top {
+  padding-top: env(safe-area-inset-top);
+}
+
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.safe-area-left {
+  padding-left: env(safe-area-inset-left);
+}
+
+.safe-area-right {
+  padding-right: env(safe-area-inset-right);
+}
+
+/* Disable text selection on mobile for better UX */
+@media (max-width: 768px) {
+  button, .no-select {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Optimize for touch */
+  button, a {
+    touch-action: manipulation;
+  }
+
+  /* Hide scrollbars on mobile */
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Active touch feedback */
+.active\:scale-95:active {
+  transform: scale(0.95);
+}
+
+.active\:scale-98:active {
+  transform: scale(0.98);
+}
+
+.active\:scale-90:active {
+  transform: scale(0.90);
+}
+
+/* Mobile-friendly table scrolling */
+@media (max-width: 768px) {
+  .mobile-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Pull-to-refresh indicator */
+@supports (overscroll-behavior: contain) {
+  body {
+    overscroll-behavior: contain;
+  }
+}

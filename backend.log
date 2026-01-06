@@ -1,0 +1,374 @@
+
+> plumbpro-inventory-server@1.0.0 dev
+> nodemon src/server.js
+
+[33m[nodemon] 3.1.11[39m
+[33m[nodemon] to restart at any time, enter `rs`[39m
+[33m[nodemon] watching path(s): *.*[39m
+[33m[nodemon] watching extensions: js,mjs,cjs,json[39m
+[32m[nodemon] starting `node src/server.js`[39m
+📅 Scheduled tasks initialized
+🤖 Workflow automation enabled
+
+🚀 PlumbPro Inventory Server
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📡 Server running on port 5001
+🌍 Environment: production
+🔗 API Base URL: http://localhost:5001/api
+❤️  Health Check: http://localhost:5001/health
+🔔 Notifications: Enabled
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+2026-01-06T21:20:34.073Z - GET /health
+2026-01-06T21:20:53.791Z - GET /api/contacts
+✅ Database connected successfully
+2026-01-06T21:20:53.814Z - GET /api/inventory
+2026-01-06T21:20:53.821Z - GET /api/jobs
+2026-01-06T21:20:53.830Z - GET /api/movements
+2026-01-06T21:20:53.835Z - GET /api/templates
+2026-01-06T21:20:58.032Z - DELETE /api/contacts/c1
+Delete contact error: error: invalid input syntax for type uuid: "c1"
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg/lib/client.js:545:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/contacts.js:154:20 {
+  length: 134,
+  severity: 'ERROR',
+  code: '22P02',
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: "unnamed portal parameter $1 = '...'",
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'uuid.c',
+  line: '136',
+  routine: 'string_to_uuid'
+}
+2026-01-06T21:21:07.789Z - POST /api/contacts
+Create contact error: error: null value in column "user_id" of relation "contacts" violates not-null constraint
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg/lib/client.js:545:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/contacts.js:80:22 {
+  length: 339,
+  severity: 'ERROR',
+  code: '23502',
+  detail: 'Failing row contains (58561a13-a1bd-47a1-a0fe-4bbfd3123cec, null, Test, Supplier, test@test.com, null, null, 2026-01-07 07:51:07.792585, 2026-01-07 07:51:07.792585).',
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: 'public',
+  table: 'contacts',
+  column: 'user_id',
+  dataType: undefined,
+  constraint: undefined,
+  file: 'execMain.c',
+  line: '2029',
+  routine: 'ExecConstraints'
+}
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node src/server.js`[39m
+📅 Scheduled tasks initialized
+🤖 Workflow automation enabled
+
+🚀 PlumbPro Inventory Server
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📡 Server running on port 5001
+🌍 Environment: production
+🔗 API Base URL: http://localhost:5001/api
+❤️  Health Check: http://localhost:5001/health
+🔔 Notifications: Enabled
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+2026-01-06T21:23:10.881Z - GET /api/contacts
+✅ Database connected successfully
+2026-01-06T21:23:10.901Z - GET /api/inventory
+2026-01-06T21:23:10.902Z - GET /api/inventory
+✅ Database connected successfully
+2026-01-06T21:23:10.907Z - GET /api/jobs
+2026-01-06T21:23:10.911Z - GET /api/jobs
+2026-01-06T21:23:10.912Z - GET /api/movements
+2026-01-06T21:23:10.913Z - GET /api/movements
+2026-01-06T21:23:10.915Z - GET /api/templates
+2026-01-06T21:23:10.916Z - GET /api/templates
+2026-01-06T21:23:15.072Z - DELETE /api/contacts/c1
+Delete contact error: error: invalid input syntax for type uuid: "c1"
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg/lib/client.js:545:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/contacts.js:154:20 {
+  length: 134,
+  severity: 'ERROR',
+  code: '22P02',
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: "unnamed portal parameter $1 = '...'",
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'uuid.c',
+  line: '136',
+  routine: 'string_to_uuid'
+}
+2026-01-06T21:23:56.382Z - POST /api/contacts
+✅ Database connected successfully
+2026-01-06T21:24:01.145Z - DELETE /api/contacts/c1
+Delete contact error: error: invalid input syntax for type uuid: "c1"
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg/lib/client.js:545:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/contacts.js:154:20 {
+  length: 134,
+  severity: 'ERROR',
+  code: '22P02',
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: "unnamed portal parameter $1 = '...'",
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'uuid.c',
+  line: '136',
+  routine: 'string_to_uuid'
+}
+2026-01-06T21:24:15.940Z - PUT /api/contacts/c2
+Update contact error: error: invalid input syntax for type uuid: "c2"
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg/lib/client.js:545:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/contacts.js:127:22 {
+  length: 134,
+  severity: 'ERROR',
+  code: '22P02',
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: "unnamed portal parameter $1 = '...'",
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'uuid.c',
+  line: '136',
+  routine: 'string_to_uuid'
+}
+⏰ Running scheduled workflows...
+[Scheduler] Checking scheduled tasks...
+✅ Database connected successfully
+✅ Database connected successfully
+Process email queue error: error: relation "email_queue" does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async processEmailQueue (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:205:20) {
+  length: 110,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '22',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1395',
+  routine: 'parserOpenTable'
+}
+[Scheduler] Found 0 tasks to execute
+2026-01-06T21:25:37.995Z - GET /api/contacts
+✅ Database connected successfully
+2026-01-06T21:25:38.021Z - GET /api/inventory
+2026-01-06T21:25:38.027Z - GET /api/jobs
+2026-01-06T21:25:38.055Z - GET /api/movements
+2026-01-06T21:25:38.059Z - GET /api/templates
+⏰ Running low stock check...
+⏰ Running job reminders check...
+⏰ Running scheduled workflows...
+[Scheduler] Checking scheduled tasks...
+✅ Database connected successfully
+✅ Database connected successfully
+✅ Database connected successfully
+Process email queue error: error: relation "email_queue" does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async processEmailQueue (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:205:20) {
+  length: 110,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '22',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1395',
+  routine: 'parserOpenTable'
+}
+✅ Database connected successfully
+Check job reminders error: error: relation "notification_preferences" does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg/lib/client.js:545:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async checkJobReminders (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/notificationService.js:187:19) {
+  length: 123,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '89',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1395',
+  routine: 'parserOpenTable'
+}
+[Scheduler] Found 0 tasks to execute
+✅ Checked 0 low stock items and 0 out of stock items
+⏰ Running scheduled workflows...
+[Scheduler] Checking scheduled tasks...
+✅ Database connected successfully
+✅ Database connected successfully
+Process email queue error: error: relation "email_queue" does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async processEmailQueue (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:205:20) {
+  length: 110,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '22',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1395',
+  routine: 'parserOpenTable'
+}
+[Scheduler] Found 0 tasks to execute
+⏰ Running low stock check...
+⏰ Running scheduled workflows...
+[Scheduler] Checking scheduled tasks...
+✅ Database connected successfully
+✅ Database connected successfully
+✅ Database connected successfully
+Process email queue error: error: relation "email_queue" does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async processEmailQueue (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:205:20) {
+  length: 110,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '22',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1395',
+  routine: 'parserOpenTable'
+}
+[Scheduler] Found 0 tasks to execute
+✅ Checked 0 low stock items and 0 out of stock items
+2026-01-06T22:40:58.362Z - DELETE /api/contacts/dda0b421-975f-4506-8473-50796dbc2f16
+✅ Database connected successfully
+2026-01-06T22:41:20.569Z - POST /api/contacts
+2026-01-06T22:41:28.145Z - GET /api/approvals
+2026-01-06T22:41:28.160Z - GET /api/approvals/pending
+2026-01-06T22:41:28.162Z - GET /api/approvals/stats/summary
+2026-01-06T22:42:20.241Z - PUT /api/contacts/ac8c2e2d-8619-4d1f-b453-40377869be1a
+✅ Database connected successfully
+⏰ Running scheduled workflows...
+[Scheduler] Checking scheduled tasks...
+✅ Database connected successfully
+✅ Database connected successfully
+Process email queue error: error: relation "email_queue" does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async processEmailQueue (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:205:20) {
+  length: 110,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '22',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1395',
+  routine: 'parserOpenTable'
+}
+[Scheduler] Found 0 tasks to execute
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      [32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node src/server.js`[39m
+📅 Scheduled tasks initialized
+🤖 Workflow automation enabled
+node:events:485
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use 0.0.0.0:5001
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at node:net:2206:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1976:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 5001
+}
+
+Node.js v24.4.1
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m

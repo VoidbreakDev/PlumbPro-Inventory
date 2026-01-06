@@ -1,15 +1,26 @@
-import React, { useState } from 'react';
-import { User, Building2, Bell, Shield, Database, Palette, Globe, Save } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { User, Building2, Bell, Shield, Database, Palette, Globe, Save, Brain, Cloud, Server } from 'lucide-react';
 
 interface SettingsViewProps {
   onSave?: (settings: any) => void;
 }
 
 export const SettingsView: React.FC<SettingsViewProps> = ({ onSave }) => {
-  const [activeSection, setActiveSection] = useState<'profile' | 'company' | 'notifications' | 'security' | 'data' | 'appearance'>('profile');
+  const [activeSection, setActiveSection] = useState<'profile' | 'company' | 'notifications' | 'security' | 'data' | 'appearance' | 'ai'>('profile');
+
+  // Load settings from localStorage on mount
+  const loadSettings = () => {
+    const saved = localStorage.getItem('plumbpro-settings');
+    if (saved) {
+      return JSON.parse(saved);
+    }
+    return null;
+  };
+
+  const savedSettings = loadSettings();
 
   // Profile settings
-  const [profileSettings, setProfileSettings] = useState({
+  const [profileSettings, setProfileSettings] = useState(savedSettings?.profile || {
     fullName: 'Admin User',
     email: 'admin@plumbpro.com',
     phone: '(555) 123-4567',
@@ -17,7 +28,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSave }) => {
   });
 
   // Company settings
-  const [companySettings, setCompanySettings] = useState({
+  const [companySettings, setCompanySettings] = useState(savedSettings?.company || {
     companyName: 'PlumbPro Industries',
     address: '123 Main Street',
     city: 'Sydney',
@@ -29,7 +40,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSave }) => {
   });
 
   // Notification settings
-  const [notificationSettings, setNotificationSettings] = useState({
+  const [notificationSettings, setNotificationSettings] = useState(savedSettings?.notifications || {
     emailNotifications: true,
     lowStockAlerts: true,
     jobUpdates: true,
@@ -38,11 +49,28 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSave }) => {
   });
 
   // Appearance settings
-  const [appearanceSettings, setAppearanceSettings] = useState({
+  const [appearanceSettings, setAppearanceSettings] = useState(savedSettings?.appearance || {
     theme: 'light',
     language: 'en',
     dateFormat: 'DD/MM/YYYY',
     currency: 'AUD'
+  });
+
+  // AI settings
+  const [aiSettings, setAiSettings] = useState(savedSettings?.ai || {
+    defaultProvider: 'auto',
+    geminiApiKey: '',
+    ollamaUrl: 'http://localhost:11434',
+    ollamaModel: 'llama3',
+    featureProviders: {
+      forecast: 'gemini',
+      search: 'ollama',
+      template: 'ollama',
+      anomaly: 'gemini',
+      purchaseOrders: 'gemini',
+      insights: 'gemini',
+      jobCompletion: 'ollama'
+    }
   });
 
   const handleSaveSettings = () => {
@@ -50,15 +78,26 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSave }) => {
       profile: profileSettings,
       company: companySettings,
       notifications: notificationSettings,
-      appearance: appearanceSettings
+      appearance: appearanceSettings,
+      ai: aiSettings
     };
+
+    // Save to localStorage
+    localStorage.setItem('plumbpro-settings', JSON.stringify(allSettings));
+
+    // Debug logging
+    console.log('✅ Settings saved to localStorage:', allSettings);
+    console.log('🔑 Gemini API Key:', aiSettings.geminiApiKey ? `${aiSettings.geminiApiKey.substring(0, 10)}...` : 'NOT SET');
+
+    // Dispatch event to notify App.tsx of settings changes
+    window.dispatchEvent(new CustomEvent('settings-changed', { detail: allSettings }));
 
     if (onSave) {
       onSave(allSettings);
     }
 
-    // Show success message (you could use toast here)
-    alert('Settings saved successfully!');
+    // Show a visual confirmation
+    alert('Settings saved successfully! Your Gemini API key has been stored.');
   };
 
   const sections = [
@@ -66,6 +105,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSave }) => {
     { id: 'company', label: 'Company', icon: Building2 },
     { id: 'notifications', label: 'Notifications', icon: Bell },
     { id: 'security', label: 'Security', icon: Shield },
+    { id: 'ai', label: 'AI Integration', icon: Brain },
     { id: 'data', label: 'Data & Backup', icon: Database },
     { id: 'appearance', label: 'Appearance', icon: Palette }
   ];
@@ -73,8 +113,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSave }) => {
   return (
     <div className="flex gap-6">
       {/* Sidebar */}
-      <div className="w-64 bg-white rounded-xl shadow-sm border border-slate-100 p-4 h-fit">
-        <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4">Settings</h3>
+      <div className="w-64 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 p-4 h-fit">
+        <h3 className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-4">Settings</h3>
         <nav className="space-y-1">
           {sections.map(section => {
             const Icon = section.icon;
@@ -84,8 +124,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSave }) => {
                 onClick={() => setActiveSection(section.id as any)}
                 className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
                   activeSection === section.id
-                    ? 'bg-blue-50 text-blue-700 font-semibold'
-                    : 'text-slate-600 hover:bg-slate-50'
+                    ? 'bg-blue-50 dark:bg-blue-900 text-blue-700 dark:text-blue-300 font-semibold'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
                 }`}
               >
                 <Icon className="w-5 h-5" />
@@ -97,23 +137,23 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSave }) => {
       </div>
 
       {/* Content */}
-      <div className="flex-1 bg-white rounded-xl shadow-sm border border-slate-100 p-6">
+      <div className="flex-1 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 p-6">
         {/* Profile Settings */}
         {activeSection === 'profile' && (
           <div className="space-y-6">
             <div>
-              <h2 className="text-2xl font-bold text-slate-800 mb-2">Profile Settings</h2>
-              <p className="text-slate-500">Manage your personal information and preferences</p>
+              <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-2">Profile Settings</h2>
+              <p className="text-slate-500 dark:text-slate-400">Manage your personal information and preferences</p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2">Full Name</label>
+                <label className="block text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Full Name</label>
                 <input
                   type="text"
                   value={profileSettings.fullName}
                   onChange={(e) => setProfileSettings({ ...profileSettings, fullName: e.target.value })}
-                  className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  className="w-full px-4 py-3 border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 />
               </div>
               <div>
@@ -404,6 +444,255 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSave }) => {
                   <option value="EUR">EUR (€)</option>
                   <option value="GBP">GBP (£)</option>
                 </select>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* AI Integration Settings */}
+        {activeSection === 'ai' && (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-bold text-slate-800 mb-2">AI Integration Settings</h2>
+              <p className="text-slate-500">Configure AI providers for intelligent features</p>
+            </div>
+
+            {/* Global AI Provider */}
+            <div className="p-4 bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-200 rounded-xl">
+              <h3 className="font-bold text-slate-800 mb-3 flex items-center">
+                <Brain className="w-5 h-5 mr-2 text-purple-600" />
+                Default AI Provider
+              </h3>
+              <select
+                value={aiSettings.defaultProvider}
+                onChange={(e) => setAiSettings({ ...aiSettings, defaultProvider: e.target.value })}
+                className="w-full px-4 py-3 border border-slate-200 rounded-xl bg-white shadow-sm"
+              >
+                <option value="auto">Auto (Choose best available)</option>
+                <option value="gemini">Google Gemini (Cloud)</option>
+                <option value="ollama">Ollama (Local)</option>
+              </select>
+              <p className="text-xs text-slate-600 mt-2">
+                Auto mode will prefer Gemini for complex tasks and Ollama for simple tasks
+              </p>
+            </div>
+
+            {/* Cloud AI (Gemini) */}
+            <div className="p-6 bg-white border-2 border-blue-200 rounded-xl">
+              <h3 className="font-bold text-slate-800 mb-4 flex items-center">
+                <Cloud className="w-5 h-5 mr-2 text-blue-600" />
+                Cloud AI - Google Gemini (Free Tier)
+              </h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                    Gemini API Key
+                  </label>
+                  <input
+                    type="password"
+                    value={aiSettings.geminiApiKey}
+                    onChange={(e) => setAiSettings({ ...aiSettings, geminiApiKey: e.target.value })}
+                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none font-mono text-sm"
+                    placeholder="Enter your Gemini API key"
+                  />
+                  <p className="text-xs text-slate-500 mt-1">
+                    Get your free API key from <a href="https://makersuite.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Google AI Studio</a>
+                  </p>
+                </div>
+                <div className="p-3 bg-blue-50 rounded-lg">
+                  <p className="text-xs text-blue-800 mb-2">
+                    <strong>Status:</strong> {aiSettings.geminiApiKey ? '✅ API Key Set' : '⚠️ No API Key'}
+                  </p>
+                  {aiSettings.geminiApiKey && (
+                    <button
+                      onClick={async () => {
+                        try {
+                          const response = await fetch(`http://localhost:5001/api/smart-ordering/test-models?apiKey=${encodeURIComponent(aiSettings.geminiApiKey)}`);
+                          const data = await response.json();
+                          if (data.success) {
+                            alert(`✅ API Key Valid!\n\nAvailable models:\n${data.textGenerationModels.map((m: any) => `- ${m.displayName}`).join('\n')}`);
+                          } else {
+                            alert(`❌ API Key Test Failed:\n\n${JSON.stringify(data, null, 2)}`);
+                          }
+                        } catch (err: any) {
+                          alert(`❌ Error testing API key:\n\n${err.message}`);
+                        }
+                      }}
+                      className="px-3 py-1 bg-blue-600 text-white text-xs font-semibold rounded hover:bg-blue-700"
+                    >
+                      Test API Key
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Local AI (Ollama) */}
+            <div className="p-6 bg-white border-2 border-green-200 rounded-xl">
+              <h3 className="font-bold text-slate-800 mb-4 flex items-center">
+                <Server className="w-5 h-5 mr-2 text-green-600" />
+                Local AI - Ollama (100% Free & Private)
+              </h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                    Ollama Server URL
+                  </label>
+                  <input
+                    type="text"
+                    value={aiSettings.ollamaUrl}
+                    onChange={(e) => setAiSettings({ ...aiSettings, ollamaUrl: e.target.value })}
+                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:outline-none font-mono text-sm"
+                    placeholder="http://localhost:11434"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                    Ollama Model
+                  </label>
+                  <select
+                    value={aiSettings.ollamaModel}
+                    onChange={(e) => setAiSettings({ ...aiSettings, ollamaModel: e.target.value })}
+                    className="w-full px-4 py-3 border border-slate-200 rounded-xl bg-white shadow-sm"
+                  >
+                    <option value="llama3">Llama 3 (Recommended)</option>
+                    <option value="llama3.1">Llama 3.1</option>
+                    <option value="llama3.2">Llama 3.2</option>
+                    <option value="mistral">Mistral</option>
+                    <option value="codellama">Code Llama</option>
+                    <option value="phi">Phi</option>
+                  </select>
+                </div>
+                <div className="p-3 bg-green-50 rounded-lg">
+                  <p className="text-xs text-green-800 mb-2">
+                    <strong>Privacy:</strong> Runs locally on your machine. No data sent to cloud.
+                  </p>
+                  <p className="text-xs text-slate-600">
+                    Download Ollama from <a href="https://ollama.ai" target="_blank" rel="noopener noreferrer" className="text-green-600 hover:underline">ollama.ai</a>
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Feature-Specific AI Providers */}
+            <div className="p-6 bg-white border-2 border-amber-200 rounded-xl">
+              <h3 className="font-bold text-slate-800 mb-4">Feature-Specific AI Providers</h3>
+              <p className="text-sm text-slate-600 mb-4">
+                Choose which AI provider to use for each feature. Gemini is better for complex analysis, Ollama is faster for simple tasks.
+              </p>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                    Demand Forecast
+                  </label>
+                  <select
+                    value={aiSettings.featureProviders.forecast}
+                    onChange={(e) => setAiSettings({
+                      ...aiSettings,
+                      featureProviders: { ...aiSettings.featureProviders, forecast: e.target.value }
+                    })}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-white text-sm"
+                  >
+                    <option value="gemini">Gemini (Cloud)</option>
+                    <option value="ollama">Ollama (Local)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                    Smart Search
+                  </label>
+                  <select
+                    value={aiSettings.featureProviders.search}
+                    onChange={(e) => setAiSettings({
+                      ...aiSettings,
+                      featureProviders: { ...aiSettings.featureProviders, search: e.target.value }
+                    })}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-white text-sm"
+                  >
+                    <option value="gemini">Gemini (Cloud)</option>
+                    <option value="ollama">Ollama (Local)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                    Stock Templates
+                  </label>
+                  <select
+                    value={aiSettings.featureProviders.template}
+                    onChange={(e) => setAiSettings({
+                      ...aiSettings,
+                      featureProviders: { ...aiSettings.featureProviders, template: e.target.value }
+                    })}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-white text-sm"
+                  >
+                    <option value="gemini">Gemini (Cloud)</option>
+                    <option value="ollama">Ollama (Local)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                    Anomaly Detection
+                  </label>
+                  <select
+                    value={aiSettings.featureProviders.anomaly}
+                    onChange={(e) => setAiSettings({
+                      ...aiSettings,
+                      featureProviders: { ...aiSettings.featureProviders, anomaly: e.target.value }
+                    })}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-white text-sm"
+                  >
+                    <option value="gemini">Gemini (Cloud)</option>
+                    <option value="ollama">Ollama (Local)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                    Purchase Orders
+                  </label>
+                  <select
+                    value={aiSettings.featureProviders.purchaseOrders}
+                    onChange={(e) => setAiSettings({
+                      ...aiSettings,
+                      featureProviders: { ...aiSettings.featureProviders, purchaseOrders: e.target.value }
+                    })}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-white text-sm"
+                  >
+                    <option value="gemini">Gemini (Cloud)</option>
+                    <option value="ollama">Ollama (Local)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                    Business Insights
+                  </label>
+                  <select
+                    value={aiSettings.featureProviders.insights}
+                    onChange={(e) => setAiSettings({
+                      ...aiSettings,
+                      featureProviders: { ...aiSettings.featureProviders, insights: e.target.value }
+                    })}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-white text-sm"
+                  >
+                    <option value="gemini">Gemini (Cloud)</option>
+                    <option value="ollama">Ollama (Local)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                    Job Completion Analysis
+                  </label>
+                  <select
+                    value={aiSettings.featureProviders.jobCompletion}
+                    onChange={(e) => setAiSettings({
+                      ...aiSettings,
+                      featureProviders: { ...aiSettings.featureProviders, jobCompletion: e.target.value }
+                    })}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-white text-sm"
+                  >
+                    <option value="gemini">Gemini (Cloud)</option>
+                    <option value="ollama">Ollama (Local)</option>
+                  </select>
+                </div>
               </div>
             </div>
           </div>
