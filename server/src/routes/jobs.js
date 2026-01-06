@@ -6,9 +6,7 @@ import { validate } from '../middleware/validation.js';
 
 const router = express.Router();
 
-// NOTE: Authentication temporarily disabled for testing
-// TODO: Re-enable authentication in production
-// router.use(authenticateToken);
+router.use(authenticateToken);
 
 // Get all jobs
 router.get('/', async (req, res) => {
@@ -32,12 +30,13 @@ router.get('/', async (req, res) => {
         ) as allocated_items
       FROM jobs j
       LEFT JOIN job_workers jw ON j.id = jw.job_id
-      LEFT JOIN contacts c ON jw.worker_id = c.id
+      LEFT JOIN contacts c ON jw.worker_id = c.id AND c.user_id = $1
       LEFT JOIN job_allocated_items jai ON j.id = jai.job_id
-      LEFT JOIN inventory_items i ON jai.item_id = i.id
+      LEFT JOIN inventory_items i ON jai.item_id = i.id AND i.user_id = $1
+      WHERE j.user_id = $1
       GROUP BY j.id
       ORDER BY j.date DESC, j.created_at DESC
-    `);
+    `, [req.user.userId]);
 
     const jobs = result.rows.map(row => ({
       id: row.id,
@@ -88,12 +87,12 @@ router.get('/:id', async (req, res) => {
         ) as allocated_items
       FROM jobs j
       LEFT JOIN job_workers jw ON j.id = jw.job_id
-      LEFT JOIN contacts c ON jw.worker_id = c.id
+      LEFT JOIN contacts c ON jw.worker_id = c.id AND c.user_id = $2
       LEFT JOIN job_allocated_items jai ON j.id = jai.job_id
-      LEFT JOIN inventory_items i ON jai.item_id = i.id
-      WHERE j.id = $1
+      LEFT JOIN inventory_items i ON jai.item_id = i.id AND i.user_id = $2
+      WHERE j.id = $1 AND j.user_id = $2
       GROUP BY j.id
-    `, [req.params.id]);
+    `, [req.params.id, req.user.userId]);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Job not found' });
@@ -147,9 +146,9 @@ router.post('/',
       // Create job
       const jobResult = await client.query(`
         INSERT INTO jobs (user_id, title, builder, job_type, date, status, is_picked)
-        VALUES (NULL, $1, $2, $3, $4, $5, $6)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
         RETURNING *
-      `, [title, builder || null, jobType, date, 'Scheduled', false]);
+      `, [req.user.userId, title, builder || null, jobType, date, 'Scheduled', false]);
 
       const job = jobResult.rows[0];
 
@@ -234,12 +233,15 @@ router.put('/:id',
         return res.status(400).json({ error: 'No fields to update' });
       }
 
+      const idParam = paramCount;
+      const userParam = paramCount + 1;
       values.push(req.params.id);
+      values.push(req.user.userId);
 
       const result = await client.query(`
         UPDATE jobs
         SET ${updates.join(', ')}
-        WHERE id = $${paramCount}
+        WHERE id = $${idParam} AND user_id = $${userParam}
         RETURNING *
       `, values);
 
@@ -279,8 +281,8 @@ router.post('/:id/pick', async (req, res) => {
       SELECT j.*, jai.item_id, jai.quantity
       FROM jobs j
       LEFT JOIN job_allocated_items jai ON j.id = jai.job_id
-      WHERE j.id = $1
-    `, [req.params.id]);
+      WHERE j.id = $1 AND j.user_id = $2
+    `, [req.params.id, req.user.userId]);
 
     if (jobResult.rows.length === 0) {
       await client.query('ROLLBACK');
@@ -298,22 +300,22 @@ router.post('/:id/pick', async (req, res) => {
     for (const row of jobResult.rows) {
       if (row.item_id) {
         await client.query(
-          'UPDATE inventory_items SET quantity = quantity - $1 WHERE id = $2',
-          [row.quantity, row.item_id]
+          'UPDATE inventory_items SET quantity = quantity - $1 WHERE id = $2 AND user_id = $3',
+          [row.quantity, row.item_id, req.user.userId]
         );
 
         // Log movement
         await client.query(`
           INSERT INTO stock_movements (user_id, item_id, type, quantity, reference, timestamp)
-          VALUES (NULL, $1, $2, $3, $4, $5)
-        `, [row.item_id, 'Out', -row.quantity, job.id, Date.now()]);
+          VALUES ($1, $2, $3, $4, $5, $6)
+        `, [req.user.userId, row.item_id, 'Out', -row.quantity, job.id, Date.now()]);
       }
     }
 
     // Mark job as picked
     await client.query(
-      'UPDATE jobs SET is_picked = true WHERE id = $1',
-      [req.params.id]
+      'UPDATE jobs SET is_picked = true WHERE id = $1 AND user_id = $2',
+      [req.params.id, req.user.userId]
     );
 
     await client.query('COMMIT');
@@ -335,8 +337,8 @@ router.delete('/:id', async (req, res) => {
 
   try {
     const result = await client.query(
-      'DELETE FROM jobs WHERE id = $1 RETURNING id',
-      [req.params.id]
+      'DELETE FROM jobs WHERE id = $1 AND user_id = $2 RETURNING id',
+      [req.params.id, req.user.userId]
     );
 
     if (result.rows.length === 0) {

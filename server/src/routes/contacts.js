@@ -5,9 +5,7 @@ import { authenticateToken } from '../middleware/auth.js';
 import { validate } from '../middleware/validation.js';
 
 const router = express.Router();
-// NOTE: Authentication temporarily disabled for testing
-// TODO: Re-enable authentication in production
-// router.use(authenticateToken);
+router.use(authenticateToken);
 
 // Get all contacts
 router.get('/', async (req, res) => {
@@ -15,11 +13,11 @@ router.get('/', async (req, res) => {
 
   try {
     const { type } = req.query;
-    let query = 'SELECT * FROM contacts';
-    const params = [];
+    let query = 'SELECT * FROM contacts WHERE user_id = $1';
+    const params = [req.user.userId];
 
     if (type) {
-      query += ' WHERE type = $1';
+      query += ' AND type = $2';
       params.push(type);
     }
 
@@ -42,8 +40,8 @@ router.get('/:id', async (req, res) => {
 
   try {
     const result = await client.query(
-      'SELECT * FROM contacts WHERE id = $1',
-      [req.params.id]
+      'SELECT * FROM contacts WHERE id = $1 AND user_id = $2',
+      [req.params.id, req.user.userId]
     );
 
     if (result.rows.length === 0) {
@@ -76,12 +74,11 @@ router.post('/',
     try {
       const { name, type, email, phone, company } = req.body;
 
-      // NOTE: Using NULL for user_id since authentication is disabled
       const result = await client.query(`
         INSERT INTO contacts (user_id, name, type, email, phone, company)
-        VALUES (NULL, $1, $2, $3, $4, $5)
+        VALUES ($1, $2, $3, $4, $5, $6)
         RETURNING *
-      `, [name, type, email || null, phone || null, company || null]);
+      `, [req.user.userId, name, type, email || null, phone || null, company || null]);
 
       res.status(201).json(result.rows[0]);
 
@@ -122,12 +119,15 @@ router.put('/:id',
         return res.status(400).json({ error: 'No fields to update' });
       }
 
+      const idParam = paramCount;
+      const userParam = paramCount + 1;
       values.push(req.params.id);
+      values.push(req.user.userId);
 
       const result = await client.query(`
         UPDATE contacts
         SET ${updates.join(', ')}
-        WHERE id = $${paramCount}
+        WHERE id = $${idParam} AND user_id = $${userParam}
         RETURNING *
       `, values);
 
@@ -152,8 +152,8 @@ router.delete('/:id', async (req, res) => {
 
   try {
     const result = await client.query(
-      'DELETE FROM contacts WHERE id = $1 RETURNING id',
-      [req.params.id]
+      'DELETE FROM contacts WHERE id = $1 AND user_id = $2 RETURNING id',
+      [req.params.id, req.user.userId]
     );
 
     if (result.rows.length === 0) {

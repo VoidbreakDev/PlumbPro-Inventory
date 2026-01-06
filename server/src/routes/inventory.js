@@ -6,9 +6,7 @@ import { validate } from '../middleware/validation.js';
 
 const router = express.Router();
 
-// NOTE: Authentication temporarily disabled for testing
-// TODO: Re-enable authentication in production
-// router.use(authenticateToken);
+router.use(authenticateToken);
 
 // Get all inventory items for user
 router.get('/', async (req, res) => {
@@ -22,9 +20,10 @@ router.get('/', async (req, res) => {
         c.email as supplier_email,
         c.phone as supplier_phone
       FROM inventory_items i
-      LEFT JOIN contacts c ON i.supplier_id = c.id
+      LEFT JOIN contacts c ON i.supplier_id = c.id AND c.user_id = $1
+      WHERE i.user_id = $1
       ORDER BY i.created_at DESC
-    `);
+    `, [req.user.userId]);
 
     const items = result.rows.map(row => ({
       id: row.id,
@@ -66,9 +65,9 @@ router.get('/:id', async (req, res) => {
         c.phone as supplier_phone,
         c.company as supplier_company
       FROM inventory_items i
-      LEFT JOIN contacts c ON i.supplier_id = c.id
-      WHERE i.id = $1
-    `, [req.params.id]);
+      LEFT JOIN contacts c ON i.supplier_id = c.id AND c.user_id = $2
+      WHERE i.id = $1 AND i.user_id = $2
+    `, [req.params.id, req.user.userId]);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Item not found' });
@@ -123,9 +122,9 @@ router.post('/',
       const result = await client.query(`
         INSERT INTO inventory_items
           (user_id, name, category, price, quantity, reorder_level, supplier_id, supplier_code, description)
-        VALUES (NULL, $1, $2, $3, $4, $5, $6, $7, $8)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         RETURNING *
-      `, [name, category, price, quantity, reorderLevel, supplierId || null, supplierCode || null, description || null]);
+      `, [req.user.userId, name, category, price, quantity, reorderLevel, supplierId || null, supplierCode || null, description || null]);
 
       const item = result.rows[0];
 
@@ -133,8 +132,8 @@ router.post('/',
       if (quantity > 0) {
         await client.query(`
           INSERT INTO stock_movements (user_id, item_id, type, quantity, reference, timestamp)
-          VALUES (NULL, $1, $2, $3, $4, $5)
-        `, [item.id, 'In', quantity, 'Initial stock', Date.now()]);
+          VALUES ($1, $2, $3, $4, $5, $6)
+        `, [req.user.userId, item.id, 'In', quantity, 'Initial stock', Date.now()]);
       }
 
       res.status(201).json({
@@ -190,12 +189,15 @@ router.put('/:id',
         return res.status(400).json({ error: 'No fields to update' });
       }
 
+      const idParam = paramCount;
+      const userParam = paramCount + 1;
       values.push(req.params.id);
+      values.push(req.user.userId);
 
       const result = await client.query(`
         UPDATE inventory_items
         SET ${updates.join(', ')}
-        WHERE id = $${paramCount}
+        WHERE id = $${idParam} AND user_id = $${userParam}
         RETURNING *
       `, values);
 
@@ -244,9 +246,9 @@ router.post('/:id/adjust',
       const result = await client.query(`
         UPDATE inventory_items
         SET quantity = quantity + $1
-        WHERE id = $2
+        WHERE id = $2 AND user_id = $3
         RETURNING *
-      `, [quantity, req.params.id]);
+      `, [quantity, req.params.id, req.user.userId]);
 
       if (result.rows.length === 0) {
         await client.query('ROLLBACK');
@@ -258,8 +260,8 @@ router.post('/:id/adjust',
       // Log movement
       await client.query(`
         INSERT INTO stock_movements (user_id, item_id, type, quantity, reference, timestamp)
-        VALUES (NULL, $1, $2, $3, $4, $5)
-      `, [item.id, 'Adjustment', quantity, reason, Date.now()]);
+        VALUES ($1, $2, $3, $4, $5, $6)
+      `, [req.user.userId, item.id, 'Adjustment', quantity, reason, Date.now()]);
 
       await client.query('COMMIT');
 
@@ -285,8 +287,8 @@ router.delete('/:id', async (req, res) => {
 
   try {
     const result = await client.query(
-      'DELETE FROM inventory_items WHERE id = $1 RETURNING id',
-      [req.params.id]
+      'DELETE FROM inventory_items WHERE id = $1 AND user_id = $2 RETURNING id',
+      [req.params.id, req.user.userId]
     );
 
     if (result.rows.length === 0) {
