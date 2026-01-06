@@ -8,9 +8,7 @@ dotenv.config();
 
 const router = express.Router();
 
-// NOTE: Authentication temporarily disabled for testing
-// TODO: Re-enable authentication in production
-// router.use(authenticateToken);
+router.use(authenticateToken);
 
 // Test endpoint to list available models
 router.get('/test-models', async (req, res) => {
@@ -92,16 +90,15 @@ router.post('/suggestions', async (req, res) => {
     // Initialize Gemini AI with provided or env API key
     const genAI = new GoogleGenerativeAI(apiKey);
 
-    // Get inventory items
-    // NOTE: Fetching all items since authentication is disabled for testing
+    // Get inventory items for user
     const inventoryResult = await client.query(`
       SELECT id, name, category, quantity, reorder_level
       FROM inventory_items
+      WHERE user_id = $1
       ORDER BY name ASC
-    `);
+    `, [req.user.userId]);
 
-    // Get upcoming jobs
-    // NOTE: Fetching all jobs since authentication is disabled for testing
+    // Get upcoming jobs for user
     const jobsResult = await client.query(`
       SELECT
         j.id,
@@ -117,13 +114,14 @@ router.post('/suggestions', async (req, res) => {
         ) as allocated_items
       FROM jobs j
       LEFT JOIN job_allocated_items jai ON j.id = jai.job_id
-      LEFT JOIN inventory_items i ON jai.item_id = i.id
+      LEFT JOIN inventory_items i ON jai.item_id = i.id AND i.user_id = $1
       WHERE j.status IN ('Scheduled', 'In Progress')
+        AND j.user_id = $1
         AND j.date >= CURRENT_DATE
       GROUP BY j.id
       ORDER BY j.date ASC
       LIMIT 20
-    `);
+    `, [req.user.userId]);
 
     const inventory = inventoryResult.rows;
     const upcomingJobs = jobsResult.rows;

@@ -4,9 +4,7 @@ import { authenticateToken } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// NOTE: Authentication temporarily disabled for testing
-// TODO: Re-enable authentication in production
-// router.use(authenticateToken);
+router.use(authenticateToken);
 
 // Get stock movements
 router.get('/', async (req, res) => {
@@ -21,11 +19,11 @@ router.get('/', async (req, res) => {
         i.name as item_name,
         i.category as item_category
       FROM stock_movements sm
-      JOIN inventory_items i ON sm.item_id = i.id
-      WHERE 1=1
+      JOIN inventory_items i ON sm.item_id = i.id AND i.user_id = $1
+      WHERE sm.user_id = $1
     `;
-    const params = [];
-    let paramCount = 1;
+    const params = [req.user.userId];
+    let paramCount = 2;
 
     if (type) {
       query += ` AND sm.type = $${paramCount}`;

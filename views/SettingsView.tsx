@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User, Building2, Bell, Shield, Database, Palette, Globe, Save, Brain, Cloud, Server } from 'lucide-react';
+import api from '../lib/api';
 
 interface SettingsViewProps {
   onSave?: (settings: any) => void;
@@ -507,8 +508,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSave }) => {
                     <button
                       onClick={async () => {
                         try {
-                          const response = await fetch(`http://localhost:5001/api/smart-ordering/test-models?apiKey=${encodeURIComponent(aiSettings.geminiApiKey)}`);
-                          const data = await response.json();
+                          const { data } = await api.get('/smart-ordering/test-models', {
+                            params: { apiKey: aiSettings.geminiApiKey }
+                          });
                           if (data.success) {
                             alert(`✅ API Key Valid!\n\nAvailable models:\n${data.textGenerationModels.map((m: any) => `- ${m.displayName}`).join('\n')}`);
                           } else {
