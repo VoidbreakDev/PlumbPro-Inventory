@@ -8,6 +8,7 @@ DROP TABLE IF EXISTS jobs CASCADE;
 DROP TABLE IF EXISTS job_templates CASCADE;
 DROP TABLE IF EXISTS inventory_items CASCADE;
 DROP TABLE IF EXISTS contacts CASCADE;
+DROP TABLE IF EXISTS ai_provider_keys CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
 
 -- Users table (for authentication and multi-tenancy)
@@ -25,6 +26,21 @@ CREATE TABLE users (
 
 -- Create index on email for faster lookups
 CREATE INDEX idx_users_email ON users(email);
+
+-- AI provider keys (encrypted at rest)
+CREATE TABLE ai_provider_keys (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  provider VARCHAR(50) NOT NULL,
+  encrypted_key TEXT NOT NULL,
+  iv TEXT NOT NULL,
+  auth_tag TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(user_id, provider)
+);
+
+CREATE INDEX idx_ai_provider_keys_user ON ai_provider_keys(user_id);
 
 -- Contacts table
 CREATE TABLE contacts (

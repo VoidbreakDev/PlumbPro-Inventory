@@ -193,26 +193,7 @@ export const movementsAPI = {
 // Smart Ordering API
 export const smartOrderingAPI = {
   getSuggestions: async (): Promise<{ suggestions: SmartOrderSuggestion[] }> => {
-    // Get Gemini API key from localStorage settings
-    let geminiApiKey = '';
-    try {
-      const savedSettings = localStorage.getItem('plumbpro-settings');
-      console.log('📦 localStorage plumbpro-settings:', savedSettings);
-
-      if (savedSettings) {
-        const settings = JSON.parse(savedSettings);
-        console.log('⚙️ Parsed settings:', settings);
-        geminiApiKey = settings.ai?.geminiApiKey || '';
-        console.log('🔑 Gemini API Key found:', geminiApiKey ? `${geminiApiKey.substring(0, 10)}... (length: ${geminiApiKey.length})` : 'NOT SET');
-      } else {
-        console.warn('⚠️ No settings found in localStorage');
-      }
-    } catch (e) {
-      console.error('❌ Failed to load API key from settings:', e);
-    }
-
-    console.log('🚀 Sending API request with key:', geminiApiKey ? 'YES' : 'NO');
-    const { data } = await api.post('/smart-ordering/suggestions', { geminiApiKey });
+    const { data } = await api.post('/smart-ordering/suggestions');
     return data;
   }
 };
