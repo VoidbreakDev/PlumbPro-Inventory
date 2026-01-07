@@ -347,7 +347,452 @@ Process email queue error: error: relation "email_queue" does not exist
   routine: 'parserOpenTable'
 }
 [Scheduler] Found 0 tasks to execute
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      [32m[nodemon] restarting due to changes...[39m
+⏰ Running scheduled workflows...
+[Scheduler] Checking scheduled tasks...
+✅ Database connected successfully
+✅ Database connected successfully
+Process email queue error: error: relation "email_queue" does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async processEmailQueue (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:205:20) {
+  length: 110,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '22',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1395',
+  routine: 'parserOpenTable'
+}
+[Scheduler] Found 0 tasks to execute
+⏰ Running scheduled workflows...
+[Scheduler] Checking scheduled tasks...
+✅ Database connected successfully
+✅ Database connected successfully
+Process email queue error: error: relation "email_queue" does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async processEmailQueue (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:205:20) {
+  length: 110,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '22',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1395',
+  routine: 'parserOpenTable'
+}
+[Scheduler] Found 0 tasks to execute
+⏰ Running scheduled workflows...
+[Scheduler] Checking scheduled tasks...
+✅ Database connected successfully
+✅ Database connected successfully
+Process email queue error: error: relation "email_queue" does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async processEmailQueue (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:205:20) {
+  length: 110,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '22',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1395',
+  routine: 'parserOpenTable'
+}
+[Scheduler] Found 0 tasks to execute
+⏰ Running scheduled workflows...
+[Scheduler] Checking scheduled tasks...
+✅ Database connected successfully
+✅ Database connected successfully
+Process email queue error: error: relation "email_queue" does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async processEmailQueue (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:205:20) {
+  length: 110,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '22',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1395',
+  routine: 'parserOpenTable'
+}
+[Scheduler] Found 0 tasks to execute
+⏰ Running scheduled workflows...
+[Scheduler] Checking scheduled tasks...
+✅ Database connected successfully
+✅ Database connected successfully
+Process email queue error: error: relation "email_queue" does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async processEmailQueue (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:205:20) {
+  length: 110,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '22',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1395',
+  routine: 'parserOpenTable'
+}
+[Scheduler] Found 0 tasks to execute
+⏰ Running scheduled workflows...
+[Scheduler] Checking scheduled tasks...
+✅ Database connected successfully
+✅ Database connected successfully
+Process email queue error: error: relation "email_queue" does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async processEmailQueue (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:205:20) {
+  length: 110,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '22',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1395',
+  routine: 'parserOpenTable'
+}
+[Scheduler] Found 0 tasks to execute
+⏰ Running scheduled workflows...
+[Scheduler] Checking scheduled tasks...
+✅ Database connected successfully
+✅ Database connected successfully
+Process email queue error: error: relation "email_queue" does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async processEmailQueue (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:205:20) {
+  length: 110,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '22',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1395',
+  routine: 'parserOpenTable'
+}
+[Scheduler] Found 0 tasks to execute
+⏰ Running scheduled workflows...
+[Scheduler] Checking scheduled tasks...
+✅ Database connected successfully
+✅ Database connected successfully
+Process email queue error: error: relation "email_queue" does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async processEmailQueue (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:205:20) {
+  length: 110,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '22',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1395',
+  routine: 'parserOpenTable'
+}
+[Scheduler] Found 0 tasks to execute
+⏰ Running low stock check...
+✅ Database connected successfully
+✅ Checked 0 low stock items and 0 out of stock items
+⏰ Running scheduled workflows...
+[Scheduler] Checking scheduled tasks...
+Process email queue error: error: relation "email_queue" does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async processEmailQueue (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:205:20) {
+  length: 110,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '22',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1395',
+  routine: 'parserOpenTable'
+}
+✅ Database connected successfully
+[Scheduler] Found 0 tasks to execute
+2026-01-06T23:33:14.094Z - GET /api/approvals
+2026-01-06T23:33:14.102Z - GET /api/approvals/pending
+2026-01-06T23:33:14.102Z - GET /api/approvals/stats/summary
+2026-01-06T23:33:22.692Z - GET /api/approvals
+2026-01-06T23:33:22.693Z - GET /api/approvals/pending
+2026-01-06T23:33:22.694Z - GET /api/approvals/stats/summary
+2026-01-06T23:33:22.695Z - GET /api/approvals
+2026-01-06T23:33:22.696Z - GET /api/approvals/pending
+2026-01-06T23:33:22.696Z - GET /api/approvals/stats/summary
+⏰ Running scheduled workflows...
+[Scheduler] Checking scheduled tasks...
+✅ Database connected successfully
+✅ Database connected successfully
+Process email queue error: error: relation "email_queue" does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async processEmailQueue (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:205:20) {
+  length: 110,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '22',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1395',
+  routine: 'parserOpenTable'
+}
+[Scheduler] Found 0 tasks to execute
+⏰ Running scheduled workflows...
+[Scheduler] Checking scheduled tasks...
+✅ Database connected successfully
+✅ Database connected successfully
+Process email queue error: error: relation "email_queue" does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async processEmailQueue (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:205:20) {
+  length: 110,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '22',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1395',
+  routine: 'parserOpenTable'
+}
+[Scheduler] Found 0 tasks to execute
+⏰ Running scheduled workflows...
+[Scheduler] Checking scheduled tasks...
+✅ Database connected successfully
+✅ Database connected successfully
+Process email queue error: error: relation "email_queue" does not exist
+    at /Users/ryan_sinclair/Documents/GitHub[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node src/server.js`[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node src/server.js`[39m
+📅 Scheduled tasks initialized
+🤖 Workflow automation enabled
+
+🚀 PlumbPro Inventory Server
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📡 Server running on port 5001
+🌍 Environment: production
+🔗 API Base URL: http://localhost:5001/api
+❤️  Health Check: http://localhost:5001/health
+🔔 Notifications: Enabled
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+2026-01-07T00:00:31.433Z - GET /api/contacts
+2026-01-07T00:00:31.455Z - GET /api/inventory
+2026-01-07T00:00:31.456Z - GET /api/templates
+2026-01-07T00:00:31.456Z - GET /api/jobs
+2026-01-07T00:00:31.457Z - GET /api/movements
+⏰ Running scheduled workflows...
+[Scheduler] Checking scheduled tasks...
+✅ Database connected successfully
+✅ Database connected successfully
+Process email queue error: error: relation "email_queue" does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async processEmailQueue (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:205:20) {
+  length: 110,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '22',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1395',
+  routine: 'parserOpenTable'
+}
+[Scheduler] Found 0 tasks to execute
+⏰ Running scheduled workflows...
+[Scheduler] Checking scheduled tasks...
+✅ Database connected successfully
+✅ Database connected successfully
+Process email queue error: error: relation "email_queue" does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async processEmailQueue (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:205:20) {
+  length: 110,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '22',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1395',
+  routine: 'parserOpenTable'
+}
+[Scheduler] Found 0 tasks to execute
+⏰ Running scheduled workflows...
+[Scheduler] Checking scheduled tasks...
+✅ Database connected successfully
+✅ Database connected successfully
+Process email queue error: error: relation "email_queue" does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async processEmailQueue (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:205:20) {
+  length: 110,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '22',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1395',
+  routine: 'parserOpenTable'
+}
+[Scheduler] Found 0 tasks to execute
+⏰ Running scheduled workflows...
+[Scheduler] Checking scheduled tasks...
+✅ Database connected successfully
+✅ Database connected successfully
+Process email queue error: error: relation "email_queue" does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async processEmailQueue (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:205:20) {
+  length: 110,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  [32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node src/server.js`[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node src/server.js`[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
 [32m[nodemon] starting `node src/server.js`[39m
 📅 Scheduled tasks initialized
 🤖 Workflow automation enabled
@@ -372,3 +817,794 @@ Emitted 'error' event on Server instance at:
 
 Node.js v24.4.1
 [31m[nodemon] app crashed - waiting for file changes before starting...[39m
+raint: undefined,
+  file: 'parse_relation.c',
+  line: '1395',
+  routine: 'parserOpenTable'
+}
+[Scheduler] Found 0 tasks to execute
+⏰ Running low stock check...
+⏰ Running scheduled workflows...
+[Scheduler] Checking scheduled tasks...
+✅ Database connected successfully
+✅ Database connected successfully
+✅ Database connected successfully
+Process email queue error: error: relation "email_queue" does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async processEmailQueue (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:205:20) {
+  length: 110,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '22',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1395',
+  routine: 'parserOpenTable'
+}
+[Scheduler] Found 0 tasks to execute
+✅ Checked 0 low stock items and 0 out of stock items
+⏰ Running scheduled workflows...
+[Scheduler] Checking scheduled tasks...
+✅ Database connected successfully
+✅ Database connected successfully
+Process email queue error: error: relation "email_queue" does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async processEmailQueue (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:205:20) {
+  length: 110,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '22',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1395',
+  routine: 'parserOpenTable'
+}
+[Scheduler] Found 0 tasks to execute
+⏰ Running scheduled workflows...
+[Scheduler] Checking scheduled tasks...
+✅ Database connected successfully
+✅ Database connected successfully
+Process email queue error: error: relation "email_queue" does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async processEmailQueue (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:205:20) {
+  length: 110,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '22',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1395',
+  routine: 'parserOpenTable'
+}
+[Scheduler] Found 0 tasks to execute
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node src/server.js`[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node src/server.js`[39m
+📅 Scheduled tasks initialized
+🤖 Workflow automation enabled
+
+🚀 PlumbPro Inventory Server
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📡 Server running on port 5001
+🌍 Environment: production
+🔗 API Base URL: http://localhost:5001/api
+❤️  Health Check: http://localhost:5001/health
+🔔 Notifications: Enabled
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⏰ Running scheduled workflows...
+[Scheduler] Checking scheduled tasks...
+✅ Database connected successfully
+✅ Database connected successfully
+Process email queue error: error: relation "email_queue" does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async processEmailQueue (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:205:20) {
+  length: 110,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '22',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1395',
+  routine: 'parserOpenTable'
+}
+[Scheduler] Found 0 tasks to execute
+⏰ Running scheduled workflows...
+[Scheduler] Checking scheduled tasks...
+✅ Database connected successfully
+✅ Database connected successfully
+Process email queue error: error: relation "email_queue" does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async processEmailQueue (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:205:20) {
+  length: 110,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '22',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1395',
+  routine: 'parserOpenTable'
+}
+[Scheduler] Found 0 tasks to execute
+⏰ Running scheduled workflows...
+[Scheduler] Checking scheduled tasks...
+✅ Database connected successfully
+✅ Database connected successfully
+Process email queue error: error: relation "email_queue" does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async processEmailQueue (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:205:20) {
+  length: 110,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '22',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1395',
+  routine: 'parserOpenTable'
+}
+[Scheduler] Found 0 tasks to execute
+⏰ Running scheduled workflows...
+[Scheduler] Checking scheduled tasks...
+✅ Database connected successfully
+✅ Database connected successfully
+Process email queue error: error: relation "email_queue" does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async processEmailQueue (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:205:20) {
+  length: 110,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '22',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1395',
+  routine: 'parserOpenTable'
+}
+[Scheduler] Found 0 tasks to execute
+⏰ Running scheduled workflows...
+[Scheduler] Checking scheduled tasks...
+✅ Database connected successfully
+✅ Database connected successfully
+Process email queue error: error: relation "email_queue" does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async processEmailQueue (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:205:20) {
+  length: 110,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '22',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1395',
+  routine: 'parserOpenTable'
+}
+[Scheduler] Found 0 tasks to execute
+⏰ Running scheduled workflows...
+[Scheduler] Checking scheduled tasks...
+✅ Database connected successfully
+✅ Database connected successfully
+Process email queue error: error: relation "email_queue" does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async processEmailQueue (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:205:20) {
+  length: 110,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '22',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1395',
+  routine: 'parserOpenTable'
+}
+[Scheduler] Found 0 tasks to execute
+⏰ Running scheduled workflows...
+[Scheduler] Checking scheduled tasks...
+✅ Database connected successfully
+✅ Database connected successfully
+Process email queue error: error: relation "email_queue" does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async processEmailQueue (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:205:20) {
+  length: 110,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '22',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1395',
+  routine: 'parserOpenTable'
+}
+[Scheduler] Found 0 tasks to execute
+⏰ Running scheduled workflows...
+[Scheduler] Checking scheduled tasks...
+✅ Database connected successfully
+✅ Database connected successfully
+Process email queue error: error: relation "email_queue" does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async processEmailQueue (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:205:20) {
+  length: 110,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '22',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1395',
+  routine: 'parserOpenTable'
+}
+[Scheduler] Found 0 tasks to execute
+⏰ Running scheduled workflows...
+[Scheduler] Checking scheduled tasks...
+✅ Database connected successfully
+✅ Database connected successfully
+Process email queue error: error: relation "email_queue" does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async processEmailQueue (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:205:20) {
+  length: 110,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '22',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1395',
+  routine: 'parserOpenTable'
+}
+[Scheduler] Found 0 tasks to execute
+⏰ Running low stock check...
+⏰ Running scheduled workflows...
+[Scheduler] Checking scheduled tasks...
+✅ Database connected successfully
+✅ Database connected successfully
+✅ Database connected successfully
+Process email queue error: error: relation "email_queue" does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async processEmailQueue (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:205:20) {
+  length: 110,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '22',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1395',
+  routine: 'parserOpenTable'
+}
+[Scheduler] Found 0 tasks to execute
+✅ Checked 0 low stock items and 0 out of stock items
+⏰ Running scheduled workflows...
+[Scheduler] Checking scheduled tasks...
+✅ Database connected successfully
+✅ Database connected successfully
+Process email queue error: error: relation "email_queue" does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async processEmailQueue (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:205:20) {
+  length: 110,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '22',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1395',
+  routine: 'parserOpenTable'
+}
+[Scheduler] Found 0 tasks to execute
+⏰ Running scheduled workflows...
+[Scheduler] Checking scheduled tasks...
+✅ Database connected successfully
+✅ Database connected successfully
+Process email queue error: error: relation "email_queue" does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async processEmailQueue (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:205:20) {
+  length: 110,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '22',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1395',
+  routine: 'parserOpenTable'
+}
+[Scheduler] Found 0 tasks to execute
+⏰ Running scheduled workflows...
+[Scheduler] Checking scheduled tasks...
+✅ Database connected successfully
+✅ Database connected successfully
+Process email queue error: error: relation "email_queue" does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async processEmailQueue (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:205:20) {
+  length: 110,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '22',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1395',
+  routine: 'parserOpenTable'
+}
+[Scheduler] Found 0 tasks to execute
+⏰ Running scheduled workflows...
+[Scheduler] Checking scheduled tasks...
+✅ Database connected successfully
+✅ Database connected successfully
+Process email queue error: error: relation "email_queue" does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async processEmailQueue (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:205:20) {
+  length: 110,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '22',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1395',
+  routine: 'parserOpenTable'
+}
+[Scheduler] Found 0 tasks to execute
+⏰ Running scheduled workflows...
+[Scheduler] Checking scheduled tasks...
+✅ Database connected successfully
+✅ Database connected successfully
+Process email queue error: error: relation "email_queue" does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async processEmailQueue (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:205:20) {
+  length: 110,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '22',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1395',
+  routine: 'parserOpenTable'
+}
+[Scheduler] Found 0 tasks to execute
+⏰ Running scheduled workflows...
+[Scheduler] Checking scheduled tasks...
+✅ Database connected successfully
+✅ Database connected successfully
+Process email queue error: error: relation "email_queue" does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async processEmailQueue (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:205:20) {
+  length: 110,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '22',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1395',
+  routine: 'parserOpenTable'
+}
+[Scheduler] Found 0 tasks to execute
+⏰ Running scheduled workflows...
+[Scheduler] Checking scheduled tasks...
+✅ Database connected successfully
+✅ Database connected successfully
+Process email queue error: error: relation "email_queue" does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async processEmailQueue (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:205:20) {
+  length: 110,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '22',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1395',
+  routine: 'parserOpenTable'
+}
+[Scheduler] Found 0 tasks to execute
+⏰ Running scheduled workflows...
+[Scheduler] Checking scheduled tasks...
+✅ Database connected successfully
+✅ Database connected successfully
+Process email queue error: error: relation "email_queue" does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async processEmailQueue (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:205:20) {
+  length: 110,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '22',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1395',
+  routine: 'parserOpenTable'
+}
+[Scheduler] Found 0 tasks to execute
+⏰ Running scheduled workflows...
+[Scheduler] Checking scheduled tasks...
+✅ Database connected successfully
+✅ Database connected successfully
+Process email queue error: error: relation "email_queue" does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async processEmailQueue (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:205:20) {
+  length: 110,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '22',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1395',
+  routine: 'parserOpenTable'
+}
+[Scheduler] Found 0 tasks to execute
+⏰ Running scheduled workflows...
+[Scheduler] Checking scheduled tasks...
+✅ Database connected successfully
+✅ Database connected successfully
+Process email queue error: error: relation "email_queue" does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async processEmailQueue (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:205:20) {
+  length: 110,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '22',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1395',
+  routine: 'parserOpenTable'
+}
+[Scheduler] Found 0 tasks to execute
+⏰ Running scheduled workflows...
+[Scheduler] Checking scheduled tasks...
+✅ Database connected successfully
+✅ Database connected successfully
+Process email queue error: error: relation "email_queue" does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async processEmailQueue (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:205:20) {
+  length: 110,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '22',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1395',
+  routine: 'parserOpenTable'
+}
+[Scheduler] Found 0 tasks to execute
+⏰ Running low stock check...
+⏰ Running scheduled workflows...
+[Scheduler] Checking scheduled tasks...
+✅ Database connected successfully
+✅ Database connected successfully
+✅ Database connected successfully
+Process email queue error: error: relation "email_queue" does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async processEmailQueue (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:205:20) {
+  length: 110,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '22',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1395',
+  routine: 'parserOpenTable'
+}
+[Scheduler] Found 0 tasks to execute
+✅ Checked 0 low stock items and 0 out of stock items
+⏰ Running scheduled workflows...
+[Scheduler] Checking scheduled tasks...
+✅ Database connected successfully
+Process email queue error: error: relation "email_queue" does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async processEmailQueue (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:205:20) {
+  length: 110,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '22',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1395',
+  routine: 'parserOpenTable'
+}
+✅ Database connected successfully
+[Scheduler] Found 0 tasks to execute
+⏰ Running scheduled workflows...
+[Scheduler] Checking scheduled tasks...
+✅ Database connected successfully
+✅ Database connected successfully
+Process email queue error: error: relation "email_queue" does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async processEmailQueue (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:205:20) {
+  length: 110,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '22',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1395',
+  routine: 'parserOpenTable'
+}
+[Scheduler] Found 0 tasks to execute
+⏰ Running scheduled workflows...
+[Scheduler] Checking scheduled tasks...
+✅ Database connected successfully
+✅ Database connected successfully
+Process email queue error: error: relation "email_queue" does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async processEmailQueue (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:205:20) {
+  length: 110,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '22',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1395',
+  routine: 'parserOpenTable'
+}
+[Scheduler] Found 0 tasks to execute

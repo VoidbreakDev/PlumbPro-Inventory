@@ -25,3 +25,18 @@ Files in the public directory are served at the root path.
 Instead of /public/manifest.json, use /manifest.json.
 Files in the public directory are served at the root path.
 Instead of /public/manifest.json, use /manifest.json.
+10:30:22 AM [vite] (client) hmr update /App.tsx
+10:30:22 AM [vite] (client) hmr update /views/SettingsView.tsx
+10:30:22 AM [vite] (client) hmr update /App.tsx
+10:30:30 AM [vite] (client) ✨ new dependencies optimized: zustand, localforage
+10:30:30 AM [vite] (client) ✨ optimized dependencies changed. reloading
+Files in the public directory are served at the root path.
+Instead of /public/manifest.json, use /manifest.json.
+11:13:01 AM [vite] .env changed, restarting server...
+11:13:01 AM [vite] (client) hmr update /App.tsx
+11:13:01 AM [vite] (client) hmr update /views/OrderingView.tsx, /views/ApprovalsView.tsx, /views/SettingsView.tsx, /App.tsx
+11:13:01 AM [vite] (client) hmr update /App.tsx
+11:13:01 AM [vite] (client) hmr update /views/ApprovalsView.tsx
+11:13:01 AM [vite] (client) hmr update /views/OrderingView.tsx
+11:13:01 AM [vite] (client) hmr update /views/SettingsView.tsx
+11:13:01 AM [vite] server restarted.
