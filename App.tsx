@@ -1,6 +1,5 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
 import './lib/i18n';
 import {
   Package,
@@ -35,20 +34,7 @@ import {
   JobTemplate,
   AllocatedItem
 } from './types';
-import {
-  INITIAL_CONTACTS,
-  INITIAL_INVENTORY,
-  INITIAL_JOBS,
-  INITIAL_MOVEMENTS,
-  JOB_TEMPLATES
-} from './constants';
-import {
-  contactsAPI,
-  inventoryAPI,
-  jobsAPI,
-  templatesAPI,
-  movementsAPI
-} from './lib/api';
+import { useStore } from './store/useStore';
 
 import { NavItem, getStockStatus, StockMeter, Badge } from './components/Shared';
 import { DashboardView } from './views/DashboardView';
@@ -74,15 +60,29 @@ import { addSkipLink } from './lib/accessibility';
 function AppContent() {
   const toast = useToast();
   const [activeTab, setActiveTab] = useState<'dashboard' | 'inventory' | 'calendar' | 'job-planning' | 'contacts' | 'ordering' | 'history' | 'approvals' | 'settings'>('dashboard');
-  const [inventory, setInventory] = useState<InventoryItem[]>([]);
-  const [contacts, setContacts] = useState<Contact[]>([]);
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [movements, setMovements] = useState<StockMovement[]>([]);
-  const [templates, setTemplates] = useState<JobTemplate[]>([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [theme, setTheme] = useState<'light' | 'dark' | 'auto'>('light');
   const [isMobileStockCountOpen, setIsMobileStockCountOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const inventory = useStore((state) => state.inventory);
+  const contacts = useStore((state) => state.contacts);
+  const jobs = useStore((state) => state.jobs);
+  const movements = useStore((state) => state.movements);
+  const templates = useStore((state) => state.templates);
+  const addJob = useStore((state) => state.addJob);
+  const pickJob = useStore((state) => state.pickJob);
+  const addInventoryItem = useStore((state) => state.addInventoryItem);
+  const updateInventoryItem = useStore((state) => state.updateInventoryItem);
+  const adjustStock = useStore((state) => state.adjustStock);
+  const addContact = useStore((state) => state.addContact);
+  const updateContact = useStore((state) => state.updateContact);
+  const deleteContact = useStore((state) => state.deleteContact);
+  const addTemplate = useStore((state) => state.addTemplate);
+  const updateTemplate = useStore((state) => state.updateTemplate);
+  const deleteTemplate = useStore((state) => state.deleteTemplate);
+  const setInventoryState = useStore((state) => state.setInventoryState);
+  const setJobsState = useStore((state) => state.setJobsState);
+  const setMovementsState = useStore((state) => state.setMovementsState);
 
   // Detect mobile device
   useEffect(() => {
@@ -109,114 +109,9 @@ function AppContent() {
     }
   }, []);
 
-  // Load all data from database on mount
+  // Load all data on mount
   useEffect(() => {
-    const loadDataFromDatabase = async () => {
-      try {
-        console.log('🔄 Loading data from database...');
-
-        // Load contacts
-        try {
-          const contactsData = await contactsAPI.getAll();
-          if (contactsData && contactsData.length > 0) {
-            setContacts(contactsData);
-            console.log('✅ Loaded contacts from database:', contactsData.length);
-          } else {
-            console.log('ℹ️ No contacts in database, using initial data');
-          }
-        } catch (err: any) {
-          console.error('❌ Failed to load contacts from database:', err.message);
-          // Fallback to localStorage
-          const savedContacts = localStorage.getItem('plumbpro-contacts');
-          if (savedContacts) {
-            setContacts(JSON.parse(savedContacts));
-            console.log('📦 Loaded contacts from localStorage fallback');
-          }
-        }
-
-        // Load inventory
-        try {
-          const inventoryData = await inventoryAPI.getAll();
-          if (inventoryData && inventoryData.length > 0) {
-            setInventory(inventoryData);
-            console.log('✅ Loaded inventory from database:', inventoryData.length);
-          } else {
-            console.log('ℹ️ No inventory in database, using initial data');
-          }
-        } catch (err: any) {
-          console.error('❌ Failed to load inventory from database:', err.message);
-          // Fallback to localStorage
-          const savedInventory = localStorage.getItem('plumbpro-inventory');
-          if (savedInventory) {
-            setInventory(JSON.parse(savedInventory));
-            console.log('📦 Loaded inventory from localStorage fallback');
-          }
-        }
-
-        // Load jobs
-        try {
-          const jobsData = await jobsAPI.getAll();
-          if (jobsData && jobsData.length > 0) {
-            setJobs(jobsData);
-            console.log('✅ Loaded jobs from database:', jobsData.length);
-          } else {
-            console.log('ℹ️ No jobs in database, using initial data');
-          }
-        } catch (err: any) {
-          console.error('❌ Failed to load jobs from database:', err.message);
-          // Fallback to localStorage
-          const savedJobs = localStorage.getItem('plumbpro-jobs');
-          if (savedJobs) {
-            setJobs(JSON.parse(savedJobs));
-            console.log('📦 Loaded jobs from localStorage fallback');
-          }
-        }
-
-        // Load movements
-        try {
-          const movementsData = await movementsAPI.getAll();
-          if (movementsData && movementsData.length > 0) {
-            setMovements(movementsData);
-            console.log('✅ Loaded movements from database:', movementsData.length);
-          } else {
-            console.log('ℹ️ No movements in database, using initial data');
-          }
-        } catch (err: any) {
-          console.error('❌ Failed to load movements from database:', err.message);
-          // Fallback to localStorage
-          const savedMovements = localStorage.getItem('plumbpro-movements');
-          if (savedMovements) {
-            setMovements(JSON.parse(savedMovements));
-            console.log('📦 Loaded movements from localStorage fallback');
-          }
-        }
-
-        // Load templates
-        try {
-          const templatesData = await templatesAPI.getAll();
-          if (templatesData && templatesData.length > 0) {
-            setTemplates(templatesData);
-            console.log('✅ Loaded templates from database:', templatesData.length);
-          } else {
-            console.log('ℹ️ No templates in database, using initial data');
-          }
-        } catch (err: any) {
-          console.error('❌ Failed to load templates from database:', err.message);
-          // Fallback to localStorage
-          const savedTemplates = localStorage.getItem('plumbpro-templates');
-          if (savedTemplates) {
-            setTemplates(JSON.parse(savedTemplates));
-            console.log('📦 Loaded templates from localStorage fallback');
-          }
-        }
-
-      } catch (error) {
-        console.error('❌ Failed to load data from database:', error);
-        toast.error('Failed to load data from database. Using local data.');
-      }
-    };
-
-    loadDataFromDatabase();
+    void useStore.getState().syncWithServer();
   }, []);
 
   // Apply theme to document
@@ -408,12 +303,11 @@ function AppContent() {
         isPicked: false,
       };
 
-      const createdJob = await jobsAPI.create(newJob);
-      setJobs(prev => [...prev, createdJob]);
+      await addJob(newJob);
       setIsNewJobModalOpen(false);
       setNewJobData({ title: '', builder: '', date: '', workerIds: [], templateId: '' });
       toast.success(`Job "${title}" created successfully!`);
-      console.log('✅ Job created in database:', createdJob.id);
+      console.log('✅ Job created in database');
     } catch (error: any) {
       console.error('❌ Failed to create job:', error);
       toast.error(`Failed to create job: ${error.message}`);
@@ -425,21 +319,9 @@ function AppContent() {
     if (!job || job.isPicked) return;
 
     try {
-      // Call the backend API to pick the job
-      await jobsAPI.pick(jobId);
-
-      // Update local state
-      setJobs(prevJobs => prevJobs.map(j => j.id === jobId ? { ...j, isPicked: true, status: 'In Progress' as const } : j));
+      await pickJob(jobId);
       toast.success(`Job "${job.title}" picked successfully!`, 'Items Allocated');
       console.log('✅ Job picked in database:', jobId);
-
-      // Reload inventory and movements to reflect the changes made by backend
-      const [inventoryData, movementsData] = await Promise.all([
-        inventoryAPI.getAll(),
-        movementsAPI.getAll()
-      ]);
-      setInventory(inventoryData);
-      setMovements(movementsData);
     } catch (error: any) {
       console.error('❌ Failed to pick job:', error);
       toast.error(`Failed to pick job: ${error.message}`);
@@ -453,12 +335,11 @@ function AppContent() {
     reader.onload = (e) => {
       const text = e.target?.result as string;
       const lines = text.split('\n');
-      const newItems: InventoryItem[] = [];
-      lines.slice(1).forEach((line, idx) => {
+      const newItems: Omit<InventoryItem, 'id'>[] = [];
+      lines.slice(1).forEach((line) => {
         if (!line.trim()) return;
         const [name, category, price, quantity, reorder, supplierId, supplierCode] = line.split(',').map(s => s.trim());
         newItems.push({
-          id: `csv-${Date.now()}-${idx}`,
           name,
           category,
           price: parseFloat(price) || 0,
@@ -466,10 +347,18 @@ function AppContent() {
           reorderLevel: parseInt(reorder) || 5,
           supplierId,
           supplierCode,
+          location: '',
+          lastUpdated: new Date().toISOString().split('T')[0]
         });
       });
-      setInventory(prev => [...prev, ...newItems]);
-      toast.success(`Imported ${newItems.length} items successfully!`, 'CSV Import Complete');
+      void Promise.all(newItems.map((item) => addInventoryItem(item)))
+        .then(() => {
+          toast.success(`Imported ${newItems.length} items successfully!`, 'CSV Import Complete');
+        })
+        .catch((error: any) => {
+          console.error('❌ Failed to import CSV:', error);
+          toast.error(`Failed to import CSV: ${error.message}`);
+        });
     };
     reader.readAsText(file);
   };
@@ -481,20 +370,10 @@ function AppContent() {
     }
 
     try {
-      const newQuantity = Math.max(0, itemToAdjust.quantity + adjustmentValue);
-
-      // Update inventory in database
-      await inventoryAPI.adjust(itemToAdjust.id, adjustmentValue, adjustmentReason);
-      setInventory(prev => prev.map(i => i.id === itemToAdjust.id ? { ...i, quantity: newQuantity } : i));
-
-      // Movement will be created by the backend automatically
+      await adjustStock(itemToAdjust.id, adjustmentValue, adjustmentReason);
       setIsAdjustModalOpen(false);
       toast.success(`Stock adjusted for ${itemToAdjust.name}`, 'Adjustment Complete');
       console.log('✅ Stock adjusted in database:', itemToAdjust.id);
-
-      // Reload movements to get the new one created by backend
-      const movementsData = await movementsAPI.getAll();
-      setMovements(movementsData);
     } catch (error: any) {
       console.error('❌ Failed to adjust stock:', error);
       toast.error(`Failed to adjust stock: ${error.message}`);
@@ -514,11 +393,10 @@ function AppContent() {
     }
 
     try {
-      const updatedItem = await inventoryAPI.update(itemToEdit.id, itemToEdit);
-      setInventory(prev => prev.map(i => i.id === itemToEdit.id ? updatedItem : i));
+      await updateInventoryItem(itemToEdit.id, itemToEdit);
       setIsEditItemModalOpen(false);
       toast.success(`${itemToEdit.name} updated successfully!`);
-      console.log('✅ Inventory item updated in database:', updatedItem.id);
+      console.log('✅ Inventory item updated in database:', itemToEdit.id);
       setItemToEdit(null);
     } catch (error: any) {
       console.error('❌ Failed to update item:', error);
@@ -551,11 +429,11 @@ function AppContent() {
     }
 
     try {
-      const createdItem = await inventoryAPI.create(itemToEdit);
-      setInventory(prev => [...prev, createdItem]);
+      const { id, ...payload } = itemToEdit;
+      await addInventoryItem(payload);
       setIsAddItemModalOpen(false);
       toast.success(`${itemToEdit.name} added successfully!`);
-      console.log('✅ Inventory item created in database:', createdItem.id);
+      console.log('✅ Inventory item created in database');
       setItemToEdit(null);
     } catch (error: any) {
       console.error('❌ Failed to create item:', error);
@@ -570,22 +448,10 @@ function AppContent() {
 
       const delta = newQuantity - item.quantity;
 
-      // Update via inventory adjust API
-      await inventoryAPI.adjust(itemId, delta, 'Mobile stock count adjustment');
-
-      setInventory(prev => prev.map(i => {
-        if (i.id === itemId) {
-          return { ...i, quantity: newQuantity, lastUpdated: new Date().toISOString().split('T')[0] };
-        }
-        return i;
-      }));
+      await adjustStock(itemId, delta, 'Mobile stock count adjustment');
 
       toast.success('Stock count updated');
       console.log('✅ Mobile stock updated in database:', itemId);
-
-      // Reload movements to get the new one created by backend
-      const movementsData = await movementsAPI.getAll();
-      setMovements(movementsData);
     } catch (error: any) {
       console.error('❌ Failed to update mobile stock:', error);
       toast.error(`Failed to update stock: ${error.message}`);
@@ -622,16 +488,15 @@ function AppContent() {
 
       if (isNewContact) {
         // Create new contact in database
-        const createdContact = await contactsAPI.create(contactToEdit);
-        setContacts(prev => [...prev, createdContact]);
+        const { id, ...payload } = contactToEdit;
+        await addContact(payload);
         toast.success(`${contactToEdit.name} added successfully!`);
-        console.log('✅ Contact created in database:', createdContact.id);
+        console.log('✅ Contact created in database');
       } else {
         // Update existing contact in database
-        const updatedContact = await contactsAPI.update(contactToEdit.id, contactToEdit);
-        setContacts(prev => prev.map(c => c.id === contactToEdit.id ? updatedContact : c));
+        await updateContact(contactToEdit.id, contactToEdit);
         toast.success(`${contactToEdit.name} updated successfully!`);
-        console.log('✅ Contact updated in database:', updatedContact.id);
+        console.log('✅ Contact updated in database:', contactToEdit.id);
       }
 
       setIsEditContactModalOpen(false);
@@ -646,8 +511,7 @@ function AppContent() {
     if (!confirm(`Delete ${contact.name}? This cannot be undone.`)) return;
 
     try {
-      await contactsAPI.delete(contact.id);
-      setContacts(prev => prev.filter(c => c.id !== contact.id));
+      await deleteContact(contact.id);
       toast.success(`${contact.name} deleted successfully`);
       console.log('✅ Contact deleted from database:', contact.id);
     } catch (error: any) {
@@ -658,37 +522,36 @@ function AppContent() {
 
   const applyTemplateAllocation = () => {
     if (!templateJob || !templateItems.length) return;
-    setJobs(prev => prev.map(job => {
+    const nextJobs = jobs.map(job => {
       if (job.id === templateJob.id) {
         return { ...job, allocatedItems: [...job.allocatedItems, ...templateItems] };
       }
       return job;
-    }));
+    });
+    setJobsState(nextJobs);
     if (templateJob.isPicked) {
-        templateItems.forEach(item => {
-          const movement: StockMovement = {
-            id: `m-tmpl-${Date.now()}-${Math.random()}`,
-            itemId: item.itemId,
-            type: 'Allocation',
-            quantity: item.quantity,
-            timestamp: Date.now(),
-            reference: templateJob.id,
-          };
-          setMovements(prev => [movement, ...prev]);
-          setInventory(inv => inv.map(i => {
-            if (i.id === item.itemId) {
-              return { ...i, quantity: Math.max(0, i.quantity - item.quantity) };
-            }
-            return i;
-          }));
-        });
+      const newMovements = templateItems.map(item => ({
+        id: `m-tmpl-${Date.now()}-${Math.random()}`,
+        itemId: item.itemId,
+        type: 'Allocation' as const,
+        quantity: item.quantity,
+        timestamp: Date.now(),
+        reference: templateJob.id,
+      }));
+      setMovementsState([...newMovements, ...movements]);
+      const updatedInventory = inventory.map(i => {
+        const movement = templateItems.find(item => item.itemId === i.id);
+        if (!movement) return i;
+        return { ...i, quantity: Math.max(0, i.quantity - movement.quantity) };
+      });
+      setInventoryState(updatedInventory);
     }
     setIsTemplateModalOpen(false);
   };
 
   const handleManualAllocate = () => {
     if (!jobToAllocate || !allocItemId || allocQty <= 0) return;
-    setJobs(prev => prev.map(job => {
+    const nextJobs = jobs.map(job => {
       if (job.id === jobToAllocate.id) {
         const existingIndex = job.allocatedItems.findIndex(ai => ai.itemId === allocItemId);
         let newAllocatedItems = [...job.allocatedItems];
@@ -703,24 +566,26 @@ function AppContent() {
         return { ...job, allocatedItems: newAllocatedItems };
       }
       return job;
-    }));
+    });
+    setJobsState(nextJobs);
     
     if (jobToAllocate.isPicked) {
-        const movement: StockMovement = {
-          id: `m-alloc-${Date.now()}`,
-          itemId: allocItemId,
-          type: 'Allocation',
-          quantity: allocQty,
-          timestamp: Date.now(),
-          reference: jobToAllocate.id,
-        };
-        setMovements(prev => [movement, ...prev]);
-        setInventory(prev => prev.map(i => {
-          if (i.id === allocItemId) {
-            return { ...i, quantity: Math.max(0, i.quantity - allocQty) };
-          }
-          return i;
-        }));
+      const movement: StockMovement = {
+        id: `m-alloc-${Date.now()}`,
+        itemId: allocItemId,
+        type: 'Allocation',
+        quantity: allocQty,
+        timestamp: Date.now(),
+        reference: jobToAllocate.id,
+      };
+      setMovementsState([movement, ...movements]);
+      const updatedInventory = inventory.map(i => {
+        if (i.id === allocItemId) {
+          return { ...i, quantity: Math.max(0, i.quantity - allocQty) };
+        }
+        return i;
+      });
+      setInventoryState(updatedInventory);
     }
     setIsAllocateModalOpen(false);
   };
@@ -732,10 +597,9 @@ function AppContent() {
         name,
         items
       };
-      const createdTemplate = await templatesAPI.create(newTemplate);
-      setTemplates(prev => [...prev, createdTemplate]);
+      await addTemplate(newTemplate);
       toast.success(`Template "${name}" created successfully!`);
-      console.log('✅ Template created in database:', createdTemplate.id);
+      console.log('✅ Template created in database');
     } catch (error: any) {
       console.error('❌ Failed to create template:', error);
       toast.error(`Failed to create template: ${error.message}`);
@@ -744,8 +608,7 @@ function AppContent() {
 
   const handleUpdateTemplate = async (id: string, name: string, items: AllocatedItem[]) => {
     try {
-      const updatedTemplate = await templatesAPI.update(id, { name, items });
-      setTemplates(prev => prev.map(t => t.id === id ? updatedTemplate : t));
+      await updateTemplate(id, { name, items });
       toast.success(`Template "${name}" updated successfully!`);
       console.log('✅ Template updated in database:', id);
     } catch (error: any) {
@@ -756,8 +619,7 @@ function AppContent() {
 
   const handleDeleteTemplate = async (id: string) => {
     try {
-      await templatesAPI.delete(id);
-      setTemplates(prev => prev.filter(t => t.id !== id));
+      await deleteTemplate(id);
       toast.success('Template deleted successfully!');
       console.log('✅ Template deleted from database:', id);
     } catch (error: any) {

@@ -89,6 +89,11 @@ interface AppState {
   // Utility Actions
   setError: (error: string | null) => void;
   clearError: () => void;
+
+  // Local State Setters
+  setInventoryState: (items: InventoryItem[]) => void;
+  setJobsState: (jobs: Job[]) => void;
+  setMovementsState: (movements: StockMovement[]) => void;
 }
 
 export const useStore = create<AppState>((set, get) => ({
@@ -198,6 +203,8 @@ export const useStore = create<AppState>((set, get) => ({
         movementsAPI.getAll()
       ]);
 
+      const syncTimestamp = Date.now();
+
       // Update state
       set({
         inventory,
@@ -205,7 +212,7 @@ export const useStore = create<AppState>((set, get) => ({
         jobs,
         templates,
         movements,
-        lastSync: Date.now(),
+        lastSync: syncTimestamp,
         isSyncing: false
       });
 
@@ -216,7 +223,7 @@ export const useStore = create<AppState>((set, get) => ({
         storage.setJobs(jobs),
         storage.setTemplates(templates),
         storage.setMovements(movements),
-        storage.setLastSync(Date.now())
+        storage.setLastSync(syncTimestamp)
       ]);
     } catch (error) {
       console.error('Sync failed:', error);
@@ -232,7 +239,6 @@ export const useStore = create<AppState>((set, get) => ({
       set({ isLoading: true });
       const inventory = await inventoryAPI.getAll();
       set({ inventory, isLoading: false });
-      await storage.setInventory(inventory);
     } catch (error) {
       set({ isLoading: false });
       throw error;
@@ -245,7 +251,6 @@ export const useStore = create<AppState>((set, get) => ({
       set((state) => ({
         inventory: [...state.inventory, newItem]
       }));
-      await storage.setInventory(get().inventory);
     } catch (error) {
       throw error;
     }
@@ -259,7 +264,6 @@ export const useStore = create<AppState>((set, get) => ({
           item.id === id ? { ...item, ...updated } : item
         )
       }));
-      await storage.setInventory(get().inventory);
     } catch (error) {
       throw error;
     }
@@ -281,7 +285,6 @@ export const useStore = create<AppState>((set, get) => ({
       set((state) => ({
         inventory: state.inventory.filter((item) => item.id !== id)
       }));
-      await storage.setInventory(get().inventory);
     } catch (error) {
       throw error;
     }
@@ -292,7 +295,6 @@ export const useStore = create<AppState>((set, get) => ({
     try {
       const contacts = await contactsAPI.getAll();
       set({ contacts });
-      await storage.setContacts(contacts);
     } catch (error) {
       throw error;
     }
@@ -304,7 +306,6 @@ export const useStore = create<AppState>((set, get) => ({
       set((state) => ({
         contacts: [...state.contacts, newContact]
       }));
-      await storage.setContacts(get().contacts);
     } catch (error) {
       throw error;
     }
@@ -318,7 +319,6 @@ export const useStore = create<AppState>((set, get) => ({
           contact.id === id ? { ...contact, ...updated } : contact
         )
       }));
-      await storage.setContacts(get().contacts);
     } catch (error) {
       throw error;
     }
@@ -330,7 +330,6 @@ export const useStore = create<AppState>((set, get) => ({
       set((state) => ({
         contacts: state.contacts.filter((contact) => contact.id !== id)
       }));
-      await storage.setContacts(get().contacts);
     } catch (error) {
       throw error;
     }
@@ -341,7 +340,6 @@ export const useStore = create<AppState>((set, get) => ({
     try {
       const jobs = await jobsAPI.getAll();
       set({ jobs });
-      await storage.setJobs(jobs);
     } catch (error) {
       throw error;
     }
@@ -353,7 +351,6 @@ export const useStore = create<AppState>((set, get) => ({
       set((state) => ({
         jobs: [...state.jobs, newJob]
       }));
-      await storage.setJobs(get().jobs);
     } catch (error) {
       throw error;
     }
@@ -367,7 +364,6 @@ export const useStore = create<AppState>((set, get) => ({
           job.id === id ? { ...job, ...updated } : job
         )
       }));
-      await storage.setJobs(get().jobs);
     } catch (error) {
       throw error;
     }
@@ -390,7 +386,6 @@ export const useStore = create<AppState>((set, get) => ({
       set((state) => ({
         jobs: state.jobs.filter((job) => job.id !== id)
       }));
-      await storage.setJobs(get().jobs);
     } catch (error) {
       throw error;
     }
@@ -401,7 +396,6 @@ export const useStore = create<AppState>((set, get) => ({
     try {
       const templates = await templatesAPI.getAll();
       set({ templates });
-      await storage.setTemplates(templates);
     } catch (error) {
       throw error;
     }
@@ -413,7 +407,6 @@ export const useStore = create<AppState>((set, get) => ({
       set((state) => ({
         templates: [...state.templates, newTemplate]
       }));
-      await storage.setTemplates(get().templates);
     } catch (error) {
       throw error;
     }
@@ -434,7 +427,6 @@ export const useStore = create<AppState>((set, get) => ({
       set((state) => ({
         templates: state.templates.filter((template) => template.id !== id)
       }));
-      await storage.setTemplates(get().templates);
     } catch (error) {
       throw error;
     }
@@ -445,7 +437,6 @@ export const useStore = create<AppState>((set, get) => ({
     try {
       const movements = await movementsAPI.getAll(filters);
       set({ movements });
-      await storage.setMovements(movements);
     } catch (error) {
       throw error;
     }
@@ -465,6 +456,11 @@ export const useStore = create<AppState>((set, get) => ({
       throw error;
     }
   },
+
+  // Local State Setters
+  setInventoryState: (items) => set({ inventory: items }),
+  setJobsState: (jobs) => set({ jobs }),
+  setMovementsState: (movements) => set({ movements }),
 
   // Utility Actions
   setError: (error) => set({ error }),
