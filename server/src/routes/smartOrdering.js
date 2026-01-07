@@ -2,6 +2,7 @@ import express from 'express';
 import pool from '../config/database.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { getProviderKey } from '../services/aiKeyService.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -13,7 +14,10 @@ router.use(authenticateToken);
 // Test endpoint to list available models
 router.get('/test-models', async (req, res) => {
   try {
-    const apiKey = req.query.apiKey || process.env.GEMINI_API_KEY;
+    const apiKey =
+      req.query.apiKey ||
+      (await getProviderKey(req.user.userId, 'gemini')) ||
+      process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
       return res.status(400).json({ error: 'API key required' });
@@ -68,16 +72,8 @@ router.post('/suggestions', async (req, res) => {
   const client = await pool.connect();
 
   try {
-    // Get API key from request body or fallback to env variable
-    const apiKey = req.body.geminiApiKey || process.env.GEMINI_API_KEY;
-
-    console.log('🔍 Backend received request body:', {
-      hasGeminiApiKey: !!req.body.geminiApiKey,
-      geminiApiKeyLength: req.body.geminiApiKey?.length || 0,
-      geminiApiKeyPreview: req.body.geminiApiKey ? `${req.body.geminiApiKey.substring(0, 10)}...` : 'NOT PROVIDED',
-      hasEnvKey: !!process.env.GEMINI_API_KEY,
-      finalApiKey: apiKey ? `${apiKey.substring(0, 10)}... (length: ${apiKey.length})` : 'NOT SET'
-    });
+    // Get API key from secure storage or fallback to env variable
+    const apiKey = (await getProviderKey(req.user.userId, 'gemini')) || process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
       console.error('❌ No API key available');
