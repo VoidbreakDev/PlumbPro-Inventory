@@ -299,6 +299,7 @@ npm start
 ## 📝 Environment Variables
 
 ### Frontend (.env)
+Default API URL (single source of truth): `http://localhost:5000/api`
 ```env
 VITE_API_URL=http://localhost:5000/api
 ```
