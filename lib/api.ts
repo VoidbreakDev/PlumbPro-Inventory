@@ -8,7 +8,11 @@ import type {
   SmartOrderSuggestion
 } from '../types';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+export const DEFAULT_API_URL = 'http://localhost:5000/api';
+export const DEFAULT_BACKEND_PORT = 5000;
+export const API_BASE_URL = import.meta.env.VITE_API_URL || DEFAULT_API_URL;
+export const API_ROOT_URL = API_BASE_URL.replace(/\/api\/?$/, '');
+export const hasExplicitApiUrl = Boolean(import.meta.env.VITE_API_URL);
 
 // Create axios instance
 const api = axios.create({

@@ -56,6 +56,7 @@ import LanguageSwitcher from './components/LanguageSwitcher';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { onboardingService, tours } from './lib/onboardingService';
 import { addSkipLink } from './lib/accessibility';
+import { API_ROOT_URL, DEFAULT_BACKEND_PORT, hasExplicitApiUrl } from './lib/api';
 
 function AppContent() {
   const toast = useToast();
@@ -113,6 +114,40 @@ function AppContent() {
   useEffect(() => {
     void useStore.getState().syncWithServer();
   }, []);
+
+  useEffect(() => {
+    if (!hasExplicitApiUrl && window.location.port !== `${DEFAULT_BACKEND_PORT}`) {
+      toast.warning(
+        `VITE_API_URL is not set. The app is using the default API at ${API_ROOT_URL}. Set VITE_API_URL in your .env file if your backend runs elsewhere.`,
+        'API configuration'
+      );
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const checkHealth = async () => {
+      try {
+        const response = await fetch(`${API_ROOT_URL}/health`, { signal: controller.signal });
+        if (!response.ok) {
+          throw new Error(`Health check failed with status ${response.status}`);
+        }
+      } catch (error) {
+        if ((error as Error).name === 'AbortError') {
+          return;
+        }
+        toast.warning(
+          `Backend health check failed for ${API_ROOT_URL}. Confirm the server is running and VITE_API_URL is correct.`,
+          'Backend connection'
+        );
+      }
+    };
+
+    void checkHealth();
+    return () => {
+      controller.abort();
+    };
+  }, [toast]);
 
   // Apply theme to document
   useEffect(() => {

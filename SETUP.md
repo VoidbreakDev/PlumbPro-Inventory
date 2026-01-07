@@ -228,16 +228,16 @@ npm install
 
 ### Step 2: Configure Environment
 
-Create `.env` file in the root directory:
+Create `.env` file in the root directory using the default API URL documented in [README.md](README.md#-environment-variables):
 
 ```bash
 # Create .env in root
-echo "VITE_API_URL=http://localhost:5000/api" > .env
+echo "VITE_API_URL=<default API URL from README.md>" > .env
 ```
 
 Your `.env` should contain:
 ```env
-VITE_API_URL=http://localhost:5000/api
+VITE_API_URL=<default API URL from README.md>
 ```
 
 ### Step 3: Start Frontend
