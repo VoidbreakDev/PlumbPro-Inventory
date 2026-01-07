@@ -97,19 +97,23 @@ const clearLegacySettings = () => {
 };
 
 export const loadSettings = async (): Promise<AppSettings> => {
+  const legacySettings = readLegacySettings();
   const stored = await storage.getSettings();
+
+  if (legacySettings) {
+    if (!stored) {
+      await storage.setSettings(legacySettings);
+      clearLegacySettings();
+      return legacySettings;
+    }
+    clearLegacySettings();
+  }
+
   if (stored) {
     return mergeSettings(stored);
   }
 
-  const legacySettings = readLegacySettings();
-  if (legacySettings) {
-    await storage.setSettings(legacySettings);
-    clearLegacySettings();
-    return legacySettings;
-  }
-
-  return defaultSettings;
+  return legacySettings ?? defaultSettings;
 };
 
 export const saveSettings = async (settings: AppSettings): Promise<void> => {

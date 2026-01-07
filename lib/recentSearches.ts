@@ -33,19 +33,23 @@ const clearLegacyRecentSearches = () => {
 };
 
 export const loadRecentSearches = async (): Promise<string[]> => {
+  const legacy = readLegacyRecentSearches();
   const stored = await storage.getRecentSearches();
+
+  if (legacy) {
+    if (!stored) {
+      await storage.setRecentSearches(legacy);
+      clearLegacyRecentSearches();
+      return legacy;
+    }
+    clearLegacyRecentSearches();
+  }
+
   if (stored) {
     return stored;
   }
 
-  const legacy = readLegacyRecentSearches();
-  if (legacy) {
-    await storage.setRecentSearches(legacy);
-    clearLegacyRecentSearches();
-    return legacy;
-  }
-
-  return [];
+  return legacy ?? [];
 };
 
 export const saveRecentSearches = async (recentSearches: string[]): Promise<void> => {
