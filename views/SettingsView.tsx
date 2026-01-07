@@ -25,41 +25,16 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSave }) => {
   const savedAiSettings = savedSettings?.ai || {};
 
   // Profile settings
-  const [profileSettings, setProfileSettings] = useState(savedSettings?.profile || {
-    fullName: 'Admin User',
-    email: 'admin@plumbpro.com',
-    phone: '(555) 123-4567',
-    role: 'Administrator'
-  });
+  const [profileSettings, setProfileSettings] = useState(defaultSettings.profile);
 
   // Company settings
-  const [companySettings, setCompanySettings] = useState(savedSettings?.company || {
-    companyName: 'PlumbPro Industries',
-    address: '123 Main Street',
-    city: 'Sydney',
-    state: 'NSW',
-    postcode: '2000',
-    abn: '12 345 678 901',
-    phone: '(02) 9876 5432',
-    email: 'info@plumbpro.com'
-  });
+  const [companySettings, setCompanySettings] = useState(defaultSettings.company);
 
   // Notification settings
-  const [notificationSettings, setNotificationSettings] = useState(savedSettings?.notifications || {
-    emailNotifications: true,
-    lowStockAlerts: true,
-    jobUpdates: true,
-    orderConfirmations: true,
-    systemUpdates: false
-  });
+  const [notificationSettings, setNotificationSettings] = useState(defaultSettings.notifications);
 
   // Appearance settings
-  const [appearanceSettings, setAppearanceSettings] = useState(savedSettings?.appearance || {
-    theme: 'light',
-    language: 'en',
-    dateFormat: 'DD/MM/YYYY',
-    currency: 'AUD'
-  });
+  const [appearanceSettings, setAppearanceSettings] = useState(defaultSettings.appearance);
 
   // AI settings
   const [aiSettings, setAiSettings] = useState({

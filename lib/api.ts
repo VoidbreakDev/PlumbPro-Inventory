@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { loadSettings } from './settings';
 import type {
   InventoryItem,
   Contact,

@@ -4,7 +4,8 @@ import type {
   Contact,
   Job,
   JobTemplate,
-  StockMovement
+  StockMovement,
+  AppSettings
 } from '../types';
 
 // Configure localforage
@@ -21,7 +22,9 @@ const KEYS = {
   JOBS: 'jobs',
   TEMPLATES: 'job_templates',
   MOVEMENTS: 'stock_movements',
-  LAST_SYNC: 'last_sync_timestamp'
+  LAST_SYNC: 'last_sync_timestamp',
+  SETTINGS: 'app_settings',
+  RECENT_SEARCHES: 'recent_searches'
 };
 
 // Generic storage functions
@@ -78,6 +81,24 @@ export const storage = {
 
   async setLastSync(timestamp: number): Promise<void> {
     await localforage.setItem(KEYS.LAST_SYNC, timestamp);
+  },
+
+  // Settings
+  async getSettings(): Promise<AppSettings | null> {
+    return (await localforage.getItem(KEYS.SETTINGS)) || null;
+  },
+
+  async setSettings(settings: AppSettings): Promise<void> {
+    await localforage.setItem(KEYS.SETTINGS, settings);
+  },
+
+  // Recent searches
+  async getRecentSearches(): Promise<string[] | null> {
+    return (await localforage.getItem(KEYS.RECENT_SEARCHES)) || null;
+  },
+
+  async setRecentSearches(recentSearches: string[]): Promise<void> {
+    await localforage.setItem(KEYS.RECENT_SEARCHES, recentSearches);
   },
 
   // Clear all data

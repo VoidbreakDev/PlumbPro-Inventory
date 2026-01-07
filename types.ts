@@ -62,3 +62,52 @@ export interface SmartOrderSuggestion {
   suggestedQuantity: number;
   reason: string;
 }
+
+export interface ProfileSettings {
+  fullName: string;
+  email: string;
+  phone: string;
+  role: string;
+}
+
+export interface CompanySettings {
+  companyName: string;
+  address: string;
+  city: string;
+  state: string;
+  postcode: string;
+  abn: string;
+  phone: string;
+  email: string;
+}
+
+export interface NotificationSettings {
+  emailNotifications: boolean;
+  lowStockAlerts: boolean;
+  jobUpdates: boolean;
+  orderConfirmations: boolean;
+  systemUpdates: boolean;
+}
+
+export interface AppearanceSettings {
+  theme: 'light' | 'dark' | 'auto';
+  language: string;
+  dateFormat: string;
+  currency: string;
+}
+
+export interface AiSettings {
+  defaultProvider: string;
+  geminiApiKey: string;
+  ollamaUrl: string;
+  ollamaModel: string;
+  featureProviders: Record<string, string>;
+}
+
+export interface AppSettings {
+  profile: ProfileSettings;
+  company: CompanySettings;
+  notifications: NotificationSettings;
+  appearance: AppearanceSettings;
+  ai: AiSettings;
+}
