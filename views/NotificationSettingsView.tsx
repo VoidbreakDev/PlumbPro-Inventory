@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, Mail, Globe, Save, TestTube } from 'lucide-react';
 import api from '../lib/api';
+import { useStore } from '../store/useStore';
+import { getErrorMessage } from '../lib/errors';
 
 interface NotificationPreferences {
   email_enabled: boolean;
@@ -19,6 +21,7 @@ export function NotificationSettingsView() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const setError = useStore((state) => state.setError);
 
   useEffect(() => {
     loadPreferences();
@@ -39,8 +42,7 @@ export function NotificationSettingsView() {
         daily_summary: data.daily_summary
       });
     } catch (error) {
-      console.error('Failed to load preferences:', error);
-      setMessage({ type: 'error', text: 'Failed to load preferences' });
+      setError(getErrorMessage(error, 'Failed to load preferences'));
     } finally {
       setIsLoading(false);
     }
@@ -68,8 +70,7 @@ export function NotificationSettingsView() {
       setMessage({ type: 'success', text: 'Preferences saved successfully!' });
       setTimeout(() => setMessage(null), 3000);
     } catch (error) {
-      console.error('Failed to save preferences:', error);
-      setMessage({ type: 'error', text: 'Failed to save preferences' });
+      setError(getErrorMessage(error, 'Failed to save preferences'));
     } finally {
       setIsSaving(false);
     }
@@ -81,8 +82,7 @@ export function NotificationSettingsView() {
       setMessage({ type: 'success', text: 'Test notification sent!' });
       setTimeout(() => setMessage(null), 3000);
     } catch (error) {
-      console.error('Failed to send test notification:', error);
-      setMessage({ type: 'error', text: 'Failed to send test notification' });
+      setError(getErrorMessage(error, 'Failed to send test notification'));
     }
   };
 

@@ -1,9 +1,11 @@
 
 import React, { useState } from 'react';
-import { ShoppingCart, TrendingUp, ChevronRight, Truck, AlertCircle } from 'lucide-react';
+import { ShoppingCart, TrendingUp, ChevronRight, Truck } from 'lucide-react';
 import { InventoryItem, Job, SmartOrderSuggestion } from '../types';
 import { Badge } from '../components/Shared';
 import { smartOrderingAPI } from '../lib/api';
+import { useStore } from '../store/useStore';
+import { getErrorMessage } from '../lib/errors';
 
 interface OrderingViewProps {
   inventory: InventoryItem[];
@@ -13,17 +15,19 @@ interface OrderingViewProps {
 export const OrderingView: React.FC<OrderingViewProps> = ({ inventory, jobs }) => {
   const [suggestions, setSuggestions] = useState<SmartOrderSuggestion[]>([]);
   const [isSuggesting, setIsSuggesting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const setError = useStore((state) => state.setError);
 
   const fetchSuggestions = async () => {
     setIsSuggesting(true);
-    setError(null);
     try {
       const result = await smartOrderingAPI.getSuggestions();
       setSuggestions(result.suggestions || []);
-    } catch (err: any) {
-      console.error('Failed to fetch suggestions:', err);
-      setError(err.response?.data?.details || 'Failed to generate suggestions. Please check your Gemini API key in Settings.');
+    } catch (err) {
+      const message = getErrorMessage(
+        err,
+        'Failed to generate suggestions. Please check your Gemini API key in Settings.'
+      );
+      setError(message);
     } finally {
       setIsSuggesting(false);
     }
@@ -57,21 +61,6 @@ export const OrderingView: React.FC<OrderingViewProps> = ({ inventory, jobs }) =
             <ShoppingCart className="w-64 h-64 -mb-20 -mr-20" />
          </div>
       </div>
-
-      {error && (
-        <div className="bg-red-50 dark:bg-red-900 border-2 border-red-200 dark:border-red-700 rounded-xl p-6">
-          <div className="flex items-start">
-            <AlertCircle className="w-6 h-6 text-red-600 dark:text-red-300 mr-3 flex-shrink-0 mt-0.5" />
-            <div>
-              <h4 className="font-bold text-red-900 dark:text-red-100 mb-1">Unable to Generate Suggestions</h4>
-              <p className="text-red-700 dark:text-red-200 text-sm">{error}</p>
-              <p className="text-red-600 dark:text-red-300 text-xs mt-2">
-                To enable Smart Ordering, add your Gemini API key in Settings → AI Integration
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
 
       {suggestions.length > 0 && (
         <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">

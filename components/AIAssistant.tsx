@@ -12,6 +12,8 @@ import {
 } from 'lucide-react';
 import { aiAPI } from '../lib/aiAPI';
 import type { SearchResult } from '../lib/aiAPI';
+import { useStore } from '../store/useStore';
+import { getErrorMessage } from '../lib/errors';
 
 interface AIAssistantProps {
   onClose: () => void;
@@ -25,13 +27,14 @@ export function AIAssistant({ onClose }: AIAssistantProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [searchResults, setSearchResults] = useState<SearchResult | null>(null);
   const [response, setResponse] = useState<any>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [assistantError, setAssistantError] = useState<string | null>(null);
+  const setStoreError = useStore((state) => state.setError);
 
   const handleSearch = async () => {
     if (!query.trim()) return;
 
     setIsLoading(true);
-    setError(null);
+    setAssistantError(null);
     setResponse(null);
     setSearchResults(null);
 
@@ -39,8 +42,10 @@ export function AIAssistant({ onClose }: AIAssistantProps) {
       const result = await aiAPI.search(query);
       setSearchResults(result);
       setMode('search');
-    } catch (err: any) {
-      setError(err.message || 'Failed to search');
+    } catch (err) {
+      const message = getErrorMessage(err, 'Failed to search');
+      setAssistantError(message);
+      setStoreError(message);
     } finally {
       setIsLoading(false);
     }
@@ -48,15 +53,17 @@ export function AIAssistant({ onClose }: AIAssistantProps) {
 
   const handleGetForecast = async () => {
     setIsLoading(true);
-    setError(null);
+    setAssistantError(null);
     setResponse(null);
 
     try {
       const result = await aiAPI.getForecast();
       setResponse(result);
       setMode('forecast');
-    } catch (err: any) {
-      setError(err.message || 'Failed to get forecast');
+    } catch (err) {
+      const message = getErrorMessage(err, 'Failed to get forecast');
+      setAssistantError(message);
+      setStoreError(message);
     } finally {
       setIsLoading(false);
     }
@@ -64,15 +71,17 @@ export function AIAssistant({ onClose }: AIAssistantProps) {
 
   const handleGetAnomalies = async () => {
     setIsLoading(true);
-    setError(null);
+    setAssistantError(null);
     setResponse(null);
 
     try {
       const result = await aiAPI.getAnomalies();
       setResponse(result);
       setMode('anomalies');
-    } catch (err: any) {
-      setError(err.message || 'Failed to detect anomalies');
+    } catch (err) {
+      const message = getErrorMessage(err, 'Failed to detect anomalies');
+      setAssistantError(message);
+      setStoreError(message);
     } finally {
       setIsLoading(false);
     }
@@ -80,15 +89,17 @@ export function AIAssistant({ onClose }: AIAssistantProps) {
 
   const handleGetPurchaseOrders = async () => {
     setIsLoading(true);
-    setError(null);
+    setAssistantError(null);
     setResponse(null);
 
     try {
       const result = await aiAPI.getPurchaseOrders();
       setResponse(result);
       setMode('purchase-orders');
-    } catch (err: any) {
-      setError(err.message || 'Failed to generate purchase orders');
+    } catch (err) {
+      const message = getErrorMessage(err, 'Failed to generate purchase orders');
+      setAssistantError(message);
+      setStoreError(message);
     } finally {
       setIsLoading(false);
     }
@@ -96,15 +107,17 @@ export function AIAssistant({ onClose }: AIAssistantProps) {
 
   const handleGetInsights = async () => {
     setIsLoading(true);
-    setError(null);
+    setAssistantError(null);
     setResponse(null);
 
     try {
       const result = await aiAPI.getInsights();
       setResponse(result);
       setMode('insights');
-    } catch (err: any) {
-      setError(err.message || 'Failed to get insights');
+    } catch (err) {
+      const message = getErrorMessage(err, 'Failed to get insights');
+      setAssistantError(message);
+      setStoreError(message);
     } finally {
       setIsLoading(false);
     }
@@ -189,9 +202,9 @@ export function AIAssistant({ onClose }: AIAssistantProps) {
 
         {/* Content Area */}
         <div className="flex-1 overflow-y-auto p-4">
-          {error && (
+          {assistantError && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800">
-              {error}
+              {assistantError}
             </div>
           )}
 
@@ -563,7 +576,7 @@ export function AIAssistant({ onClose }: AIAssistantProps) {
           )}
 
           {/* Welcome State */}
-          {mode === 'chat' && !response && !isLoading && !error && (
+          {mode === 'chat' && !response && !isLoading && !assistantError && (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <Sparkles className="w-16 h-16 text-blue-600 mb-4" />
               <h3 className="text-xl font-semibold text-slate-800 mb-2">

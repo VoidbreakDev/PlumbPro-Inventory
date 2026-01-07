@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { User, Building2, Bell, Shield, Database, Palette, Globe, Save, Brain, Cloud, Server } from 'lucide-react';
 import api from '../lib/api';
+import { useStore } from '../store/useStore';
+import { getErrorMessage } from '../lib/errors';
 
 interface SettingsViewProps {
   onSave?: (settings: any) => void;
@@ -8,6 +10,7 @@ interface SettingsViewProps {
 
 export const SettingsView: React.FC<SettingsViewProps> = ({ onSave }) => {
   const [activeSection, setActiveSection] = useState<'profile' | 'company' | 'notifications' | 'security' | 'data' | 'appearance' | 'ai'>('profile');
+  const setError = useStore((state) => state.setError);
 
   // Load settings from localStorage on mount
   const loadSettings = () => {
@@ -517,7 +520,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSave }) => {
                             alert(`❌ API Key Test Failed:\n\n${JSON.stringify(data, null, 2)}`);
                           }
                         } catch (err: any) {
-                          alert(`❌ Error testing API key:\n\n${err.message}`);
+                          setError(getErrorMessage(err, 'Error testing API key'));
                         }
                       }}
                       className="px-3 py-1 bg-blue-600 text-white text-xs font-semibold rounded hover:bg-blue-700"

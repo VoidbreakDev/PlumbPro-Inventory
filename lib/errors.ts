@@ -1,0 +1,42 @@
+export const getErrorMessage = (error: unknown, fallback: string) => {
+  if (typeof error === 'string') {
+    return error;
+  }
+
+  if (error && typeof error === 'object') {
+    const apiError = error as {
+      response?: { data?: { error?: string; details?: string; message?: string } };
+      message?: string;
+    };
+
+    return (
+      apiError.response?.data?.error ||
+      apiError.response?.data?.details ||
+      apiError.response?.data?.message ||
+      apiError.message ||
+      fallback
+    );
+  }
+
+  return fallback;
+};
+
+export const serializeError = (error: unknown) => {
+  if (error instanceof Error) {
+    return {
+      name: error.name,
+      message: error.message,
+      stack: error.stack
+    };
+  }
+
+  if (error && typeof error === 'object') {
+    return {
+      ...error
+    };
+  }
+
+  return {
+    message: String(error)
+  };
+};
