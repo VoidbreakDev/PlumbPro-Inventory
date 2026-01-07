@@ -56,6 +56,7 @@ import LanguageSwitcher from './components/LanguageSwitcher';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { onboardingService, tours } from './lib/onboardingService';
 import { addSkipLink } from './lib/accessibility';
+import { loadSettings } from './lib/settings';
 
 function AppContent() {
   const toast = useToast();
@@ -94,19 +95,25 @@ function AppContent() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Initialize theme from localStorage
+  // Initialize theme from persisted settings
   useEffect(() => {
-    const savedSettings = localStorage.getItem('plumbpro-settings');
-    if (savedSettings) {
+    let isMounted = true;
+    const fetchSettings = async () => {
       try {
-        const settings = JSON.parse(savedSettings);
-        if (settings.appearance?.theme) {
+        const settings = await loadSettings();
+        if (isMounted && settings.appearance?.theme) {
           setTheme(settings.appearance.theme);
         }
-      } catch (e) {
-        console.error('Failed to load theme settings:', e);
+      } catch (error) {
+        console.error('Failed to load theme settings:', error);
       }
-    }
+    };
+
+    void fetchSettings();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // Load all data on mount

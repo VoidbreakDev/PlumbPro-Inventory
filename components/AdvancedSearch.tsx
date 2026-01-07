@@ -6,6 +6,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../lib/api';
+import { loadRecentSearches, saveRecentSearches } from '../lib/recentSearches';
 
 export interface SearchResult {
   id: string;
@@ -40,19 +41,32 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
-  // Load recent searches from localStorage
+  // Load recent searches from persisted storage
   useEffect(() => {
-    const recent = localStorage.getItem('plumbpro_recent_searches');
-    if (recent) {
-      setRecentSearches(JSON.parse(recent));
-    }
+    let isMounted = true;
+    const fetchRecentSearches = async () => {
+      try {
+        const recent = await loadRecentSearches();
+        if (isMounted) {
+          setRecentSearches(recent);
+        }
+      } catch (error) {
+        console.error('Failed to load recent searches:', error);
+      }
+    };
+
+    void fetchRecentSearches();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // Save to recent searches
   const saveRecentSearch = (query: string) => {
     const updated = [query, ...recentSearches.filter(q => q !== query)].slice(0, 10);
     setRecentSearches(updated);
-    localStorage.setItem('plumbpro_recent_searches', JSON.stringify(updated));
+    void saveRecentSearches(updated);
   };
 
   // Debounced search

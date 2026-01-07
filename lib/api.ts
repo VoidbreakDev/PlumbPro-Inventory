@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { loadSettings } from './settings';
 import type {
   InventoryItem,
   Contact,
@@ -193,20 +194,13 @@ export const movementsAPI = {
 // Smart Ordering API
 export const smartOrderingAPI = {
   getSuggestions: async (): Promise<{ suggestions: SmartOrderSuggestion[] }> => {
-    // Get Gemini API key from localStorage settings
+    // Get Gemini API key from persisted settings
     let geminiApiKey = '';
     try {
-      const savedSettings = localStorage.getItem('plumbpro-settings');
-      console.log('📦 localStorage plumbpro-settings:', savedSettings);
-
-      if (savedSettings) {
-        const settings = JSON.parse(savedSettings);
-        console.log('⚙️ Parsed settings:', settings);
-        geminiApiKey = settings.ai?.geminiApiKey || '';
-        console.log('🔑 Gemini API Key found:', geminiApiKey ? `${geminiApiKey.substring(0, 10)}... (length: ${geminiApiKey.length})` : 'NOT SET');
-      } else {
-        console.warn('⚠️ No settings found in localStorage');
-      }
+      const settings = await loadSettings();
+      console.log('⚙️ Loaded settings:', settings);
+      geminiApiKey = settings.ai?.geminiApiKey || '';
+      console.log('🔑 Gemini API Key found:', geminiApiKey ? `${geminiApiKey.substring(0, 10)}... (length: ${geminiApiKey.length})` : 'NOT SET');
     } catch (e) {
       console.error('❌ Failed to load API key from settings:', e);
     }

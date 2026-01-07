@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, Building2, Bell, Shield, Database, Palette, Globe, Save, Brain, Cloud, Server } from 'lucide-react';
 import api from '../lib/api';
+import { defaultSettings, loadSettings, saveSettings } from '../lib/settings';
 
 interface SettingsViewProps {
   onSave?: (settings: any) => void;
@@ -9,72 +10,47 @@ interface SettingsViewProps {
 export const SettingsView: React.FC<SettingsViewProps> = ({ onSave }) => {
   const [activeSection, setActiveSection] = useState<'profile' | 'company' | 'notifications' | 'security' | 'data' | 'appearance' | 'ai'>('profile');
 
-  // Load settings from localStorage on mount
-  const loadSettings = () => {
-    const saved = localStorage.getItem('plumbpro-settings');
-    if (saved) {
-      return JSON.parse(saved);
-    }
-    return null;
-  };
-
-  const savedSettings = loadSettings();
-
   // Profile settings
-  const [profileSettings, setProfileSettings] = useState(savedSettings?.profile || {
-    fullName: 'Admin User',
-    email: 'admin@plumbpro.com',
-    phone: '(555) 123-4567',
-    role: 'Administrator'
-  });
+  const [profileSettings, setProfileSettings] = useState(defaultSettings.profile);
 
   // Company settings
-  const [companySettings, setCompanySettings] = useState(savedSettings?.company || {
-    companyName: 'PlumbPro Industries',
-    address: '123 Main Street',
-    city: 'Sydney',
-    state: 'NSW',
-    postcode: '2000',
-    abn: '12 345 678 901',
-    phone: '(02) 9876 5432',
-    email: 'info@plumbpro.com'
-  });
+  const [companySettings, setCompanySettings] = useState(defaultSettings.company);
 
   // Notification settings
-  const [notificationSettings, setNotificationSettings] = useState(savedSettings?.notifications || {
-    emailNotifications: true,
-    lowStockAlerts: true,
-    jobUpdates: true,
-    orderConfirmations: true,
-    systemUpdates: false
-  });
+  const [notificationSettings, setNotificationSettings] = useState(defaultSettings.notifications);
 
   // Appearance settings
-  const [appearanceSettings, setAppearanceSettings] = useState(savedSettings?.appearance || {
-    theme: 'light',
-    language: 'en',
-    dateFormat: 'DD/MM/YYYY',
-    currency: 'AUD'
-  });
+  const [appearanceSettings, setAppearanceSettings] = useState(defaultSettings.appearance);
 
   // AI settings
-  const [aiSettings, setAiSettings] = useState(savedSettings?.ai || {
-    defaultProvider: 'auto',
-    geminiApiKey: '',
-    ollamaUrl: 'http://localhost:11434',
-    ollamaModel: 'llama3',
-    featureProviders: {
-      forecast: 'gemini',
-      search: 'ollama',
-      template: 'ollama',
-      anomaly: 'gemini',
-      purchaseOrders: 'gemini',
-      insights: 'gemini',
-      jobCompletion: 'ollama'
-    }
-  });
+  const [aiSettings, setAiSettings] = useState(defaultSettings.ai);
 
-  const handleSaveSettings = () => {
+  useEffect(() => {
+    let isMounted = true;
+    const fetchSettings = async () => {
+      try {
+        const settings = await loadSettings();
+        if (!isMounted) {
+          return;
+        }
+        setProfileSettings(settings.profile);
+        setCompanySettings(settings.company);
+        setNotificationSettings(settings.notifications);
+        setAppearanceSettings(settings.appearance);
+        setAiSettings(settings.ai);
+      } catch (error) {
+        console.error('Failed to load settings:', error);
+      }
+    };
+
+    void fetchSettings();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleSaveSettings = async () => {
     const allSettings = {
       profile: profileSettings,
       company: companySettings,
@@ -83,15 +59,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSave }) => {
       ai: aiSettings
     };
 
-    // Save to localStorage
-    localStorage.setItem('plumbpro-settings', JSON.stringify(allSettings));
+    await saveSettings(allSettings);
 
     // Debug logging
-    console.log('✅ Settings saved to localStorage:', allSettings);
+    console.log('✅ Settings saved:', allSettings);
     console.log('🔑 Gemini API Key:', aiSettings.geminiApiKey ? `${aiSettings.geminiApiKey.substring(0, 10)}...` : 'NOT SET');
-
-    // Dispatch event to notify App.tsx of settings changes
-    window.dispatchEvent(new CustomEvent('settings-changed', { detail: allSettings }));
 
     if (onSave) {
       onSave(allSettings);
