@@ -6,7 +6,8 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../lib/api';
-import { loadRecentSearches, saveRecentSearches } from '../lib/recentSearches';
+import { useStore } from '../store/useStore';
+import { getErrorMessage } from '../lib/errors';
 
 export interface SearchResult {
   id: string;
@@ -40,6 +41,7 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const setError = useStore((state) => state.setError);
 
   // Load recent searches from persisted storage
   useEffect(() => {
@@ -157,7 +159,7 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({
 
       setResults(results);
     } catch (error) {
-      console.error('Search error:', error);
+      setError(getErrorMessage(error, 'Search failed. Please try again.'));
       setResults([]);
     } finally {
       setIsLoading(false);

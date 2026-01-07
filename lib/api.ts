@@ -9,7 +9,11 @@ import type {
   SmartOrderSuggestion
 } from '../types';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+export const DEFAULT_API_URL = 'http://localhost:5000/api';
+export const DEFAULT_BACKEND_PORT = 5000;
+export const API_BASE_URL = import.meta.env.VITE_API_URL || DEFAULT_API_URL;
+export const API_ROOT_URL = API_BASE_URL.replace(/\/api\/?$/, '');
+export const hasExplicitApiUrl = Boolean(import.meta.env.VITE_API_URL);
 
 // Create axios instance
 const api = axios.create({
@@ -194,19 +198,7 @@ export const movementsAPI = {
 // Smart Ordering API
 export const smartOrderingAPI = {
   getSuggestions: async (): Promise<{ suggestions: SmartOrderSuggestion[] }> => {
-    // Get Gemini API key from persisted settings
-    let geminiApiKey = '';
-    try {
-      const settings = await loadSettings();
-      console.log('⚙️ Loaded settings:', settings);
-      geminiApiKey = settings.ai?.geminiApiKey || '';
-      console.log('🔑 Gemini API Key found:', geminiApiKey ? `${geminiApiKey.substring(0, 10)}... (length: ${geminiApiKey.length})` : 'NOT SET');
-    } catch (e) {
-      console.error('❌ Failed to load API key from settings:', e);
-    }
-
-    console.log('🚀 Sending API request with key:', geminiApiKey ? 'YES' : 'NO');
-    const { data } = await api.post('/smart-ordering/suggestions', { geminiApiKey });
+    const { data } = await api.post('/smart-ordering/suggestions');
     return data;
   }
 };

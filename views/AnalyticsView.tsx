@@ -31,6 +31,8 @@ import type {
   WorkerPerformance,
   SupplierPerformance
 } from '../lib/analyticsAPI';
+import { useStore } from '../store/useStore';
+import { getErrorMessage } from '../lib/errors';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import ExcelJS from 'exceljs';
@@ -48,6 +50,7 @@ export function AnalyticsView() {
   const [jobData, setJobData] = useState<JobProfitability | null>(null);
   const [workerData, setWorkerData] = useState<WorkerPerformance | null>(null);
   const [supplierData, setSupplierData] = useState<SupplierPerformance | null>(null);
+  const setError = useStore((state) => state.setError);
 
   useEffect(() => {
     loadAnalytics();
@@ -70,7 +73,7 @@ export function AnalyticsView() {
         setSupplierData(data);
       }
     } catch (error) {
-      console.error('Failed to load analytics:', error);
+      setError(getErrorMessage(error, 'Failed to load analytics'));
     } finally {
       setIsLoading(false);
     }

@@ -31,6 +31,8 @@ import {
 import { analyticsAPI } from '../lib/analyticsAPI';
 import type { DashboardAnalytics, MovementTrends } from '../lib/analyticsAPI';
 import { StatCard } from '../components/Shared';
+import { useStore } from '../store/useStore';
+import { getErrorMessage } from '../lib/errors';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
 
@@ -40,6 +42,7 @@ export function EnhancedDashboardView() {
   const [isLoading, setIsLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [selectedPeriod, setSelectedPeriod] = useState<'7d' | '30d' | '90d'>('30d');
+  const setError = useStore((state) => state.setError);
 
   useEffect(() => {
     loadDashboardData();
@@ -65,7 +68,7 @@ export function EnhancedDashboardView() {
 
       setLastRefresh(new Date());
     } catch (error) {
-      console.error('Failed to load dashboard:', error);
+      setError(getErrorMessage(error, 'Failed to load dashboard'));
     } finally {
       setIsLoading(false);
     }

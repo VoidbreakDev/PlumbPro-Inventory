@@ -8,6 +8,7 @@ import type {
   SmartOrderSuggestion
 } from '../types';
 import {
+  authAPI,
   inventoryAPI,
   contactsAPI,
   jobsAPI,
@@ -16,6 +17,8 @@ import {
   smartOrderingAPI
 } from '../lib/api';
 import { storage } from '../lib/storage';
+import { getErrorMessage } from '../lib/errors';
+import { logSyncFailure } from '../lib/logging';
 
 interface User {
   id: string;
@@ -130,9 +133,10 @@ export const useStore = create<AppState>((set, get) => ({
 
       // Sync data after login
       await get().syncWithServer();
-    } catch (error: any) {
+    } catch (error) {
+      const message = getErrorMessage(error, 'Login failed');
       set({
-        error: error.response?.data?.error || 'Login failed',
+        error: message,
         isLoading: false
       });
       throw error;
@@ -226,8 +230,9 @@ export const useStore = create<AppState>((set, get) => ({
         storage.setLastSync(syncTimestamp)
       ]);
     } catch (error) {
-      console.error('Sync failed:', error);
-      set({ isSyncing: false });
+      const message = getErrorMessage(error, 'Failed to sync with server');
+      logSyncFailure(error, { message });
+      set({ isSyncing: false, error: message });
       // Load from storage as fallback
       await get().loadFromStorage();
     }
@@ -240,7 +245,8 @@ export const useStore = create<AppState>((set, get) => ({
       const inventory = await inventoryAPI.getAll();
       set({ inventory, isLoading: false });
     } catch (error) {
-      set({ isLoading: false });
+      const message = getErrorMessage(error, 'Failed to load inventory');
+      set({ isLoading: false, error: message });
       throw error;
     }
   },
@@ -252,6 +258,8 @@ export const useStore = create<AppState>((set, get) => ({
         inventory: [...state.inventory, newItem]
       }));
     } catch (error) {
+      const message = getErrorMessage(error, 'Failed to add inventory item');
+      set({ error: message });
       throw error;
     }
   },
@@ -265,6 +273,8 @@ export const useStore = create<AppState>((set, get) => ({
         )
       }));
     } catch (error) {
+      const message = getErrorMessage(error, 'Failed to update inventory item');
+      set({ error: message });
       throw error;
     }
   },
@@ -275,6 +285,8 @@ export const useStore = create<AppState>((set, get) => ({
       await get().fetchInventory();
       await get().fetchMovements();
     } catch (error) {
+      const message = getErrorMessage(error, 'Failed to adjust stock');
+      set({ error: message });
       throw error;
     }
   },
@@ -286,6 +298,8 @@ export const useStore = create<AppState>((set, get) => ({
         inventory: state.inventory.filter((item) => item.id !== id)
       }));
     } catch (error) {
+      const message = getErrorMessage(error, 'Failed to delete inventory item');
+      set({ error: message });
       throw error;
     }
   },
@@ -296,6 +310,8 @@ export const useStore = create<AppState>((set, get) => ({
       const contacts = await contactsAPI.getAll();
       set({ contacts });
     } catch (error) {
+      const message = getErrorMessage(error, 'Failed to load contacts');
+      set({ error: message });
       throw error;
     }
   },
@@ -307,6 +323,8 @@ export const useStore = create<AppState>((set, get) => ({
         contacts: [...state.contacts, newContact]
       }));
     } catch (error) {
+      const message = getErrorMessage(error, 'Failed to add contact');
+      set({ error: message });
       throw error;
     }
   },
@@ -320,6 +338,8 @@ export const useStore = create<AppState>((set, get) => ({
         )
       }));
     } catch (error) {
+      const message = getErrorMessage(error, 'Failed to update contact');
+      set({ error: message });
       throw error;
     }
   },
@@ -331,6 +351,8 @@ export const useStore = create<AppState>((set, get) => ({
         contacts: state.contacts.filter((contact) => contact.id !== id)
       }));
     } catch (error) {
+      const message = getErrorMessage(error, 'Failed to delete contact');
+      set({ error: message });
       throw error;
     }
   },
@@ -341,6 +363,8 @@ export const useStore = create<AppState>((set, get) => ({
       const jobs = await jobsAPI.getAll();
       set({ jobs });
     } catch (error) {
+      const message = getErrorMessage(error, 'Failed to load jobs');
+      set({ error: message });
       throw error;
     }
   },
@@ -352,6 +376,8 @@ export const useStore = create<AppState>((set, get) => ({
         jobs: [...state.jobs, newJob]
       }));
     } catch (error) {
+      const message = getErrorMessage(error, 'Failed to add job');
+      set({ error: message });
       throw error;
     }
   },
@@ -365,6 +391,8 @@ export const useStore = create<AppState>((set, get) => ({
         )
       }));
     } catch (error) {
+      const message = getErrorMessage(error, 'Failed to update job');
+      set({ error: message });
       throw error;
     }
   },
@@ -376,6 +404,8 @@ export const useStore = create<AppState>((set, get) => ({
       await get().fetchInventory();
       await get().fetchMovements();
     } catch (error) {
+      const message = getErrorMessage(error, 'Failed to pick job');
+      set({ error: message });
       throw error;
     }
   },
@@ -387,6 +417,8 @@ export const useStore = create<AppState>((set, get) => ({
         jobs: state.jobs.filter((job) => job.id !== id)
       }));
     } catch (error) {
+      const message = getErrorMessage(error, 'Failed to delete job');
+      set({ error: message });
       throw error;
     }
   },
@@ -397,6 +429,8 @@ export const useStore = create<AppState>((set, get) => ({
       const templates = await templatesAPI.getAll();
       set({ templates });
     } catch (error) {
+      const message = getErrorMessage(error, 'Failed to load templates');
+      set({ error: message });
       throw error;
     }
   },
@@ -408,6 +442,8 @@ export const useStore = create<AppState>((set, get) => ({
         templates: [...state.templates, newTemplate]
       }));
     } catch (error) {
+      const message = getErrorMessage(error, 'Failed to add template');
+      set({ error: message });
       throw error;
     }
   },
@@ -417,6 +453,8 @@ export const useStore = create<AppState>((set, get) => ({
       await templatesAPI.update(id, updates);
       await get().fetchTemplates();
     } catch (error) {
+      const message = getErrorMessage(error, 'Failed to update template');
+      set({ error: message });
       throw error;
     }
   },
@@ -428,6 +466,8 @@ export const useStore = create<AppState>((set, get) => ({
         templates: state.templates.filter((template) => template.id !== id)
       }));
     } catch (error) {
+      const message = getErrorMessage(error, 'Failed to delete template');
+      set({ error: message });
       throw error;
     }
   },
@@ -438,6 +478,8 @@ export const useStore = create<AppState>((set, get) => ({
       const movements = await movementsAPI.getAll(filters);
       set({ movements });
     } catch (error) {
+      const message = getErrorMessage(error, 'Failed to load movements');
+      set({ error: message });
       throw error;
     }
   },
@@ -452,7 +494,8 @@ export const useStore = create<AppState>((set, get) => ({
         isLoading: false
       });
     } catch (error) {
-      set({ isLoading: false });
+      const message = getErrorMessage(error, 'Failed to generate smart suggestions');
+      set({ isLoading: false, error: message });
       throw error;
     }
   },

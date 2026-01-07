@@ -4,6 +4,8 @@
  */
 
 import React, { useState, useEffect, ReactNode } from 'react';
+import { useStore } from '../store/useStore';
+import { getErrorMessage } from '../lib/errors';
 
 export interface BulkAction {
   id: string;
@@ -39,6 +41,7 @@ function BulkOperations<T>({
   const [isProcessing, setIsProcessing] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [pendingAction, setPendingAction] = useState<BulkAction | null>(null);
+  const setError = useStore((state) => state.setError);
 
   const allIds = items.map(getItemId);
   const allSelected = allIds.length > 0 && selectedIds.length === allIds.length;
@@ -78,8 +81,7 @@ function BulkOperations<T>({
       await action.action(selectedIds);
       onSelectionChange([]); // Clear selection after action
     } catch (error) {
-      console.error('Bulk action failed:', error);
-      // You might want to show an error toast here
+      setError(getErrorMessage(error, 'Bulk action failed'));
     } finally {
       setIsProcessing(false);
     }
