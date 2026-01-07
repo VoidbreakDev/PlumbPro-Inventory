@@ -16,6 +16,8 @@ import {
   Ban
 } from 'lucide-react';
 import approvalsAPI, { ApprovalWorkflow, ApprovalStats } from '../lib/approvalsAPI';
+import { useStore } from '../store/useStore';
+import { getErrorMessage } from '../lib/errors';
 
 export function ApprovalsView() {
   const { t } = useTranslation();
@@ -29,6 +31,7 @@ export function ApprovalsView() {
   const [actionComments, setActionComments] = useState('');
   const [showActionModal, setShowActionModal] = useState(false);
   const [actionType, setActionType] = useState<'approve' | 'reject' | null>(null);
+  const setError = useStore((state) => state.setError);
 
   useEffect(() => {
     loadData();
@@ -47,7 +50,7 @@ export function ApprovalsView() {
       setPendingApprovals(pendingData);
       setStats(statsData);
     } catch (error) {
-      console.error('Failed to load approval data:', error);
+      setError(getErrorMessage(error, 'Failed to load approval data'));
       // Set empty data on error instead of crashing
       setApprovals([]);
       setPendingApprovals([]);
@@ -96,7 +99,7 @@ export function ApprovalsView() {
       setActionComments('');
       loadData();
     } catch (error) {
-      console.error('Failed to process approval:', error);
+      setError(getErrorMessage(error, 'Failed to process approval'));
       alert('Failed to process approval');
     }
   };
@@ -108,7 +111,7 @@ export function ApprovalsView() {
       await approvalsAPI.cancel(id);
       loadData();
     } catch (error) {
-      console.error('Failed to cancel approval:', error);
+      setError(getErrorMessage(error, 'Failed to cancel approval'));
     }
   };
 

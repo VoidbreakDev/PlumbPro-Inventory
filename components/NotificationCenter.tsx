@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, Check, CheckCheck, Trash2, X, Settings as SettingsIcon } from 'lucide-react';
 import api from '../lib/api';
+import { useStore } from '../store/useStore';
+import { getErrorMessage } from '../lib/errors';
 
 interface Notification {
   id: string;
@@ -22,6 +24,7 @@ export function NotificationCenter({ onClose }: NotificationCenterProps) {
   const [unreadCount, setUnreadCount] = useState(0);
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
   const [isLoading, setIsLoading] = useState(true);
+  const setError = useStore((state) => state.setError);
 
   useEffect(() => {
     loadNotifications();
@@ -36,7 +39,7 @@ export function NotificationCenter({ onClose }: NotificationCenterProps) {
       setNotifications(data.notifications);
       setUnreadCount(data.unreadCount);
     } catch (error) {
-      console.error('Failed to load notifications:', error);
+      setError(getErrorMessage(error, 'Failed to load notifications'));
     } finally {
       setIsLoading(false);
     }
@@ -50,7 +53,7 @@ export function NotificationCenter({ onClose }: NotificationCenterProps) {
       ));
       setUnreadCount(Math.max(0, unreadCount - 1));
     } catch (error) {
-      console.error('Failed to mark as read:', error);
+      setError(getErrorMessage(error, 'Failed to mark notification as read'));
     }
   };
 
@@ -60,7 +63,7 @@ export function NotificationCenter({ onClose }: NotificationCenterProps) {
       setNotifications(notifications.map(n => ({ ...n, is_read: true })));
       setUnreadCount(0);
     } catch (error) {
-      console.error('Failed to mark all as read:', error);
+      setError(getErrorMessage(error, 'Failed to mark all notifications as read'));
     }
   };
 
@@ -69,7 +72,7 @@ export function NotificationCenter({ onClose }: NotificationCenterProps) {
       await api.delete(`/notifications/${id}`);
       setNotifications(notifications.filter(n => n.id !== id));
     } catch (error) {
-      console.error('Failed to delete notification:', error);
+      setError(getErrorMessage(error, 'Failed to delete notification'));
     }
   };
 
@@ -78,7 +81,7 @@ export function NotificationCenter({ onClose }: NotificationCenterProps) {
       await api.delete('/notifications/read/all');
       setNotifications(notifications.filter(n => !n.is_read));
     } catch (error) {
-      console.error('Failed to delete read notifications:', error);
+      setError(getErrorMessage(error, 'Failed to delete read notifications'));
     }
   };
 

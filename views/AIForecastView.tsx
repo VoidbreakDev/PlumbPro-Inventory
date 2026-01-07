@@ -25,6 +25,8 @@ import {
 } from 'recharts';
 import { aiAPI } from '../lib/aiAPI';
 import type { StockForecast } from '../lib/aiAPI';
+import { useStore } from '../store/useStore';
+import { getErrorMessage } from '../lib/errors';
 
 export function AIForecastView() {
   const [forecasts, setForecasts] = useState<StockForecast[]>([]);
@@ -32,6 +34,7 @@ export function AIForecastView() {
   const [selectedPeriod, setSelectedPeriod] = useState<number>(30);
   const [selectedItem, setSelectedItem] = useState<StockForecast | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const setError = useStore((state) => state.setError);
 
   useEffect(() => {
     loadForecasts();
@@ -44,7 +47,7 @@ export function AIForecastView() {
       setForecasts(result.forecasts || []);
       setLastRefresh(new Date());
     } catch (error) {
-      console.error('Failed to load forecasts:', error);
+      setError(getErrorMessage(error, 'Failed to load forecasts'));
     } finally {
       setIsLoading(false);
     }

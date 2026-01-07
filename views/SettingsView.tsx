@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { User, Building2, Bell, Shield, Database, Palette, Globe, Save, Brain, Cloud, Server } from 'lucide-react';
 import api from '../lib/api';
+import { useStore } from '../store/useStore';
+import { getErrorMessage } from '../lib/errors';
 
 interface SettingsViewProps {
   onSave?: (settings: any) => void;
@@ -8,6 +10,7 @@ interface SettingsViewProps {
 
 export const SettingsView: React.FC<SettingsViewProps> = ({ onSave }) => {
   const [activeSection, setActiveSection] = useState<'profile' | 'company' | 'notifications' | 'security' | 'data' | 'appearance' | 'ai'>('profile');
+  const setError = useStore((state) => state.setError);
 
   // Load settings from localStorage on mount
   const loadSettings = () => {
@@ -19,6 +22,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSave }) => {
   };
 
   const savedSettings = loadSettings();
+  const savedAiSettings = savedSettings?.ai || {};
 
   // Profile settings
   const [profileSettings, setProfileSettings] = useState(savedSettings?.profile || {
@@ -58,12 +62,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSave }) => {
   });
 
   // AI settings
-  const [aiSettings, setAiSettings] = useState(savedSettings?.ai || {
-    defaultProvider: 'auto',
+  const [aiSettings, setAiSettings] = useState({
+    defaultProvider: savedAiSettings.defaultProvider || 'auto',
     geminiApiKey: '',
-    ollamaUrl: 'http://localhost:11434',
-    ollamaModel: 'llama3',
-    featureProviders: {
+    ollamaUrl: savedAiSettings.ollamaUrl || 'http://localhost:11434',
+    ollamaModel: savedAiSettings.ollamaModel || 'llama3',
+    featureProviders: savedAiSettings.featureProviders || {
       forecast: 'gemini',
       search: 'ollama',
       template: 'ollama',
@@ -74,21 +78,56 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSave }) => {
     }
   });
 
-  const handleSaveSettings = () => {
+  const [geminiKeyStatus, setGeminiKeyStatus] = useState({
+    hasKey: false,
+    loading: true
+  });
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadGeminiKeyStatus = async () => {
+      try {
+        const { data } = await api.get('/settings/ai-keys');
+        if (!isMounted) {
+          return;
+        }
+        setGeminiKeyStatus({
+          hasKey: Boolean(data?.providers?.gemini?.hasKey),
+          loading: false
+        });
+      } catch (error) {
+        if (!isMounted) {
+          return;
+        }
+        console.error('Failed to load AI key status:', error);
+        setGeminiKeyStatus({ hasKey: false, loading: false });
+      }
+    };
+
+    loadGeminiKeyStatus();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleSaveSettings = async () => {
+    const aiSettingsToStore = {
+      ...aiSettings,
+      geminiApiKey: ''
+    };
+
     const allSettings = {
       profile: profileSettings,
       company: companySettings,
       notifications: notificationSettings,
       appearance: appearanceSettings,
-      ai: aiSettings
+      ai: aiSettingsToStore
     };
 
-    // Save to localStorage
+    // Save non-secret settings to localStorage
     localStorage.setItem('plumbpro-settings', JSON.stringify(allSettings));
-
-    // Debug logging
-    console.log('✅ Settings saved to localStorage:', allSettings);
-    console.log('🔑 Gemini API Key:', aiSettings.geminiApiKey ? `${aiSettings.geminiApiKey.substring(0, 10)}...` : 'NOT SET');
 
     // Dispatch event to notify App.tsx of settings changes
     window.dispatchEvent(new CustomEvent('settings-changed', { detail: allSettings }));
@@ -97,8 +136,25 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSave }) => {
       onSave(allSettings);
     }
 
-    // Show a visual confirmation
-    alert('Settings saved successfully! Your Gemini API key has been stored.');
+    let savedApiKey = false;
+    const trimmedApiKey = aiSettings.geminiApiKey.trim();
+    if (trimmedApiKey.length > 0) {
+      try {
+        await api.put('/settings/ai-keys/gemini', { apiKey: trimmedApiKey });
+        savedApiKey = true;
+        setGeminiKeyStatus({ hasKey: true, loading: false });
+        setAiSettings((prev) => ({ ...prev, geminiApiKey: '' }));
+      } catch (error: any) {
+        console.error('Failed to save Gemini API key:', error);
+        alert(`Failed to save Gemini API key: ${error.message || 'Unknown error'}`);
+        return;
+      }
+    }
+
+    const alertMessage = savedApiKey
+      ? 'Settings saved successfully! Your Gemini API key was stored securely.'
+      : 'Settings saved successfully!';
+    alert(alertMessage);
   };
 
   const sections = [
@@ -110,6 +166,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSave }) => {
     { id: 'data', label: 'Data & Backup', icon: Database },
     { id: 'appearance', label: 'Appearance', icon: Palette }
   ];
+
+  const hasGeminiKey = aiSettings.geminiApiKey.trim().length > 0 || geminiKeyStatus.hasKey;
 
   return (
     <div className="flex gap-6">
@@ -502,22 +560,31 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSave }) => {
                 </div>
                 <div className="p-3 bg-blue-50 rounded-lg">
                   <p className="text-xs text-blue-800 mb-2">
-                    <strong>Status:</strong> {aiSettings.geminiApiKey ? '✅ API Key Set' : '⚠️ No API Key'}
+                    <strong>Status:</strong>{' '}
+                    {geminiKeyStatus.loading
+                      ? 'Checking...'
+                      : hasGeminiKey
+                        ? '✅ API Key Set'
+                        : '⚠️ No API Key'}
                   </p>
-                  {aiSettings.geminiApiKey && (
+                  <p className="text-xs text-blue-700 mb-2">
+                    Stored keys are not displayed. Paste a new key to replace the existing one.
+                  </p>
+                  {hasGeminiKey && (
                     <button
                       onClick={async () => {
                         try {
-                          const { data } = await api.get('/smart-ordering/test-models', {
-                            params: { apiKey: aiSettings.geminiApiKey }
-                          });
+                          const params = aiSettings.geminiApiKey.trim()
+                            ? { apiKey: aiSettings.geminiApiKey.trim() }
+                            : undefined;
+                          const { data } = await api.get('/smart-ordering/test-models', { params });
                           if (data.success) {
                             alert(`✅ API Key Valid!\n\nAvailable models:\n${data.textGenerationModels.map((m: any) => `- ${m.displayName}`).join('\n')}`);
                           } else {
                             alert(`❌ API Key Test Failed:\n\n${JSON.stringify(data, null, 2)}`);
                           }
                         } catch (err: any) {
-                          alert(`❌ Error testing API key:\n\n${err.message}`);
+                          setError(getErrorMessage(err, 'Error testing API key'));
                         }
                       }}
                       className="px-3 py-1 bg-blue-600 text-white text-xs font-semibold rounded hover:bg-blue-700"

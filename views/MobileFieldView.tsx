@@ -18,6 +18,8 @@ import {
   XCircle
 } from 'lucide-react';
 import { mobileAPI, type CheckIn, type Location } from '../lib/mobileAPI';
+import { useStore } from '../store/useStore';
+import { getErrorMessage } from '../lib/errors';
 
 export function MobileFieldView() {
   const [activeCheckIn, setActiveCheckIn] = useState<CheckIn | null>(null);
@@ -33,6 +35,7 @@ export function MobileFieldView() {
   const [isRecording, setIsRecording] = useState(false);
   const [completionCheck, setCompletionCheck] = useState<any>(null);
   const [barcodeScanMode, setBarcodeScanMode] = useState(false);
+  const setError = useStore((state) => state.setError);
 
   const signaturePadRef = useRef<HTMLCanvasElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -52,7 +55,7 @@ export function MobileFieldView() {
         loadJobData(checkIn.job_id);
       }
     } catch (error) {
-      console.error('Failed to load check-in:', error);
+      setError(getErrorMessage(error, 'Failed to load check-in'));
     }
   };
 
@@ -65,7 +68,7 @@ export function MobileFieldView() {
       setPhotos(photosData);
       setNotes(notesData);
     } catch (error) {
-      console.error('Failed to load job data:', error);
+      setError(getErrorMessage(error, 'Failed to load job data'));
     }
   };
 
@@ -75,7 +78,7 @@ export function MobileFieldView() {
       const location = await mobileAPI.getCurrentLocation();
       setCurrentLocation(location);
     } catch (error) {
-      console.error('Failed to get location:', error);
+      setError(getErrorMessage(error, 'Failed to get location'));
       alert('Please enable location services');
     } finally {
       setIsLoadingLocation(false);
@@ -96,8 +99,10 @@ export function MobileFieldView() {
       setActiveCheckIn(checkIn);
       setIsCheckedIn(true);
       alert('Checked in successfully!');
-    } catch (error: any) {
-      alert(error.message || 'Failed to check in');
+    } catch (error) {
+      const message = getErrorMessage(error, 'Failed to check in');
+      setError(message);
+      alert(message);
     }
   };
 
@@ -111,8 +116,10 @@ export function MobileFieldView() {
       alert(`Checked out! Duration: ${checkOut.duration_minutes} minutes`);
       setActiveCheckIn(null);
       setIsCheckedIn(false);
-    } catch (error: any) {
-      alert(error.message || 'Failed to check out');
+    } catch (error) {
+      const message = getErrorMessage(error, 'Failed to check out');
+      setError(message);
+      alert(message);
     }
   };
 
@@ -135,7 +142,9 @@ export function MobileFieldView() {
       setPhotos([photo, ...photos]);
       alert('Photo uploaded!');
     } catch (error) {
-      alert('Failed to upload photo');
+      const message = getErrorMessage(error, 'Failed to upload photo');
+      setError(message);
+      alert(message);
     }
   };
 
@@ -161,7 +170,9 @@ export function MobileFieldView() {
       alert('Signature saved! Job marked as completed.');
       setSignatureCanvas(null);
     } catch (error) {
-      alert('Failed to save signature');
+      const message = getErrorMessage(error, 'Failed to save signature');
+      setError(message);
+      alert(message);
     }
   };
 
@@ -184,7 +195,9 @@ export function MobileFieldView() {
       setNotes([note, ...notes]);
       alert('Note added!');
     } catch (error) {
-      alert('Failed to add note');
+      const message = getErrorMessage(error, 'Failed to add note');
+      setError(message);
+      alert(message);
     }
   };
 
@@ -195,7 +208,9 @@ export function MobileFieldView() {
       const check = await mobileAPI.checkJobCompletion(activeCheckIn.job_id);
       setCompletionCheck(check);
     } catch (error) {
-      alert('Failed to check completion');
+      const message = getErrorMessage(error, 'Failed to check completion');
+      setError(message);
+      alert(message);
     }
   };
 
@@ -219,7 +234,9 @@ export function MobileFieldView() {
         alert('Item not found in inventory');
       }
     } catch (error) {
-      alert('Scan failed');
+      const message = getErrorMessage(error, 'Scan failed');
+      setError(message);
+      alert(message);
     }
   };
 

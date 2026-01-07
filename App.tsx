@@ -70,6 +70,8 @@ function AppContent() {
   const jobs = useStore((state) => state.jobs);
   const movements = useStore((state) => state.movements);
   const templates = useStore((state) => state.templates);
+  const error = useStore((state) => state.error);
+  const clearError = useStore((state) => state.clearError);
   const addJob = useStore((state) => state.addJob);
   const pickJob = useStore((state) => state.pickJob);
   const addInventoryItem = useStore((state) => state.addInventoryItem);
@@ -344,8 +346,7 @@ function AppContent() {
       toast.success(`Job "${title}" created successfully!`);
       console.log('✅ Job created in database');
     } catch (error: any) {
-      console.error('❌ Failed to create job:', error);
-      toast.error(`Failed to create job: ${error.message}`);
+      // Errors are handled via the global store error state.
     }
   };
 
@@ -358,8 +359,7 @@ function AppContent() {
       toast.success(`Job "${job.title}" picked successfully!`, 'Items Allocated');
       console.log('✅ Job picked in database:', jobId);
     } catch (error: any) {
-      console.error('❌ Failed to pick job:', error);
-      toast.error(`Failed to pick job: ${error.message}`);
+      // Errors are handled via the global store error state.
     }
   };
 
@@ -390,9 +390,8 @@ function AppContent() {
         .then(() => {
           toast.success(`Imported ${newItems.length} items successfully!`, 'CSV Import Complete');
         })
-        .catch((error: any) => {
-          console.error('❌ Failed to import CSV:', error);
-          toast.error(`Failed to import CSV: ${error.message}`);
+        .catch(() => {
+          // Errors are handled via the global store error state.
         });
     };
     reader.readAsText(file);
@@ -410,8 +409,7 @@ function AppContent() {
       toast.success(`Stock adjusted for ${itemToAdjust.name}`, 'Adjustment Complete');
       console.log('✅ Stock adjusted in database:', itemToAdjust.id);
     } catch (error: any) {
-      console.error('❌ Failed to adjust stock:', error);
-      toast.error(`Failed to adjust stock: ${error.message}`);
+      // Errors are handled via the global store error state.
     }
   };
 
@@ -434,8 +432,7 @@ function AppContent() {
       console.log('✅ Inventory item updated in database:', itemToEdit.id);
       setItemToEdit(null);
     } catch (error: any) {
-      console.error('❌ Failed to update item:', error);
-      toast.error(`Failed to update item: ${error.message}`);
+      // Errors are handled via the global store error state.
     }
   };
 
@@ -471,8 +468,7 @@ function AppContent() {
       console.log('✅ Inventory item created in database');
       setItemToEdit(null);
     } catch (error: any) {
-      console.error('❌ Failed to create item:', error);
-      toast.error(`Failed to create item: ${error.message}`);
+      // Errors are handled via the global store error state.
     }
   };
 
@@ -488,8 +484,7 @@ function AppContent() {
       toast.success('Stock count updated');
       console.log('✅ Mobile stock updated in database:', itemId);
     } catch (error: any) {
-      console.error('❌ Failed to update mobile stock:', error);
-      toast.error(`Failed to update stock: ${error.message}`);
+      // Errors are handled via the global store error state.
     }
   };
 
@@ -537,8 +532,7 @@ function AppContent() {
       setIsEditContactModalOpen(false);
       setContactToEdit(null);
     } catch (error: any) {
-      console.error('❌ Failed to save contact:', error);
-      toast.error(`Failed to save contact: ${error.message}`);
+      // Errors are handled via the global store error state.
     }
   };
 
@@ -550,8 +544,7 @@ function AppContent() {
       toast.success(`${contact.name} deleted successfully`);
       console.log('✅ Contact deleted from database:', contact.id);
     } catch (error: any) {
-      console.error('❌ Failed to delete contact:', error);
-      toast.error(`Failed to delete contact: ${error.message}`);
+      // Errors are handled via the global store error state.
     }
   };
 
@@ -636,8 +629,7 @@ function AppContent() {
       toast.success(`Template "${name}" created successfully!`);
       console.log('✅ Template created in database');
     } catch (error: any) {
-      console.error('❌ Failed to create template:', error);
-      toast.error(`Failed to create template: ${error.message}`);
+      // Errors are handled via the global store error state.
     }
   };
 
@@ -647,8 +639,7 @@ function AppContent() {
       toast.success(`Template "${name}" updated successfully!`);
       console.log('✅ Template updated in database:', id);
     } catch (error: any) {
-      console.error('❌ Failed to update template:', error);
-      toast.error(`Failed to update template: ${error.message}`);
+      // Errors are handled via the global store error state.
     }
   };
 
@@ -658,8 +649,7 @@ function AppContent() {
       toast.success('Template deleted successfully!');
       console.log('✅ Template deleted from database:', id);
     } catch (error: any) {
-      console.error('❌ Failed to delete template:', error);
-      toast.error(`Failed to delete template: ${error.message}`);
+      // Errors are handled via the global store error state.
     }
   };
 

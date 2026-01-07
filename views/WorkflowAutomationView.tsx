@@ -5,6 +5,8 @@
 
 import React, { useState, useEffect } from 'react';
 import workflowAPI, { Workflow, WorkflowTemplate, WorkflowStats } from '../lib/workflowAPI';
+import { useStore } from '../store/useStore';
+import { getErrorMessage } from '../lib/errors';
 
 const WorkflowAutomationView: React.FC = () => {
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
@@ -15,6 +17,7 @@ const WorkflowAutomationView: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [filterActive, setFilterActive] = useState<boolean | undefined>(undefined);
+  const setError = useStore((state) => state.setError);
 
   useEffect(() => {
     loadData();
@@ -33,7 +36,7 @@ const WorkflowAutomationView: React.FC = () => {
       setTemplates(templatesData);
       setStats(statsData);
     } catch (error) {
-      console.error('Failed to load workflow data:', error);
+      setError(getErrorMessage(error, 'Failed to load workflow data'));
     } finally {
       setLoading(false);
     }
@@ -44,7 +47,7 @@ const WorkflowAutomationView: React.FC = () => {
       const updated = await workflowAPI.toggleWorkflow(id);
       setWorkflows(workflows.map(w => w.id === id ? updated : w));
     } catch (error) {
-      console.error('Failed to toggle workflow:', error);
+      setError(getErrorMessage(error, 'Failed to toggle workflow'));
     }
   };
 
@@ -54,7 +57,7 @@ const WorkflowAutomationView: React.FC = () => {
       alert('Workflow executed successfully');
       loadData();
     } catch (error) {
-      console.error('Failed to execute workflow:', error);
+      setError(getErrorMessage(error, 'Failed to execute workflow'));
       alert('Failed to execute workflow');
     }
   };
@@ -66,7 +69,7 @@ const WorkflowAutomationView: React.FC = () => {
       await workflowAPI.deleteWorkflow(id);
       setWorkflows(workflows.filter(w => w.id !== id));
     } catch (error) {
-      console.error('Failed to delete workflow:', error);
+      setError(getErrorMessage(error, 'Failed to delete workflow'));
     }
   };
 
@@ -80,7 +83,7 @@ const WorkflowAutomationView: React.FC = () => {
       loadData();
       alert('Workflow created successfully');
     } catch (error) {
-      console.error('Failed to create from template:', error);
+      setError(getErrorMessage(error, 'Failed to create workflow from template'));
       alert('Failed to create workflow');
     }
   };
