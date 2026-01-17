@@ -14,6 +14,7 @@ export function LoginView() {
   const [isLoading, setIsLoading] = useState(false);
 
   const login = useStore((state) => state.login);
+  const register = useStore((state) => state.register);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,8 +25,19 @@ export function LoginView() {
       if (isLogin) {
         await login(formData.email, formData.password);
       } else {
-        // Register logic would go here
-        setError('Registration coming soon!');
+        // Validate registration fields
+        if (!formData.fullName.trim()) {
+          setError('Full name is required');
+          setIsLoading(false);
+          return;
+        }
+        if (formData.password.length < 6) {
+          setError('Password must be at least 6 characters');
+          setIsLoading(false);
+          return;
+        }
+
+        await register(formData.email, formData.password, formData.fullName, formData.companyName || undefined);
       }
     } catch (err: any) {
       setError(err.response?.data?.error || 'Authentication failed');
@@ -154,6 +166,23 @@ export function LoginView() {
             onClick={() => {
               setIsLogin(!isLogin);
               setError('');
+              // Clear form when switching to registration
+              if (isLogin) {
+                setFormData({
+                  email: '',
+                  password: '',
+                  fullName: '',
+                  companyName: ''
+                });
+              } else {
+                // Restore demo credentials when switching back to login
+                setFormData({
+                  email: 'demo@plumbpro.com',
+                  password: 'demo123',
+                  fullName: '',
+                  companyName: ''
+                });
+              }
             }}
             className="text-sm text-blue-600 hover:text-blue-700"
           >

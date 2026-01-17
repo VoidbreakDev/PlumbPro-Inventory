@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { Filter, RotateCcw } from 'lucide-react';
+import { Filter, RotateCcw, ArrowRight, MapPin } from 'lucide-react';
 import { StockMovement, InventoryItem } from '../types';
 import { Badge } from '../components/Shared';
 
@@ -48,7 +48,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ movements, inventory }
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           <div>
             <label className="block text-xs font-bold text-slate-400 mb-1">Movement Type</label>
-            <select 
+            <select
               value={historyTypeFilter}
               onChange={(e) => setHistoryTypeFilter(e.target.value)}
               className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
@@ -58,6 +58,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ movements, inventory }
               <option value="Out">Out (Stock Decrease)</option>
               <option value="Adjustment">Adjustment</option>
               <option value="Allocation">Allocation (To Job)</option>
+              <option value="Transfer">Transfer (Between Locations)</option>
             </select>
           </div>
           <div>
@@ -98,19 +99,57 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ movements, inventory }
               <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase">Item</th>
               <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase">Type</th>
               <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase">Quantity</th>
+              <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase">Location</th>
               <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase">Reference / Reason</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {filteredMovements.map(m => (
-              <tr key={m.id} className="hover:bg-slate-50">
-                <td className="px-6 py-4 text-sm text-slate-500">{new Date(m.timestamp).toLocaleString()}</td>
-                <td className="px-6 py-4 font-bold text-slate-800">{inventory.find(i => i.id === m.itemId)?.name || 'Deleted'}</td>
-                <td className="px-6 py-4"><Badge variant={m.type === 'In' ? 'green' : m.type === 'Out' ? 'red' : m.type === 'Allocation' ? 'blue' : 'slate'}>{m.type}</Badge></td>
-                <td className="px-6 py-4 font-mono font-bold text-slate-700">{m.type === 'In' || (m.type === 'Adjustment' && m.reference?.includes('Added')) ? '+' : '-'}{m.quantity}</td>
-                <td className="px-6 py-4 text-sm font-medium text-slate-600">{m.reference || '--'}</td>
-              </tr>
-            ))}
+            {filteredMovements.map(m => {
+              const isTransfer = m.type === 'Transfer';
+              const badgeVariant =
+                m.type === 'In' ? 'green' :
+                m.type === 'Out' ? 'red' :
+                m.type === 'Allocation' ? 'blue' :
+                m.type === 'Transfer' ? 'purple' :
+                'slate';
+
+              return (
+                <tr key={m.id} className="hover:bg-slate-50">
+                  <td className="px-6 py-4 text-sm text-slate-500">{new Date(m.timestamp).toLocaleString()}</td>
+                  <td className="px-6 py-4 font-bold text-slate-800">{inventory.find(i => i.id === m.itemId)?.name || 'Deleted'}</td>
+                  <td className="px-6 py-4">
+                    <Badge variant={badgeVariant}>{m.type}</Badge>
+                  </td>
+                  <td className="px-6 py-4 font-mono font-bold text-slate-700">
+                    {m.type === 'In' || (m.type === 'Adjustment' && m.reference?.includes('Added')) ? '+' : '-'}
+                    {Math.abs(m.quantity)}
+                  </td>
+                  <td className="px-6 py-4">
+                    {isTransfer && m.locationName && m.destinationLocationName ? (
+                      <div className="flex items-center gap-2 text-sm">
+                        <div className="flex items-center gap-1 text-red-600">
+                          <MapPin className="w-3 h-3" />
+                          <span className="font-medium">{m.locationName}</span>
+                        </div>
+                        <ArrowRight className="w-4 h-4 text-slate-400" />
+                        <div className="flex items-center gap-1 text-green-600">
+                          <MapPin className="w-3 h-3" />
+                          <span className="font-medium">{m.destinationLocationName}</span>
+                        </div>
+                      </div>
+                    ) : m.locationName ? (
+                      <div className="flex items-center gap-1.5 text-sm text-slate-600">
+                        <MapPin className="w-3 h-3 text-slate-400" />
+                        <span className="font-medium">{m.locationName}</span>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-slate-400">—</span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 text-sm font-medium text-slate-600">{m.reference || '--'}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

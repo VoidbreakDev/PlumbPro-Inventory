@@ -449,4 +449,156 @@ router.get('/movements/trends', async (req, res) => {
   }
 });
 
+// ABC Classification Summary
+router.get('/abc-classification', async (req, res) => {
+  const client = await pool.connect();
+
+  try {
+    const userId = req.user.userId;
+
+    // Get ABC classification distribution
+    const distribution = await client.query(`
+      SELECT
+        abc_classification,
+        COUNT(*) as item_count,
+        COALESCE(SUM(quantity * COALESCE(sell_price_excl_gst, price)), 0) as total_value
+      FROM inventory_items
+      WHERE user_id = $1 AND abc_classification IS NOT NULL
+      GROUP BY abc_classification
+      ORDER BY abc_classification
+    `, [userId]);
+
+    // Get top A items
+    const topAItems = await client.query(`
+      SELECT
+        id,
+        name,
+        category,
+        quantity,
+        COALESCE(sell_price_excl_gst, price) as price,
+        (quantity * COALESCE(sell_price_excl_gst, price)) as total_value,
+        usage_frequency_score,
+        allocation_rate_score
+      FROM inventory_items
+      WHERE user_id = $1 AND abc_classification = 'A'
+      ORDER BY (quantity * COALESCE(sell_price_excl_gst, price)) DESC
+      LIMIT 10
+    `, [userId]);
+
+    res.json({
+      distribution: distribution.rows.map(row => ({
+        classification: row.abc_classification,
+        itemCount: parseInt(row.item_count),
+        totalValue: parseFloat(row.total_value)
+      })),
+      topAItems: topAItems.rows.map(row => ({
+        id: row.id,
+        name: row.name,
+        category: row.category,
+        quantity: row.quantity,
+        price: parseFloat(row.price),
+        totalValue: parseFloat(row.total_value),
+        usageFrequency: row.usage_frequency_score,
+        allocationRate: parseFloat(row.allocation_rate_score)
+      }))
+    });
+
+  } catch (error) {
+    console.error('ABC classification error:', error);
+    res.status(500).json({ error: 'Failed to fetch ABC classification' });
+  } finally {
+    client.release();
+  }
+});
+
+// Recalculate ABC Classification
+router.post('/recalculate-abc', async (req, res) => {
+  const client = await pool.connect();
+
+  try {
+    // Call the database function to recalculate ABC classification
+    await client.query('SELECT calculate_abc_classification()');
+
+    res.json({ message: 'ABC classification recalculated successfully' });
+
+  } catch (error) {
+    console.error('Recalculate ABC error:', error);
+    res.status(500).json({ error: 'Failed to recalculate ABC classification' });
+  } finally {
+    client.release();
+  }
+});
+
+// Dead Stock Report
+router.get('/dead-stock', async (req, res) => {
+  const client = await pool.connect();
+
+  try {
+    const userId = req.user.userId;
+
+    // Get all dead stock items
+    const deadStockItems = await client.query(`
+      SELECT
+        i.id,
+        i.name,
+        i.category,
+        i.quantity,
+        COALESCE(i.sell_price_excl_gst, i.price) as price,
+        (i.quantity * COALESCE(i.sell_price_excl_gst, i.price)) as total_value,
+        i.last_movement_date,
+        COALESCE(
+          json_agg(
+            DISTINCT jsonb_build_object(
+              'locationId', ls.location_id,
+              'locationName', l.name,
+              'quantity', ls.quantity
+            )
+          ) FILTER (WHERE ls.location_id IS NOT NULL),
+          '[]'
+        ) as location_stock
+      FROM inventory_items i
+      LEFT JOIN location_stock ls ON i.id = ls.item_id
+      LEFT JOIN locations l ON ls.location_id = l.id
+      WHERE i.user_id = $1 AND i.is_dead_stock = true
+      GROUP BY i.id
+      ORDER BY i.last_movement_date ASC NULLS FIRST, (i.quantity * COALESCE(i.sell_price_excl_gst, i.price)) DESC
+    `, [userId]);
+
+    // Calculate summary
+    const summary = await client.query(`
+      SELECT
+        COUNT(*) as dead_stock_count,
+        COALESCE(SUM(quantity * COALESCE(sell_price_excl_gst, price)), 0) as total_value_tied_up
+      FROM inventory_items
+      WHERE user_id = $1 AND is_dead_stock = true
+    `, [userId]);
+
+    res.json({
+      summary: {
+        count: parseInt(summary.rows[0].dead_stock_count),
+        totalValue: parseFloat(summary.rows[0].total_value_tied_up)
+      },
+      items: deadStockItems.rows.map(row => ({
+        id: row.id,
+        name: row.name,
+        category: row.category,
+        quantity: row.quantity,
+        price: parseFloat(row.price),
+        totalValue: parseFloat(row.total_value),
+        lastMovementDate: row.last_movement_date,
+        locationStock: row.location_stock || [],
+        daysSinceLastMovement: row.last_movement_date
+          ? Math.floor((Date.now() - new Date(row.last_movement_date).getTime()) / (1000 * 60 * 60 * 24))
+          : null
+      }))
+    });
+
+  } catch (error) {
+    console.error('Dead stock report error:', error);
+    res.status(500).json({ error: 'Failed to fetch dead stock report' });
+  } finally {
+    client.release();
+  }
+});
+
 export default router;

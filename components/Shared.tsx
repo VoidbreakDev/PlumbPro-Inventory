@@ -15,6 +15,8 @@ export const Badge = ({ children, variant = 'blue' }: { children: React.ReactNod
     green: 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300',
     red: 'bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300',
     slate: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300',
+    purple: 'bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300',
+    gray: 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300',
   };
   return <span className={`px-2 py-1 rounded-full text-xs font-semibold ${styles[variant]}`}>{children}</span>;
 };

@@ -5,7 +5,9 @@ import type {
   Job,
   JobTemplate,
   StockMovement,
-  SmartOrderSuggestion
+  SmartOrderSuggestion,
+  Location,
+  StockTransfer
 } from '../types';
 import {
   authAPI,
@@ -14,7 +16,10 @@ import {
   jobsAPI,
   templatesAPI,
   movementsAPI,
-  smartOrderingAPI
+  smartOrderingAPI,
+  locationsAPI,
+  stockTransfersAPI,
+  analyticsAPI
 } from '../lib/api';
 import { storage } from '../lib/storage';
 import { getErrorMessage } from '../lib/errors';
@@ -41,6 +46,8 @@ interface AppState {
   templates: JobTemplate[];
   movements: StockMovement[];
   smartSuggestions: SmartOrderSuggestion[];
+  locations: Location[];
+  stockTransfers: StockTransfer[];
 
   // UI State
   isLoading: boolean;
@@ -50,6 +57,7 @@ interface AppState {
 
   // Auth Actions
   login: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string, fullName: string, companyName?: string) => Promise<void>;
   logout: () => void;
   setUser: (user: User, token: string) => void;
 
@@ -63,6 +71,7 @@ interface AppState {
   updateInventoryItem: (id: string, updates: Partial<InventoryItem>) => Promise<void>;
   adjustStock: (id: string, quantity: number, reason: string) => Promise<void>;
   deleteInventoryItem: (id: string) => Promise<void>;
+  deleteAllInventoryItems: () => Promise<void>;
 
   // Contact Actions
   fetchContacts: () => Promise<void>;
@@ -89,6 +98,25 @@ interface AppState {
   // Smart Ordering Actions
   generateSmartSuggestions: () => Promise<void>;
 
+  // Location Actions
+  fetchLocations: () => Promise<void>;
+  addLocation: (location: Omit<Location, 'id'>) => Promise<void>;
+  updateLocation: (id: string, updates: Partial<Location>) => Promise<void>;
+  deleteLocation: (id: string) => Promise<void>;
+
+  // Stock Transfer Actions
+  fetchStockTransfers: (filters?: any) => Promise<void>;
+  createStockTransfer: (transfer: {
+    itemId: string;
+    fromLocationId: string;
+    toLocationId: string;
+    quantity: number;
+    reason?: string;
+  }) => Promise<void>;
+
+  // Analytics Actions
+  recalculateABC: () => Promise<void>;
+
   // Utility Actions
   setError: (error: string | null) => void;
   clearError: () => void;
@@ -110,6 +138,8 @@ export const useStore = create<AppState>((set, get) => ({
   templates: [],
   movements: [],
   smartSuggestions: [],
+  locations: [],
+  stockTransfers: [],
   isLoading: false,
   isSyncing: false,
   lastSync: null,
@@ -135,6 +165,33 @@ export const useStore = create<AppState>((set, get) => ({
       await get().syncWithServer();
     } catch (error) {
       const message = getErrorMessage(error, 'Login failed');
+      set({
+        error: message,
+        isLoading: false
+      });
+      throw error;
+    }
+  },
+
+  register: async (email: string, password: string, fullName: string, companyName?: string) => {
+    try {
+      set({ isLoading: true, error: null });
+      const response = await authAPI.register(email, password, fullName, companyName);
+
+      localStorage.setItem('authToken', response.token);
+      localStorage.setItem('user', JSON.stringify(response.user));
+
+      set({
+        user: response.user,
+        authToken: response.token,
+        isAuthenticated: true,
+        isLoading: false
+      });
+
+      // Sync data after registration (will be empty for new user)
+      await get().syncWithServer();
+    } catch (error) {
+      const message = getErrorMessage(error, 'Registration failed');
       set({
         error: message,
         isLoading: false
@@ -199,12 +256,13 @@ export const useStore = create<AppState>((set, get) => ({
     try {
       set({ isSyncing: true });
 
-      const [inventory, contacts, jobs, templates, movements] = await Promise.all([
+      const [inventory, contacts, jobs, templates, movements, locations] = await Promise.all([
         inventoryAPI.getAll(),
         contactsAPI.getAll(),
         jobsAPI.getAll(),
         templatesAPI.getAll(),
-        movementsAPI.getAll()
+        movementsAPI.getAll(),
+        locationsAPI.getAll()
       ]);
 
       const syncTimestamp = Date.now();
@@ -216,6 +274,7 @@ export const useStore = create<AppState>((set, get) => ({
         jobs,
         templates,
         movements,
+        locations,
         lastSync: syncTimestamp,
         isSyncing: false
       });
@@ -299,6 +358,17 @@ export const useStore = create<AppState>((set, get) => ({
       }));
     } catch (error) {
       const message = getErrorMessage(error, 'Failed to delete inventory item');
+      set({ error: message });
+      throw error;
+    }
+  },
+
+  deleteAllInventoryItems: async () => {
+    try {
+      await inventoryAPI.deleteAll();
+      set({ inventory: [] });
+    } catch (error) {
+      const message = getErrorMessage(error, 'Failed to delete all inventory items');
       set({ error: message });
       throw error;
     }
@@ -495,6 +565,101 @@ export const useStore = create<AppState>((set, get) => ({
       });
     } catch (error) {
       const message = getErrorMessage(error, 'Failed to generate smart suggestions');
+      set({ isLoading: false, error: message });
+      throw error;
+    }
+  },
+
+  // Location Actions
+  fetchLocations: async () => {
+    try {
+      const locations = await locationsAPI.getAll();
+      set({ locations });
+    } catch (error) {
+      const message = getErrorMessage(error, 'Failed to fetch locations');
+      set({ error: message });
+      throw error;
+    }
+  },
+
+  addLocation: async (location) => {
+    try {
+      const newLocation = await locationsAPI.create(location);
+      set((state) => ({
+        locations: [...state.locations, newLocation]
+      }));
+    } catch (error) {
+      const message = getErrorMessage(error, 'Failed to add location');
+      set({ error: message });
+      throw error;
+    }
+  },
+
+  updateLocation: async (id, updates) => {
+    try {
+      const updated = await locationsAPI.update(id, updates);
+      set((state) => ({
+        locations: state.locations.map((loc) =>
+          loc.id === id ? updated : loc
+        )
+      }));
+    } catch (error) {
+      const message = getErrorMessage(error, 'Failed to update location');
+      set({ error: message });
+      throw error;
+    }
+  },
+
+  deleteLocation: async (id) => {
+    try {
+      await locationsAPI.delete(id);
+      set((state) => ({
+        locations: state.locations.filter((loc) => loc.id !== id)
+      }));
+    } catch (error) {
+      const message = getErrorMessage(error, 'Failed to delete location');
+      set({ error: message });
+      throw error;
+    }
+  },
+
+  // Stock Transfer Actions
+  fetchStockTransfers: async (filters) => {
+    try {
+      const transfers = await stockTransfersAPI.getAll(filters);
+      set({ stockTransfers: transfers });
+    } catch (error) {
+      const message = getErrorMessage(error, 'Failed to fetch stock transfers');
+      set({ error: message });
+      throw error;
+    }
+  },
+
+  createStockTransfer: async (transfer) => {
+    try {
+      const newTransfer = await stockTransfersAPI.create(transfer);
+      set((state) => ({
+        stockTransfers: [newTransfer, ...state.stockTransfers]
+      }));
+      // Refresh inventory to get updated location stock
+      await get().fetchInventory();
+    } catch (error) {
+      const message = getErrorMessage(error, 'Failed to create stock transfer');
+      set({ error: message });
+      throw error;
+    }
+  },
+
+  // Analytics Actions
+  recalculateABC: async () => {
+    try {
+      set({ isLoading: true });
+      await analyticsAPI.recalculateABC();
+      // Refresh inventory to get updated classifications
+      await get().fetchInventory();
+      set({ isLoading: false });
+    } catch (error) {
+      const message = getErrorMessage(error, 'Failed to recalculate ABC classification');
       set({ isLoading: false, error: message });
       throw error;
     }

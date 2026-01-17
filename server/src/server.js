@@ -15,6 +15,14 @@ import settingsRoutes from './routes/settings.js';
 import mobileRoutes from './routes/mobile.js';
 import workflowRoutes from './routes/workflow.js';
 import approvalsRoutes from './routes/approvals.js';
+import purchaseOrdersRoutes from './routes/purchaseOrders.js';
+import stockReturnsRoutes from './routes/stockReturns.js';
+import locationsRoutes from './routes/locations.js';
+import stockTransfersRoutes from './routes/stockTransfers.js';
+import itemSuppliersRoutes from './routes/itemSuppliers.js';
+import supplierRatingsRoutes from './routes/supplierRatings.js';
+import priceAlertsRoutes from './routes/priceAlerts.js';
+import supplierAnalyticsRoutes from './routes/supplierAnalytics.js';
 import cron from 'node-cron';
 import { checkLowStockAlerts, checkJobReminders, sendDailySummary } from './services/notificationService.js';
 import { processEmailQueue } from './services/emailService.js';
@@ -28,7 +36,7 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+  origin: true, // Allow all origins for local development
   credentials: true
 }));
 app.use(express.json());
@@ -64,6 +72,14 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/mobile', mobileRoutes);
 app.use('/api/workflows', workflowRoutes);
 app.use('/api/approvals', approvalsRoutes);
+app.use('/api/purchase-orders', purchaseOrdersRoutes);
+app.use('/api/stock-returns', stockReturnsRoutes);
+app.use('/api/locations', locationsRoutes);
+app.use('/api/stock-transfers', stockTransfersRoutes);
+app.use('/api/item-suppliers', itemSuppliersRoutes);
+app.use('/api/suppliers', supplierRatingsRoutes);
+app.use('/api/price-alerts', priceAlertsRoutes);
+app.use('/api/supplier-analytics', supplierAnalyticsRoutes);
 
 // 404 handler
 app.use((req, res) => {

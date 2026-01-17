@@ -24,7 +24,13 @@ import {
   Search,
   UserPlus,
   Clock,
-  Languages
+  Languages,
+  LogOut,
+  FileText,
+  RotateCcw,
+  FileUp,
+  SlidersHorizontal,
+  ArrowRight
 } from 'lucide-react';
 import {
   Contact,
@@ -48,34 +54,46 @@ import { ContactsView } from './views/ContactsView';
 import { ApprovalsView } from './views/ApprovalsView';
 import { SettingsView } from './views/SettingsView';
 import { MobileStockCountView } from './views/MobileStockCountView';
+import { LoginView } from './components/LoginView';
+import { PurchaseOrdersView } from './views/PurchaseOrdersView';
+import { StockReturnsView } from './views/StockReturnsView';
+import { SupplierDashboardView } from './views/SupplierDashboardView';
 
 // UX Components
 import { ToastProvider, useToast } from './components/ToastNotification';
 import CommandPalette from './components/CommandPalette';
 import LanguageSwitcher from './components/LanguageSwitcher';
 import { MobileBottomNav } from './components/MobileBottomNav';
+import { StockTransferModal } from './components/StockTransferModal';
 import { onboardingService, tours } from './lib/onboardingService';
 import { addSkipLink } from './lib/accessibility';
 import { API_ROOT_URL, DEFAULT_BACKEND_PORT, hasExplicitApiUrl } from './lib/api';
+import { useAutoLogout } from './hooks/useAutoLogout';
 
 function AppContent() {
   const toast = useToast();
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'inventory' | 'calendar' | 'job-planning' | 'contacts' | 'ordering' | 'history' | 'approvals' | 'settings'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'inventory' | 'calendar' | 'job-planning' | 'contacts' | 'ordering' | 'history' | 'approvals' | 'purchase-orders' | 'stock-returns' | 'supplier-dashboard' | 'settings'>('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [theme, setTheme] = useState<'light' | 'dark' | 'auto'>('light');
   const [isMobileStockCountOpen, setIsMobileStockCountOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const user = useStore((state) => state.user);
+  const logout = useStore((state) => state.logout);
   const inventory = useStore((state) => state.inventory);
   const contacts = useStore((state) => state.contacts);
   const jobs = useStore((state) => state.jobs);
   const movements = useStore((state) => state.movements);
   const templates = useStore((state) => state.templates);
+  const locations = useStore((state) => state.locations);
+  const createStockTransfer = useStore((state) => state.createStockTransfer);
   const error = useStore((state) => state.error);
   const clearError = useStore((state) => state.clearError);
   const addJob = useStore((state) => state.addJob);
   const pickJob = useStore((state) => state.pickJob);
   const addInventoryItem = useStore((state) => state.addInventoryItem);
   const updateInventoryItem = useStore((state) => state.updateInventoryItem);
+  const deleteInventoryItem = useStore((state) => state.deleteInventoryItem);
+  const deleteAllInventoryItems = useStore((state) => state.deleteAllInventoryItems);
   const adjustStock = useStore((state) => state.adjustStock);
   const addContact = useStore((state) => state.addContact);
   const updateContact = useStore((state) => state.updateContact);
@@ -96,6 +114,34 @@ function AppContent() {
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  // Auto-logout after 30 minutes of inactivity
+  useAutoLogout({
+    timeout: 30 * 60 * 1000, // 30 minutes
+    onLogout: () => {
+      logout();
+      toast.error('You have been logged out due to inactivity');
+    }
+  });
+
+  // Listen for auto-logout warning
+  useEffect(() => {
+    const handleWarning = () => {
+      toast.warning('You will be logged out in 2 minutes due to inactivity', { duration: 5000 });
+    };
+
+    const handleWarningClear = () => {
+      // Clear any existing warnings (handled by toast system)
+    };
+
+    window.addEventListener('auto-logout-warning', handleWarning);
+    window.addEventListener('auto-logout-warning-clear', handleWarningClear);
+
+    return () => {
+      window.removeEventListener('auto-logout-warning', handleWarning);
+      window.removeEventListener('auto-logout-warning-clear', handleWarningClear);
+    };
+  }, [toast]);
 
   // Initialize theme from persisted settings
   useEffect(() => {
@@ -219,17 +265,22 @@ function AppContent() {
     const handleCreateNewContact = () => {
       setActiveTab('contacts');
     };
+    const handleTransferStock = () => {
+      setIsStockTransferModalOpen(true);
+    };
 
     window.addEventListener('navigate', handleNavigate);
     window.addEventListener('create-new-item', handleCreateNewItem);
     window.addEventListener('create-new-job', handleCreateNewJob);
     window.addEventListener('create-new-contact', handleCreateNewContact);
+    window.addEventListener('transfer-stock', handleTransferStock);
 
     return () => {
       window.removeEventListener('navigate', handleNavigate);
       window.removeEventListener('create-new-item', handleCreateNewItem);
       window.removeEventListener('create-new-job', handleCreateNewJob);
       window.removeEventListener('create-new-contact', handleCreateNewContact);
+      window.removeEventListener('transfer-stock', handleTransferStock);
     };
   }, []);
   
@@ -242,6 +293,8 @@ function AppContent() {
   const [itemToAdjust, setItemToAdjust] = useState<InventoryItem | null>(null);
   const [adjustmentValue, setAdjustmentValue] = useState<number>(0);
   const [adjustmentReason, setAdjustmentReason] = useState<string>('');
+  const [adjustmentLocationId, setAdjustmentLocationId] = useState<string>('');
+  const [isStockTransferModalOpen, setIsStockTransferModalOpen] = useState(false);
   const [isEditItemModalOpen, setIsEditItemModalOpen] = useState(false);
   const [itemToEdit, setItemToEdit] = useState<InventoryItem | null>(null);
   const [isAddItemModalOpen, setIsAddItemModalOpen] = useState(false);
@@ -369,38 +422,214 @@ function AppContent() {
     }
   };
 
+  const [csvPreviewItems, setCsvPreviewItems] = useState<Omit<InventoryItem, 'id'>[]>([]);
+  const [csvSelectedRows, setCsvSelectedRows] = useState<Set<number>>(new Set());
+  const [showCSVPreviewModal, setShowCSVPreviewModal] = useState(false);
+  const [showCSVMappingModal, setShowCSVMappingModal] = useState(false);
+  const [csvRawData, setCsvRawData] = useState<{ headers: string[], rows: string[][] }>({ headers: [], rows: [] });
+  const [csvColumnMapping, setCsvColumnMapping] = useState<Record<string, number>>({
+    name: 0,
+    category: 1,
+    price: 2,
+    quantity: 3,
+    reorderLevel: 4,
+    supplierId: 5,
+    supplierCode: 6,
+    buyPriceExclGST: -1,
+    buyPriceInclGST: -1,
+    sellPriceExclGST: -1,
+    sellPriceInclGST: -1
+  });
+
   const handleImportCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (e) => {
       const text = e.target?.result as string;
-      const lines = text.split('\n');
-      const newItems: Omit<InventoryItem, 'id'>[] = [];
-      lines.slice(1).forEach((line) => {
-        if (!line.trim()) return;
-        const [name, category, price, quantity, reorder, supplierId, supplierCode] = line.split(',').map(s => s.trim());
-        newItems.push({
-          name,
-          category,
-          price: parseFloat(price) || 0,
-          quantity: parseInt(quantity) || 0,
-          reorderLevel: parseInt(reorder) || 5,
-          supplierId,
-          supplierCode,
-          location: '',
-          lastUpdated: new Date().toISOString().split('T')[0]
-        });
-      });
-      void Promise.all(newItems.map((item) => addInventoryItem(item)))
-        .then(() => {
-          toast.success(`Imported ${newItems.length} items successfully!`, 'CSV Import Complete');
-        })
-        .catch(() => {
-          // Errors are handled via the global store error state.
-        });
+      const lines = text.split('\n').filter(line => line.trim());
+
+      if (lines.length === 0) {
+        toast.error('CSV file is empty', 'Import Error');
+        return;
+      }
+
+      // Parse CSV with proper handling of quoted fields
+      const parseCSVLine = (line: string): string[] => {
+        const result: string[] = [];
+        let current = '';
+        let inQuotes = false;
+
+        for (let i = 0; i < line.length; i++) {
+          const char = line[i];
+          if (char === '"') {
+            inQuotes = !inQuotes;
+          } else if (char === ',' && !inQuotes) {
+            result.push(current.trim());
+            current = '';
+          } else {
+            current += char;
+          }
+        }
+        result.push(current.trim());
+        return result;
+      };
+
+      const headers = parseCSVLine(lines[0]);
+      const rows = lines.slice(1).map(line => parseCSVLine(line));
+
+      // Store raw data and show mapping modal
+      setCsvRawData({ headers, rows });
+      setShowCSVMappingModal(true);
     };
     reader.readAsText(file);
+    // Reset the input value so the same file can be selected again
+    event.target.value = '';
+  };
+
+  const applyCSVMapping = () => {
+    const newItems: Omit<InventoryItem, 'id'>[] = [];
+
+    csvRawData.rows.forEach((row) => {
+      if (row.length === 0 || !row[csvColumnMapping.name]) return;
+
+      const parsePriceField = (value: string): number | undefined => {
+        if (!value || value.trim() === '') return undefined;
+        const parsed = parseFloat(value);
+        return isNaN(parsed) ? undefined : parsed;
+      };
+
+      const supplierIdValue = row[csvColumnMapping.supplierId] || '';
+      const supplierCodeValue = row[csvColumnMapping.supplierCode] || '';
+
+      // Parse legacy price field - use 0 if skipped or empty
+      const legacyPrice = csvColumnMapping.price >= 0
+        ? (parsePriceField(row[csvColumnMapping.price]) ?? 0)
+        : 0;
+
+      newItems.push({
+        name: row[csvColumnMapping.name] || '',
+        category: row[csvColumnMapping.category] || '',
+        price: legacyPrice,
+        quantity: parseInt(row[csvColumnMapping.quantity]) || 0,
+        reorderLevel: parseInt(row[csvColumnMapping.reorderLevel]) || 5,
+        supplierId: supplierIdValue,
+        supplierCode: supplierCodeValue,
+        buyPriceExclGST: csvColumnMapping.buyPriceExclGST >= 0 ? parsePriceField(row[csvColumnMapping.buyPriceExclGST]) : undefined,
+        buyPriceInclGST: csvColumnMapping.buyPriceInclGST >= 0 ? parsePriceField(row[csvColumnMapping.buyPriceInclGST]) : undefined,
+        sellPriceExclGST: csvColumnMapping.sellPriceExclGST >= 0 ? parsePriceField(row[csvColumnMapping.sellPriceExclGST]) : undefined,
+        sellPriceInclGST: csvColumnMapping.sellPriceInclGST >= 0 ? parsePriceField(row[csvColumnMapping.sellPriceInclGST]) : undefined
+      });
+    });
+
+    // Debug: Log first item to verify pricing was parsed
+    if (newItems.length > 0) {
+      console.log('First parsed CSV item:', newItems[0]);
+      console.log('CSV column mappings:', csvColumnMapping);
+    }
+
+    setCsvPreviewItems(newItems);
+    // Select all rows by default
+    setCsvSelectedRows(new Set(newItems.map((_, index) => index)));
+    setShowCSVMappingModal(false);
+    setShowCSVPreviewModal(true);
+  };
+
+  const confirmCSVImport = async () => {
+    try {
+      const selectedItems = csvPreviewItems.filter((_, index) => csvSelectedRows.has(index));
+
+      // Sanitize items before sending to API
+      const sanitizedItems = selectedItems.map(item => {
+        const sanitized = {
+          ...item,
+          supplierId: item.supplierId && item.supplierId.trim() !== '' ? item.supplierId : undefined,
+          supplierCode: item.supplierCode || undefined,
+          description: item.description || undefined
+        };
+
+        // Debug: Log the first item to verify pricing data
+        if (selectedItems.indexOf(item) === 0) {
+          console.log('First CSV item being imported:', sanitized);
+        }
+
+        return sanitized;
+      });
+
+      // Use Promise.allSettled to allow partial success
+      const results = await Promise.allSettled(
+        sanitizedItems.map((item) => addInventoryItem(item))
+      );
+
+      const succeeded = results.filter(r => r.status === 'fulfilled').length;
+      const failed = results.filter(r => r.status === 'rejected').length;
+
+      if (succeeded > 0) {
+        toast.success(
+          `Imported ${succeeded} item${succeeded !== 1 ? 's' : ''} successfully!${failed > 0 ? ` (${failed} failed)` : ''}`,
+          'CSV Import Complete'
+        );
+      }
+
+      if (failed > 0 && succeeded === 0) {
+        toast.error(`Failed to import all ${failed} item${failed !== 1 ? 's' : ''}. Check console for details.`, 'Import Failed');
+        console.error('Import failures:', results.filter(r => r.status === 'rejected').map(r => r.reason));
+      }
+
+      setShowCSVPreviewModal(false);
+      setCsvPreviewItems([]);
+      setCsvSelectedRows(new Set());
+    } catch (error) {
+      toast.error('An unexpected error occurred during import', 'Import Error');
+      console.error('CSV Import error:', error);
+    }
+  };
+
+  const toggleAllCSVRows = () => {
+    if (csvSelectedRows.size === csvPreviewItems.length) {
+      // Deselect all
+      setCsvSelectedRows(new Set());
+    } else {
+      // Select all
+      setCsvSelectedRows(new Set(csvPreviewItems.map((_, index) => index)));
+    }
+  };
+
+  const toggleCSVRow = (index: number) => {
+    const newSelected = new Set(csvSelectedRows);
+    if (newSelected.has(index)) {
+      newSelected.delete(index);
+    } else {
+      newSelected.add(index);
+    }
+    setCsvSelectedRows(newSelected);
+  };
+
+  const handleDeleteItem = async (item: InventoryItem) => {
+    if (!confirm(`Are you sure you want to delete "${item.name}"?\n\nThis action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      await deleteInventoryItem(item.id);
+      toast.success(`"${item.name}" has been deleted`, 'Item Deleted');
+    } catch (error: any) {
+      // Errors are handled via the global store error state.
+    }
+  };
+
+  const handleDeleteAllItems = async () => {
+    const itemCount = inventory.length;
+    if (!confirm(`Are you sure you want to delete ALL ${itemCount} inventory items?\n\nThis will permanently remove all items from your inventory.\n\nThis action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      await deleteAllInventoryItems();
+      toast.success(`All ${itemCount} inventory items have been deleted`, 'Inventory Cleared');
+    } catch (error: any) {
+      // Errors are handled via the global store error state.
+    }
   };
 
   const handleManualAdjustment = async () => {
@@ -409,9 +638,15 @@ function AppContent() {
       return;
     }
 
+    if (!adjustmentLocationId) {
+      toast.warning('Please select a location to adjust');
+      return;
+    }
+
     try {
-      await adjustStock(itemToAdjust.id, adjustmentValue, adjustmentReason);
+      await adjustStock(itemToAdjust.id, adjustmentValue, adjustmentReason, adjustmentLocationId);
       setIsAdjustModalOpen(false);
+      setAdjustmentLocationId('');
       toast.success(`Stock adjusted for ${itemToAdjust.name}`, 'Adjustment Complete');
       console.log('✅ Stock adjusted in database:', itemToAdjust.id);
     } catch (error: any) {
@@ -451,9 +686,7 @@ function AppContent() {
       price: 0,
       reorderLevel: 5,
       supplierId: contacts.find(c => c.type === 'Supplier')?.id || '',
-      supplierCode: '',
-      location: '',
-      lastUpdated: new Date().toISOString().split('T')[0]
+      supplierCode: ''
     };
     setItemToEdit(newItem);
     setIsAddItemModalOpen(true);
@@ -681,14 +914,37 @@ function AppContent() {
               <NavItem icon={ClipboardList} label="Job Planning" active={activeTab === 'job-planning'} onClick={() => setActiveTab('job-planning')} collapsed={!isSidebarOpen} />
             </div>
             <NavItem icon={ShoppingCart} label="Smart Ordering" active={activeTab === 'ordering'} onClick={() => setActiveTab('ordering')} collapsed={!isSidebarOpen} />
+            <NavItem icon={FileText} label="Purchase Orders" active={activeTab === 'purchase-orders'} onClick={() => setActiveTab('purchase-orders')} collapsed={!isSidebarOpen} />
+            <NavItem icon={RotateCcw} label="Stock Returns" active={activeTab === 'stock-returns'} onClick={() => setActiveTab('stock-returns')} collapsed={!isSidebarOpen} />
             <NavItem icon={ArrowRightLeft} label="Stock History" active={activeTab === 'history'} onClick={() => setActiveTab('history')} collapsed={!isSidebarOpen} />
             <div data-tour="contacts">
               <NavItem icon={Users} label="Contacts" active={activeTab === 'contacts'} onClick={() => setActiveTab('contacts')} collapsed={!isSidebarOpen} />
             </div>
+            <NavItem icon={TrendingUp} label="Supplier Dashboard" active={activeTab === 'supplier-dashboard'} onClick={() => setActiveTab('supplier-dashboard')} collapsed={!isSidebarOpen} />
             <NavItem icon={CheckCircle} label="Approvals" active={activeTab === 'approvals'} onClick={() => setActiveTab('approvals')} collapsed={!isSidebarOpen} />
             <NavItem icon={Settings} label="Settings" active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} collapsed={!isSidebarOpen} />
           </nav>
-          <div className="p-4 border-t border-slate-800">
+          <div className="p-4 border-t border-slate-800 space-y-2">
+            {/* User Info */}
+            {isSidebarOpen && user && (
+              <div className="px-3 py-2 mb-2">
+                <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Logged in as</p>
+                <p className="text-sm text-slate-300 font-medium truncate">{user.fullName}</p>
+                <p className="text-xs text-slate-500 truncate">{user.email}</p>
+              </div>
+            )}
+
+            {/* Logout Button */}
+            <button
+              onClick={logout}
+              className="flex items-center w-full p-3 rounded-lg hover:bg-red-900/20 hover:text-red-400 transition-colors text-slate-400"
+              title="Logout"
+            >
+              <LogOut className="w-5 h-5 shrink-0" />
+              {isSidebarOpen && <span className="ml-3">Logout</span>}
+            </button>
+
+            {/* Collapse Button */}
             <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="flex items-center w-full p-3 rounded-lg hover:bg-slate-800 transition-colors">
               {isSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5 mx-auto" />}
               {isSidebarOpen && <span className="ml-3">Collapse</span>}
@@ -724,6 +980,9 @@ function AppContent() {
             onAdjustStock={(item) => { setItemToAdjust(item); setAdjustmentValue(0); setIsAdjustModalOpen(true); }}
             onEditItem={handleEditItem}
             onAddItem={handleAddItem}
+            onDeleteItem={handleDeleteItem}
+            onDeleteAll={handleDeleteAllItems}
+            onTransferStock={() => setIsStockTransferModalOpen(true)}
           />
         )}
         {activeTab === 'calendar' && (
@@ -772,6 +1031,9 @@ function AppContent() {
           />
         )}
         {activeTab === 'approvals' && <ApprovalsView />}
+        {activeTab === 'purchase-orders' && <PurchaseOrdersView />}
+        {activeTab === 'stock-returns' && <StockReturnsView />}
+        {activeTab === 'supplier-dashboard' && <SupplierDashboardView contacts={contacts} />}
         {activeTab === 'settings' && <SettingsView onSave={(settings) => toast.success('Settings saved successfully!')} />}
       </main>
 
@@ -962,6 +1224,203 @@ function AppContent() {
         </div>
       )}
 
+      {/* CSV Import Preview Modal */}
+      {/* CSV Column Mapping Modal */}
+      {showCSVMappingModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
+            <div className="p-6 border-b border-slate-100 bg-gradient-to-r from-purple-600 to-indigo-700">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <SlidersHorizontal className="w-6 h-6 text-white" />
+                  <div>
+                    <h3 className="text-xl font-bold text-white">Map CSV Columns</h3>
+                    <p className="text-sm text-purple-100">Match your CSV columns to inventory fields</p>
+                  </div>
+                </div>
+                <button onClick={() => { setShowCSVMappingModal(false); setCsvRawData({ headers: [], rows: [] }); }} className="text-white hover:text-purple-100 transition-colors">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
+              <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-start gap-2">
+                  <Info className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm text-blue-900 font-semibold mb-1">Your CSV has {csvRawData.headers.length} columns</p>
+                    <p className="text-xs text-blue-700">Map each field below to the corresponding column in your CSV file</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                {[
+                  { key: 'name', label: 'Item Name', required: true, description: 'The product or item name' },
+                  { key: 'category', label: 'Category', required: false, description: 'Product category (e.g., Pipes, Fittings)' },
+                  { key: 'price', label: 'Price', required: false, description: 'Unit price (numbers only)' },
+                  { key: 'quantity', label: 'Quantity', required: false, description: 'Current stock quantity' },
+                  { key: 'reorderLevel', label: 'Reorder Level', required: false, description: 'Minimum stock before reordering' },
+                  { key: 'supplierId', label: 'Supplier ID', required: false, description: 'Internal supplier identifier' },
+                  { key: 'supplierCode', label: 'Supplier Code', required: false, description: 'Supplier\'s product code' },
+                  { key: 'buyPriceExclGST', label: 'Buy Price (Excl GST)', required: false, description: 'Cost price excluding 10% GST' },
+                  { key: 'buyPriceInclGST', label: 'Buy Price (Incl GST)', required: false, description: 'Cost price including 10% GST' },
+                  { key: 'sellPriceExclGST', label: 'Sell Price (Excl GST)', required: false, description: 'Invoice/CMP price excluding 10% GST' },
+                  { key: 'sellPriceInclGST', label: 'Sell Price (Incl GST)', required: false, description: 'Invoice/CMP price including 10% GST' }
+                ].map((field) => (
+                  <div key={field.key} className="border border-slate-200 rounded-lg p-4 hover:border-blue-300 transition-colors">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <label className="text-sm font-semibold text-slate-800">{field.label}</label>
+                        {field.required && <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded font-medium">Required</span>}
+                      </div>
+                    </div>
+                    <p className="text-xs text-slate-500 mb-3">{field.description}</p>
+                    <select
+                      value={csvColumnMapping[field.key]}
+                      onChange={(e) => setCsvColumnMapping({ ...csvColumnMapping, [field.key]: parseInt(e.target.value) })}
+                      className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    >
+                      <option value={-1}>-- Skip this field --</option>
+                      {csvRawData.headers.map((header, index) => (
+                        <option key={index} value={index}>
+                          Column {index + 1}: {header || '(unnamed)'}
+                        </option>
+                      ))}
+                    </select>
+                    {csvRawData.rows.length > 0 && csvColumnMapping[field.key] >= 0 && (
+                      <div className="mt-2 p-2 bg-slate-50 rounded text-xs text-slate-600">
+                        <span className="font-medium">Preview: </span>
+                        <span className="font-mono">{csvRawData.rows[0][csvColumnMapping[field.key]] || '(empty)'}</span>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="p-6 bg-slate-50 border-t border-slate-100 flex gap-3">
+              <button
+                onClick={() => { setShowCSVMappingModal(false); setCsvRawData({ headers: [], rows: [] }); }}
+                className="flex-1 px-4 py-3 bg-white border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-100 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={applyCSVMapping}
+                className="flex-[2] px-4 py-3 bg-purple-600 text-white font-bold rounded-xl hover:bg-purple-700 transition-colors shadow-lg flex items-center justify-center gap-2"
+              >
+                <ArrowRight className="w-5 h-5" />
+                Continue to Preview
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showCSVPreviewModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-gradient-to-r from-blue-600 to-indigo-700">
+              <div className="flex items-center space-x-3">
+                <FileUp className="w-6 h-6 text-white" />
+                <div>
+                  <h3 className="text-xl font-bold text-white">CSV Import Preview</h3>
+                  <p className="text-sm text-blue-100">{csvSelectedRows.size} of {csvPreviewItems.length} items selected</p>
+                </div>
+              </div>
+              <button onClick={() => { setShowCSVPreviewModal(false); setCsvPreviewItems([]); setCsvSelectedRows(new Set()); }} className="text-white hover:text-blue-100 transition-colors">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="overflow-y-auto max-h-[calc(90vh-180px)]">
+              {csvPreviewItems.length === 0 ? (
+                <div className="p-12 text-center text-slate-500">
+                  <FileUp className="w-16 h-16 mx-auto mb-4 text-slate-300" />
+                  <p className="text-lg font-semibold">No items to preview</p>
+                </div>
+              ) : (
+                <table className="w-full">
+                  <thead className="bg-slate-50 border-b border-slate-200 sticky top-0">
+                    <tr>
+                      <th className="px-4 py-3 text-center">
+                        <input
+                          type="checkbox"
+                          checked={csvSelectedRows.size === csvPreviewItems.length && csvPreviewItems.length > 0}
+                          onChange={toggleAllCSVRows}
+                          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                          title="Select/Deselect All"
+                        />
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">#</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Item Name</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Category</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Price</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Quantity</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Reorder Level</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Supplier Code</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {csvPreviewItems.map((item, index) => (
+                      <tr
+                        key={index}
+                        className={`hover:bg-slate-50 transition-colors ${csvSelectedRows.has(index) ? 'bg-blue-50' : ''}`}
+                      >
+                        <td className="px-4 py-3 text-center">
+                          <input
+                            type="checkbox"
+                            checked={csvSelectedRows.has(index)}
+                            onChange={() => toggleCSVRow(index)}
+                            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                          />
+                        </td>
+                        <td className="px-4 py-3 text-sm text-slate-500 font-medium">{index + 1}</td>
+                        <td className="px-4 py-3">
+                          <p className="font-bold text-slate-800">{item.name || <span className="text-red-500 italic">Missing</span>}</p>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-slate-600">{item.category || <span className="text-amber-500 italic">Unknown</span>}</td>
+                        <td className="px-4 py-3 text-sm font-semibold text-slate-700">${item.price.toFixed(2)}</td>
+                        <td className="px-4 py-3 text-sm font-bold text-slate-800">{item.quantity}</td>
+                        <td className="px-4 py-3 text-sm text-slate-600">{item.reorderLevel}</td>
+                        <td className="px-4 py-3 text-sm text-slate-600 font-mono">{item.supplierCode || '-'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+
+            <div className="p-6 bg-slate-50 border-t border-slate-100">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center space-x-2 text-sm text-slate-600">
+                  <Info className="w-4 h-4" />
+                  <span>Expected CSV format: <code className="px-2 py-1 bg-slate-200 rounded text-xs font-mono">name,category,price,quantity,reorder,supplierId,supplierCode</code></span>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => { setShowCSVPreviewModal(false); setCsvPreviewItems([]); setCsvSelectedRows(new Set()); }}
+                  className="flex-1 px-4 py-3 bg-white border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-100 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmCSVImport}
+                  disabled={csvSelectedRows.size === 0}
+                  className="flex-[2] px-4 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  <FileUp className="w-5 h-5" />
+                  Import {csvSelectedRows.size} Selected Item{csvSelectedRows.size !== 1 ? 's' : ''}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Manual Allocation Modal */}
       {isAllocateModalOpen && jobToAllocate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
@@ -1107,10 +1566,46 @@ function AppContent() {
                 <div className="flex justify-between items-start">
                   <div>
                     <p className="text-lg font-bold text-slate-800">{itemToAdjust.name}</p>
-                    <p className="text-sm text-slate-400">Current Stock: <span className="font-bold text-slate-700">{itemToAdjust.quantity}</span></p>
+                    <p className="text-sm text-slate-400">Total Stock: <span className="font-bold text-slate-700">{itemToAdjust.quantity}</span></p>
                   </div>
                   <Badge variant={getStockStatus(itemToAdjust.quantity, itemToAdjust.reorderLevel).variant}>{getStockStatus(itemToAdjust.quantity, itemToAdjust.reorderLevel).label}</Badge>
                 </div>
+                {itemToAdjust.locationStock && itemToAdjust.locationStock.length > 0 && (
+                  <div className="mt-3 bg-blue-50 border border-blue-100 rounded-lg p-3">
+                    <p className="text-xs font-semibold text-blue-800 mb-2">Stock by Location</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {itemToAdjust.locationStock.map((loc, idx) => (
+                        <div key={idx} className="flex items-center justify-between bg-white rounded px-2 py-1">
+                          <span className="text-xs text-slate-600">{loc.locationName}</span>
+                          <span className="text-xs font-bold text-slate-800">{loc.quantity}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2">Location to Adjust</label>
+                <select
+                  value={adjustmentLocationId}
+                  onChange={(e) => setAdjustmentLocationId(e.target.value)}
+                  className="w-full px-4 py-3 border border-slate-200 rounded-xl bg-white shadow-sm"
+                >
+                  <option value="">Select location...</option>
+                  {locations.map((loc) => {
+                    const stockAtLocation = itemToAdjust.locationStock?.find(ls => ls.locationId === loc.id);
+                    return (
+                      <option key={loc.id} value={loc.id}>
+                        {loc.name} (Current: {stockAtLocation?.quantity || 0})
+                      </option>
+                    );
+                  })}
+                </select>
+                {adjustmentLocationId && (
+                  <p className="mt-2 text-xs text-slate-500">
+                    Current stock at {locations.find(l => l.id === adjustmentLocationId)?.name}: <span className="font-bold">{itemToAdjust.locationStock?.find(ls => ls.locationId === adjustmentLocationId)?.quantity || 0}</span>
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2">Adjustment Quantity</label>
@@ -1120,6 +1615,7 @@ function AppContent() {
                   className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none text-lg font-bold"
                   placeholder="Use - for removal"
                 />
+                <p className="mt-1 text-xs text-slate-500">Use positive numbers to add stock, negative to remove</p>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2">Reason</label>
@@ -1137,11 +1633,34 @@ function AppContent() {
             </div>
             <div className="p-6 bg-slate-50 border-t border-slate-100 flex space-x-3">
               <button onClick={() => setIsAdjustModalOpen(false)} className="flex-1 px-4 py-3 bg-white border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-100">Cancel</button>
-              <button disabled={adjustmentValue === 0 || !adjustmentReason} onClick={handleManualAdjustment} className="flex-1 px-4 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 shadow-lg">Apply</button>
+              <button disabled={adjustmentValue === 0 || !adjustmentReason || !adjustmentLocationId} onClick={handleManualAdjustment} className="flex-1 px-4 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">Apply</button>
             </div>
           </div>
         </div>
       )}
+
+      {/* Stock Transfer Modal */}
+      <StockTransferModal
+        isOpen={isStockTransferModalOpen}
+        onClose={() => setIsStockTransferModalOpen(false)}
+        inventory={inventory}
+        locations={locations}
+        onTransfer={async (itemId, fromLocationId, toLocationId, quantity, reason) => {
+          try {
+            await createStockTransfer({
+              itemId,
+              fromLocationId,
+              toLocationId,
+              quantity,
+              reason
+            });
+            toast.success('Stock transferred successfully');
+          } catch (error) {
+            toast.error('Failed to transfer stock');
+            throw error;
+          }
+        }}
+      />
 
       {/* Edit Item Modal */}
       {isEditItemModalOpen && itemToEdit && (
@@ -1436,22 +1955,58 @@ function AppContent() {
         />
       )}
 
-      {/* Mobile FAB for Stock Count */}
+      {/* Mobile FAB for Stock Count and Transfer */}
       {isMobile && activeTab === 'inventory' && !isMobileStockCountOpen && (
-        <button
-          onClick={() => setIsMobileStockCountOpen(true)}
-          className="md:hidden fixed bottom-20 right-6 w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg flex items-center justify-center z-20 active:scale-95 transition-transform"
-        >
-          <Package className="w-6 h-6" />
-        </button>
+        <>
+          <button
+            onClick={() => setIsStockTransferModalOpen(true)}
+            className="md:hidden fixed bottom-36 right-6 w-12 h-12 bg-green-600 text-white rounded-full shadow-lg flex items-center justify-center z-20 active:scale-95 transition-transform"
+            title="Transfer Stock"
+          >
+            <ArrowRightLeft className="w-5 h-5" />
+          </button>
+          <button
+            onClick={() => setIsMobileStockCountOpen(true)}
+            className="md:hidden fixed bottom-20 right-6 w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg flex items-center justify-center z-20 active:scale-95 transition-transform"
+          >
+            <Package className="w-6 h-6" />
+          </button>
+        </>
       )}
       </div>
     </>
   );
 }
 
-// Main App component with providers
+// Main App component with providers and authentication
 export default function App() {
+  const isAuthenticated = useStore((state) => state.isAuthenticated);
+  const syncWithServer = useStore((state) => state.syncWithServer);
+
+  // Check for existing auth token on mount
+  useEffect(() => {
+    const token = localStorage.getItem('authToken');
+    const userStr = localStorage.getItem('user');
+
+    if (token && userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        useStore.getState().setUser(user, token);
+        // Sync data from server after authentication
+        syncWithServer();
+      } catch (error) {
+        console.error('Failed to restore auth session:', error);
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('user');
+      }
+    }
+  }, [syncWithServer]);
+
+  // Show login screen if not authenticated
+  if (!isAuthenticated) {
+    return <LoginView />;
+  }
+
   return (
     <ToastProvider>
       <AppContent />

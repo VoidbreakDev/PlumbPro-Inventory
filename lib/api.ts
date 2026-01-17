@@ -6,7 +6,9 @@ import type {
   Job,
   JobTemplate,
   StockMovement,
-  SmartOrderSuggestion
+  SmartOrderSuggestion,
+  Location,
+  StockTransfer
 } from '../types';
 
 export const DEFAULT_API_URL = 'http://localhost:5000/api';
@@ -87,13 +89,18 @@ export const inventoryAPI = {
     return data;
   },
 
-  adjust: async (id: string, quantity: number, reason: string) => {
-    const { data } = await api.post(`/inventory/${id}/adjust`, { quantity, reason });
+  adjust: async (id: string, quantity: number, reason: string, locationId?: string) => {
+    const { data } = await api.post(`/inventory/${id}/adjust`, { quantity, reason, locationId });
     return data;
   },
 
   delete: async (id: string) => {
     const { data } = await api.delete(`/inventory/${id}`);
+    return data;
+  },
+
+  deleteAll: async () => {
+    const { data } = await api.post('/inventory/bulk-delete/all');
     return data;
   }
 };
@@ -199,6 +206,81 @@ export const movementsAPI = {
 export const smartOrderingAPI = {
   getSuggestions: async (): Promise<{ suggestions: SmartOrderSuggestion[] }> => {
     const { data } = await api.post('/smart-ordering/suggestions');
+    return data;
+  }
+};
+
+// Locations API
+export const locationsAPI = {
+  getAll: async (): Promise<Location[]> => {
+    const { data } = await api.get('/locations');
+    return data;
+  },
+
+  getById: async (id: string): Promise<Location> => {
+    const { data } = await api.get(`/locations/${id}`);
+    return data;
+  },
+
+  create: async (location: Omit<Location, 'id'>): Promise<Location> => {
+    const { data } = await api.post('/locations', location);
+    return data;
+  },
+
+  update: async (id: string, updates: Partial<Location>): Promise<Location> => {
+    const { data } = await api.put(`/locations/${id}`, updates);
+    return data;
+  },
+
+  delete: async (id: string) => {
+    const { data } = await api.delete(`/locations/${id}`);
+    return data;
+  },
+
+  getStock: async (id: string) => {
+    const { data } = await api.get(`/locations/${id}/stock`);
+    return data;
+  }
+};
+
+// Stock Transfers API
+export const stockTransfersAPI = {
+  getAll: async (filters?: {
+    itemId?: string;
+    locationId?: string;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<StockTransfer[]> => {
+    const { data } = await api.get('/stock-transfers', { params: filters });
+    return data;
+  },
+
+  create: async (transfer: {
+    itemId: string;
+    fromLocationId: string;
+    toLocationId: string;
+    quantity: number;
+    reason?: string;
+  }): Promise<StockTransfer> => {
+    const { data } = await api.post('/stock-transfers', transfer);
+    return data;
+  }
+};
+
+// Analytics API (ABC Classification and Dead Stock)
+export const analyticsAPI = {
+  getABCClassification: async () => {
+    const { data } = await api.get('/analytics/abc-classification');
+    return data;
+  },
+
+  recalculateABC: async () => {
+    const { data } = await api.post('/analytics/recalculate-abc');
+    return data;
+  },
+
+  getDeadStock: async () => {
+    const { data } = await api.get('/analytics/dead-stock');
     return data;
   }
 };

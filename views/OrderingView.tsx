@@ -1,11 +1,12 @@
 
 import React, { useState } from 'react';
-import { ShoppingCart, TrendingUp, ChevronRight, Truck } from 'lucide-react';
+import { ShoppingCart, TrendingUp, ChevronRight, Truck, FileText, CheckCircle } from 'lucide-react';
 import { InventoryItem, Job, SmartOrderSuggestion } from '../types';
 import { Badge } from '../components/Shared';
 import { smartOrderingAPI } from '../lib/api';
 import { useStore } from '../store/useStore';
 import { getErrorMessage } from '../lib/errors';
+import purchaseOrdersAPI from '../lib/purchaseOrdersAPI';
 
 interface OrderingViewProps {
   inventory: InventoryItem[];
@@ -15,7 +16,9 @@ interface OrderingViewProps {
 export const OrderingView: React.FC<OrderingViewProps> = ({ inventory, jobs }) => {
   const [suggestions, setSuggestions] = useState<SmartOrderSuggestion[]>([]);
   const [isSuggesting, setIsSuggesting] = useState(false);
+  const [isCreatingPOs, setIsCreatingPOs] = useState(false);
   const setError = useStore((state) => state.setError);
+  const contacts = useStore((state) => state.contacts);
 
   const fetchSuggestions = async () => {
     setIsSuggesting(true);
@@ -30,6 +33,62 @@ export const OrderingView: React.FC<OrderingViewProps> = ({ inventory, jobs }) =
       setError(message);
     } finally {
       setIsSuggesting(false);
+    }
+  };
+
+  const createPOsFromSuggestions = async () => {
+    if (!confirm(`Create purchase orders for ${suggestions.length} suggested items?`)) {
+      return;
+    }
+
+    setIsCreatingPOs(true);
+    try {
+      // Group suggestions by supplier
+      const itemsBySupplier = new Map<string, typeof suggestions>();
+
+      suggestions.forEach(suggestion => {
+        // Find the inventory item to get supplier
+        const invItem = inventory.find(i => i.name === suggestion.itemName);
+        const supplierId = invItem?.supplierId || 'no-supplier';
+
+        if (!itemsBySupplier.has(supplierId)) {
+          itemsBySupplier.set(supplierId, []);
+        }
+        itemsBySupplier.get(supplierId)!.push(suggestion);
+      });
+
+      // Create one PO per supplier
+      const createdPOs = [];
+      for (const [supplierId, items] of itemsBySupplier.entries()) {
+        const poItems = items.map(suggestion => {
+          const invItem = inventory.find(i => i.name === suggestion.itemName);
+          return {
+            inventory_item_id: invItem?.id,
+            item_name: suggestion.itemName,
+            quantity_ordered: suggestion.suggestedQuantity,
+            unit_price: invItem?.price || 0
+          };
+        });
+
+        const poData = {
+          supplier_id: supplierId !== 'no-supplier' ? supplierId : undefined,
+          items: poItems,
+          notes: 'Created from Smart Ordering suggestions'
+        };
+
+        const newPO = await purchaseOrdersAPI.create(poData);
+        createdPOs.push(newPO);
+      }
+
+      // Show success message
+      alert(`Successfully created ${createdPOs.length} purchase order(s)!\n\nPO Numbers:\n${createdPOs.map(po => po.po_number).join('\n')}`);
+
+      // Clear suggestions
+      setSuggestions([]);
+    } catch (err) {
+      setError(getErrorMessage(err, 'Failed to create purchase orders from suggestions'));
+    } finally {
+      setIsCreatingPOs(false);
     }
   };
 
@@ -65,10 +124,23 @@ export const OrderingView: React.FC<OrderingViewProps> = ({ inventory, jobs }) =
       {suggestions.length > 0 && (
         <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
           <div className="p-6 border-b border-slate-100 flex justify-between items-center">
-            <h4 className="font-bold text-slate-800">Suggested Purchase Order</h4>
-            <button className="flex items-center text-blue-600 font-bold hover:underline">
-              <Truck className="w-4 h-4 mr-2" />
-              Place All Orders
+            <h4 className="font-bold text-slate-800">Suggested Purchase Order ({suggestions.length} items)</h4>
+            <button
+              onClick={createPOsFromSuggestions}
+              disabled={isCreatingPOs}
+              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isCreatingPOs ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2" />
+                  Creating POs...
+                </>
+              ) : (
+                <>
+                  <FileText className="w-4 h-4 mr-2" />
+                  Create Purchase Orders
+                </>
+              )}
             </button>
           </div>
           <div className="divide-y divide-slate-100">

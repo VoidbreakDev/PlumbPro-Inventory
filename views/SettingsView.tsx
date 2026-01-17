@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { User, Building2, Bell, Shield, Database, Palette, Globe, Save, Brain, Cloud, Server } from 'lucide-react';
+import { User, Building2, Bell, Shield, Database, Palette, Globe, Save, Brain, Cloud, Server, Trash2 } from 'lucide-react';
 import api from '../lib/api';
 import { useStore } from '../store/useStore';
 import { getErrorMessage } from '../lib/errors';
+import { defaultSettings } from '../lib/settings';
 
 interface SettingsViewProps {
   onSave?: (settings: any) => void;
@@ -406,6 +407,28 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSave }) => {
                 <p className="text-amber-700 text-sm mb-4">Create a full backup of your database</p>
                 <button className="px-4 py-2 bg-amber-600 text-white font-semibold rounded-lg hover:bg-amber-700">
                   Create Backup
+                </button>
+              </div>
+
+              <div className="p-6 bg-purple-50 border border-purple-200 rounded-xl">
+                <h3 className="font-bold text-purple-900 mb-2 flex items-center">
+                  <Trash2 className="w-5 h-5 mr-2" />
+                  Clear Local Data
+                </h3>
+                <p className="text-purple-700 text-sm mb-4">
+                  Clear all locally stored data (localStorage). This will remove old sample contacts and force the app to reload fresh data from the database. Useful if you're experiencing sync issues.
+                </p>
+                <button
+                  onClick={() => {
+                    if (confirm('Are you sure you want to clear all local data? This will reload the app with fresh data from the database.')) {
+                      localStorage.clear();
+                      location.reload();
+                    }
+                  }}
+                  className="px-4 py-2 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 flex items-center space-x-2"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>Clear Local Data</span>
                 </button>
               </div>
 
