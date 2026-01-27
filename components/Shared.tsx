@@ -54,15 +54,31 @@ export const StatCard = ({ title, value, icon: Icon, color }: { title: string, v
   </div>
 );
 
-export const NavItem = ({ icon: Icon, label, active, onClick, collapsed }: { icon: any, label: string, active: boolean, onClick: () => void, collapsed: boolean }) => {
+export const NavItem = ({ icon: Icon, label, active, onClick, collapsed, badge }: { icon: any, label: string, active: boolean, onClick: () => void, collapsed: boolean, badge?: number }) => {
   return (
     <button
       onClick={onClick}
       className={`w-full flex items-center px-6 py-4 transition-all relative ${active ? 'text-white dark:text-slate-100' : 'hover:bg-slate-800 dark:hover:bg-slate-900 text-slate-400 dark:text-slate-500 hover:text-slate-200 dark:hover:text-slate-300'}`}
     >
       {active && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-500 dark:bg-blue-400 rounded-r-full" />}
-      <Icon className={`w-6 h-6 shrink-0 ${active ? 'text-blue-400 dark:text-blue-300' : ''}`} />
-      {!collapsed && <span className="ml-4 font-bold text-sm tracking-wide">{label}</span>}
+      <div className="relative">
+        <Icon className={`w-6 h-6 shrink-0 ${active ? 'text-blue-400 dark:text-blue-300' : ''}`} />
+        {badge !== undefined && badge > 0 && (
+          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center px-1">
+            {badge > 99 ? '99+' : badge}
+          </span>
+        )}
+      </div>
+      {!collapsed && (
+        <span className="ml-4 font-bold text-sm tracking-wide flex items-center">
+          {label}
+          {badge !== undefined && badge > 0 && (
+            <span className="ml-2 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-4 flex items-center justify-center px-1.5">
+              {badge > 99 ? '99+' : badge}
+            </span>
+          )}
+        </span>
+      )}
     </button>
   );
 };

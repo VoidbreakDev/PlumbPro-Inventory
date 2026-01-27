@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { User, Building2, Bell, Shield, Database, Palette, Globe, Save, Brain, Cloud, Server, Trash2 } from 'lucide-react';
+import { User, Building2, Bell, Shield, Database, Palette, Globe, Save, Brain, Cloud, Server, Trash2, Link2, RefreshCw, Check, X, AlertCircle, Clock, Users, FileText, CreditCard } from 'lucide-react';
 import api from '../lib/api';
 import { useStore } from '../store/useStore';
 import { getErrorMessage } from '../lib/errors';
 import { defaultSettings } from '../lib/settings';
+import { xeroAPI, XeroConnection, XeroSyncLog, XeroSettings } from '../lib/xeroAPI';
 
 interface SettingsViewProps {
   onSave?: (settings: any) => void;
 }
 
 export const SettingsView: React.FC<SettingsViewProps> = ({ onSave }) => {
-  const [activeSection, setActiveSection] = useState<'profile' | 'company' | 'notifications' | 'security' | 'data' | 'appearance' | 'ai'>('profile');
+  const [activeSection, setActiveSection] = useState<'profile' | 'company' | 'notifications' | 'security' | 'data' | 'appearance' | 'ai' | 'integrations'>('profile');
   const setError = useStore((state) => state.setError);
 
   // Load settings from localStorage on mount
@@ -59,6 +60,22 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSave }) => {
     loading: true
   });
 
+  // Xero integration state
+  const [xeroStatus, setXeroStatus] = useState<{
+    connected: boolean;
+    connection?: XeroConnection;
+    lastSync?: XeroSyncLog;
+    loading: boolean;
+  }>({ connected: false, loading: true });
+  const [xeroSettings, setXeroSettings] = useState<XeroSettings>({
+    sync_contacts: true,
+    sync_invoices: true,
+    sync_payments: true,
+    auto_sync_enabled: false,
+    sync_frequency_minutes: 60
+  });
+  const [xeroSyncing, setXeroSyncing] = useState<string | null>(null);
+
   useEffect(() => {
     let isMounted = true;
 
@@ -87,6 +104,132 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSave }) => {
       isMounted = false;
     };
   }, []);
+
+  // Load Xero connection status
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadXeroStatus = async () => {
+      try {
+        const status = await xeroAPI.getStatus();
+        if (!isMounted) return;
+        setXeroStatus({
+          connected: status.connected,
+          connection: status.connection,
+          lastSync: status.lastSync,
+          loading: false
+        });
+        if (status.connection) {
+          setXeroSettings({
+            sync_contacts: status.connection.sync_contacts,
+            sync_invoices: status.connection.sync_invoices,
+            sync_payments: status.connection.sync_payments,
+            auto_sync_enabled: status.connection.auto_sync_enabled,
+            sync_frequency_minutes: status.connection.sync_frequency_minutes
+          });
+        }
+      } catch (error) {
+        if (!isMounted) return;
+        console.error('Failed to load Xero status:', error);
+        setXeroStatus({ connected: false, loading: false });
+      }
+    };
+
+    loadXeroStatus();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Handle Xero OAuth callback
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
+    const state = urlParams.get('state');
+
+    if (code && state && state.startsWith('xero_')) {
+      // Handle Xero callback
+      (async () => {
+        try {
+          const result = await xeroAPI.handleCallback(code, state);
+          if (result.success) {
+            // Reload status
+            const status = await xeroAPI.getStatus();
+            setXeroStatus({
+              connected: status.connected,
+              connection: status.connection,
+              lastSync: status.lastSync,
+              loading: false
+            });
+            // Clear URL params
+            window.history.replaceState({}, '', window.location.pathname);
+            alert(`Successfully connected to Xero organization: ${result.tenantName}`);
+          }
+        } catch (error: any) {
+          console.error('Xero callback error:', error);
+          alert(`Failed to connect to Xero: ${error.message}`);
+          window.history.replaceState({}, '', window.location.pathname);
+        }
+      })();
+    }
+  }, []);
+
+  const handleXeroConnect = async () => {
+    try {
+      const { authUrl } = await xeroAPI.getAuthUrl();
+      window.location.href = authUrl;
+    } catch (error: any) {
+      setError(getErrorMessage(error, 'Failed to start Xero connection'));
+    }
+  };
+
+  const handleXeroDisconnect = async () => {
+    if (!confirm('Are you sure you want to disconnect from Xero? This will stop all syncing.')) {
+      return;
+    }
+    try {
+      await xeroAPI.disconnect();
+      setXeroStatus({ connected: false, loading: false });
+      alert('Successfully disconnected from Xero');
+    } catch (error: any) {
+      setError(getErrorMessage(error, 'Failed to disconnect from Xero'));
+    }
+  };
+
+  const handleXeroSync = async (syncType: 'contacts' | 'invoices') => {
+    setXeroSyncing(syncType);
+    try {
+      let result;
+      if (syncType === 'contacts') {
+        result = await xeroAPI.syncContacts('bidirectional');
+      } else {
+        result = await xeroAPI.syncInvoices();
+      }
+      alert(`Sync completed: ${result.synced} records synced (${result.created} created, ${result.updated} updated)`);
+      // Refresh status
+      const status = await xeroAPI.getStatus();
+      setXeroStatus({
+        connected: status.connected,
+        connection: status.connection,
+        lastSync: status.lastSync,
+        loading: false
+      });
+    } catch (error: any) {
+      setError(getErrorMessage(error, `Failed to sync ${syncType}`));
+    } finally {
+      setXeroSyncing(null);
+    }
+  };
+
+  const handleXeroSettingsSave = async () => {
+    try {
+      await xeroAPI.updateSettings(xeroSettings);
+      alert('Xero settings saved successfully');
+    } catch (error: any) {
+      setError(getErrorMessage(error, 'Failed to save Xero settings'));
+    }
+  };
 
   const handleSaveSettings = async () => {
     const aiSettingsToStore = {
@@ -138,6 +281,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSave }) => {
     { id: 'company', label: 'Company', icon: Building2 },
     { id: 'notifications', label: 'Notifications', icon: Bell },
     { id: 'security', label: 'Security', icon: Shield },
+    { id: 'integrations', label: 'Integrations', icon: Link2 },
     { id: 'ai', label: 'AI Integration', icon: Brain },
     { id: 'data', label: 'Data & Backup', icon: Database },
     { id: 'appearance', label: 'Appearance', icon: Palette }
@@ -759,6 +903,247 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSave }) => {
                     <option value="gemini">Gemini (Cloud)</option>
                     <option value="ollama">Ollama (Local)</option>
                   </select>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Integrations Settings */}
+        {activeSection === 'integrations' && (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-2">Integrations</h2>
+              <p className="text-slate-500 dark:text-slate-400">Connect PlumbPro to external accounting and business systems</p>
+            </div>
+
+            {/* Xero Integration */}
+            <div className="p-6 bg-white dark:bg-slate-700 border-2 border-blue-200 dark:border-blue-800 rounded-xl">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 bg-[#13B5EA] rounded-xl flex items-center justify-center">
+                    <span className="text-white font-bold text-xl">X</span>
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-slate-800 dark:text-slate-100 text-lg">Xero</h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Accounting & Invoicing</p>
+                  </div>
+                </div>
+                {xeroStatus.loading ? (
+                  <div className="flex items-center space-x-2 text-slate-500">
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span className="text-sm">Loading...</span>
+                  </div>
+                ) : xeroStatus.connected ? (
+                  <span className="flex items-center space-x-2 px-3 py-1 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded-full text-sm font-semibold">
+                    <Check className="w-4 h-4" />
+                    <span>Connected</span>
+                  </span>
+                ) : (
+                  <span className="flex items-center space-x-2 px-3 py-1 bg-slate-100 dark:bg-slate-600 text-slate-600 dark:text-slate-300 rounded-full text-sm font-semibold">
+                    <X className="w-4 h-4" />
+                    <span>Not Connected</span>
+                  </span>
+                )}
+              </div>
+
+              {xeroStatus.connected && xeroStatus.connection ? (
+                <div className="space-y-4">
+                  {/* Connection Info */}
+                  <div className="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="text-slate-500 dark:text-slate-400">Organization:</span>
+                        <span className="ml-2 font-semibold text-slate-800 dark:text-slate-200">{xeroStatus.connection.xero_tenant_name}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 dark:text-slate-400">Type:</span>
+                        <span className="ml-2 font-semibold text-slate-800 dark:text-slate-200 capitalize">{xeroStatus.connection.xero_tenant_type}</span>
+                      </div>
+                      {xeroStatus.lastSync && (
+                        <>
+                          <div>
+                            <span className="text-slate-500 dark:text-slate-400">Last Sync:</span>
+                            <span className="ml-2 font-semibold text-slate-800 dark:text-slate-200">
+                              {new Date(xeroStatus.lastSync.started_at).toLocaleString()}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-slate-500 dark:text-slate-400">Status:</span>
+                            <span className={`ml-2 font-semibold ${
+                              xeroStatus.lastSync.status === 'completed' ? 'text-green-600 dark:text-green-400' :
+                              xeroStatus.lastSync.status === 'failed' ? 'text-red-600 dark:text-red-400' :
+                              'text-amber-600 dark:text-amber-400'
+                            }`}>
+                              {xeroStatus.lastSync.status.charAt(0).toUpperCase() + xeroStatus.lastSync.status.slice(1)}
+                            </span>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Sync Settings */}
+                  <div className="space-y-3">
+                    <h4 className="font-semibold text-slate-800 dark:text-slate-200">Sync Settings</h4>
+                    <div className="grid grid-cols-3 gap-4">
+                      <label className="flex items-center space-x-3 p-3 bg-slate-50 dark:bg-slate-600 rounded-lg cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-500 transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={xeroSettings.sync_contacts}
+                          onChange={(e) => setXeroSettings({ ...xeroSettings, sync_contacts: e.target.checked })}
+                          className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                        />
+                        <Users className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+                        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Contacts</span>
+                      </label>
+                      <label className="flex items-center space-x-3 p-3 bg-slate-50 dark:bg-slate-600 rounded-lg cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-500 transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={xeroSettings.sync_invoices}
+                          onChange={(e) => setXeroSettings({ ...xeroSettings, sync_invoices: e.target.checked })}
+                          className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                        />
+                        <FileText className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+                        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Invoices</span>
+                      </label>
+                      <label className="flex items-center space-x-3 p-3 bg-slate-50 dark:bg-slate-600 rounded-lg cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-500 transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={xeroSettings.sync_payments}
+                          onChange={(e) => setXeroSettings({ ...xeroSettings, sync_payments: e.target.checked })}
+                          className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                        />
+                        <CreditCard className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+                        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Payments</span>
+                      </label>
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-600 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <input
+                          type="checkbox"
+                          checked={xeroSettings.auto_sync_enabled}
+                          onChange={(e) => setXeroSettings({ ...xeroSettings, auto_sync_enabled: e.target.checked })}
+                          className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                        />
+                        <Clock className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+                        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Auto-sync</span>
+                      </div>
+                      {xeroSettings.auto_sync_enabled && (
+                        <select
+                          value={xeroSettings.sync_frequency_minutes}
+                          onChange={(e) => setXeroSettings({ ...xeroSettings, sync_frequency_minutes: parseInt(e.target.value) })}
+                          className="px-3 py-1 border border-slate-200 dark:border-slate-500 rounded-lg bg-white dark:bg-slate-700 text-sm text-slate-700 dark:text-slate-300"
+                        >
+                          <option value={15}>Every 15 minutes</option>
+                          <option value={30}>Every 30 minutes</option>
+                          <option value={60}>Every hour</option>
+                          <option value={120}>Every 2 hours</option>
+                          <option value={240}>Every 4 hours</option>
+                          <option value={1440}>Daily</option>
+                        </select>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex flex-wrap gap-3 pt-4 border-t border-slate-200 dark:border-slate-600">
+                    <button
+                      onClick={() => handleXeroSync('contacts')}
+                      disabled={xeroSyncing !== null}
+                      className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {xeroSyncing === 'contacts' ? (
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Users className="w-4 h-4" />
+                      )}
+                      <span>Sync Contacts</span>
+                    </button>
+                    <button
+                      onClick={() => handleXeroSync('invoices')}
+                      disabled={xeroSyncing !== null}
+                      className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {xeroSyncing === 'invoices' ? (
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <FileText className="w-4 h-4" />
+                      )}
+                      <span>Sync Invoices</span>
+                    </button>
+                    <button
+                      onClick={handleXeroSettingsSave}
+                      className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700"
+                    >
+                      <Save className="w-4 h-4" />
+                      <span>Save Settings</span>
+                    </button>
+                    <button
+                      onClick={handleXeroDisconnect}
+                      className="flex items-center space-x-2 px-4 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 ml-auto"
+                    >
+                      <X className="w-4 h-4" />
+                      <span>Disconnect</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <p className="text-slate-600 dark:text-slate-400">
+                    Connect your Xero account to automatically sync invoices, contacts, and payments between PlumbPro and Xero.
+                  </p>
+                  <div className="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
+                    <h4 className="font-semibold text-blue-900 dark:text-blue-300 mb-2">What gets synced:</h4>
+                    <ul className="text-sm text-blue-800 dark:text-blue-400 space-y-1">
+                      <li className="flex items-center space-x-2">
+                        <Check className="w-4 h-4" />
+                        <span>Customer and supplier contacts</span>
+                      </li>
+                      <li className="flex items-center space-x-2">
+                        <Check className="w-4 h-4" />
+                        <span>Invoices and credit notes</span>
+                      </li>
+                      <li className="flex items-center space-x-2">
+                        <Check className="w-4 h-4" />
+                        <span>Payment records</span>
+                      </li>
+                    </ul>
+                  </div>
+                  <button
+                    onClick={handleXeroConnect}
+                    className="flex items-center space-x-2 px-6 py-3 bg-[#13B5EA] text-white font-bold rounded-xl hover:bg-[#0FA5D6] shadow-lg"
+                  >
+                    <Link2 className="w-5 h-5" />
+                    <span>Connect to Xero</span>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Other Integrations Coming Soon */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-4 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl opacity-60">
+                <div className="flex items-center space-x-3 mb-2">
+                  <div className="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center">
+                    <span className="text-white font-bold">M</span>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-slate-800 dark:text-slate-200">MYOB</h4>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Coming Soon</p>
+                  </div>
+                </div>
+              </div>
+              <div className="p-4 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl opacity-60">
+                <div className="flex items-center space-x-3 mb-2">
+                  <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
+                    <span className="text-white font-bold">QB</span>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-slate-800 dark:text-slate-200">QuickBooks</h4>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Coming Soon</p>
+                  </div>
                 </div>
               </div>
             </div>

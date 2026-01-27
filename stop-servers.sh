@@ -2,13 +2,13 @@
 
 echo "🛑 Stopping PlumbPro servers..."
 
-# Kill processes on port 3000 (frontend)
-echo "Stopping frontend (port 3000)..."
-lsof -ti:3000 | xargs kill -9 2>/dev/null
+# Kill processes on port 5173 (frontend)
+echo "Stopping frontend (port 5173)..."
+lsof -ti:5173 | xargs kill -9 2>/dev/null
 if [ $? -eq 0 ]; then
   echo "✅ Frontend stopped"
 else
-  echo "⚠️  No frontend process found on port 3000"
+  echo "⚠️  No frontend process found on port 5173"
 fi
 
 # Kill processes on port 5001 (backend)

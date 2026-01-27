@@ -8,6 +8,22 @@ const router = express.Router();
 
 router.use(authenticateToken);
 
+// Whitelist of allowed fields for updates (prevents SQL injection via column names)
+const ALLOWED_UPDATE_FIELDS = {
+  name: 'name',
+  category: 'category',
+  price: 'price',
+  quantity: 'quantity',
+  reorderLevel: 'reorder_level',
+  supplierId: 'supplier_id',
+  supplierCode: 'supplier_code',
+  description: 'description',
+  buyPriceExclGST: 'buy_price_excl_gst',
+  buyPriceInclGST: 'buy_price_incl_gst',
+  sellPriceExclGST: 'sell_price_excl_gst',
+  sellPriceInclGST: 'sell_price_incl_gst'
+};
+
 // Get all inventory items for user
 router.get('/', async (req, res) => {
   const client = await pool.connect();
@@ -145,14 +161,14 @@ router.get('/:id', async (req, res) => {
 // Create inventory item
 router.post('/',
   [
-    body('name').notEmpty().trim(),
-    body('category').notEmpty().trim(),
+    body('name').notEmpty().trim().escape(),
+    body('category').notEmpty().trim().escape(),
     body('price').isFloat({ min: 0 }),
     body('quantity').isInt({ min: 0 }),
     body('reorderLevel').isInt({ min: 0 }),
     body('supplierId').optional().isUUID(),
-    body('supplierCode').optional().trim(),
-    body('description').optional().trim(),
+    body('supplierCode').optional().trim().escape(),
+    body('description').optional().trim().escape(),
     body('buyPriceExclGST').optional().isFloat({ min: 0 }),
     body('buyPriceInclGST').optional().isFloat({ min: 0 }),
     body('sellPriceExclGST').optional().isFloat({ min: 0 }),
@@ -164,15 +180,6 @@ router.post('/',
 
     try {
       const { name, category, price, quantity, reorderLevel, supplierId, supplierCode, description, buyPriceExclGST, buyPriceInclGST, sellPriceExclGST, sellPriceInclGST } = req.body;
-
-      // Debug: Log pricing data
-      console.log('Creating item with pricing:', {
-        name,
-        buyPriceExclGST,
-        buyPriceInclGST,
-        sellPriceExclGST,
-        sellPriceInclGST
-      });
 
       const result = await client.query(`
         INSERT INTO inventory_items
@@ -243,14 +250,14 @@ router.post('/',
 // Update inventory item
 router.put('/:id',
   [
-    body('name').optional().notEmpty().trim(),
-    body('category').optional().notEmpty().trim(),
+    body('name').optional().notEmpty().trim().escape(),
+    body('category').optional().notEmpty().trim().escape(),
     body('price').optional().isFloat({ min: 0 }),
     body('quantity').optional().isInt({ min: 0 }),
     body('reorderLevel').optional().isInt({ min: 0 }),
     body('supplierId').optional().isUUID(),
-    body('supplierCode').optional().trim(),
-    body('description').optional().trim(),
+    body('supplierCode').optional().trim().escape(),
+    body('description').optional().trim().escape(),
     body('buyPriceExclGST').optional().isFloat({ min: 0 }),
     body('buyPriceInclGST').optional().isFloat({ min: 0 }),
     body('sellPriceExclGST').optional().isFloat({ min: 0 }),
@@ -265,15 +272,18 @@ router.put('/:id',
       const values = [];
       let paramCount = 1;
 
+      // Security: Only allow whitelisted fields to prevent SQL injection
       Object.keys(req.body).forEach(key => {
-        const dbKey = key.replace(/([A-Z])/g, '_$1').toLowerCase();
-        updates.push(`${dbKey} = $${paramCount}`);
-        values.push(req.body[key]);
-        paramCount++;
+        const dbKey = ALLOWED_UPDATE_FIELDS[key];
+        if (dbKey) {
+          updates.push(`${dbKey} = $${paramCount}`);
+          values.push(req.body[key]);
+          paramCount++;
+        }
       });
 
       if (updates.length === 0) {
-        return res.status(400).json({ error: 'No fields to update' });
+        return res.status(400).json({ error: 'No valid fields to update' });
       }
 
       const idParam = paramCount;
@@ -318,11 +328,11 @@ router.put('/:id',
   }
 );
 
-// Adjust stock (manual adjustment)
+// Adjust stock (manual adjustment) - Fixed race condition
 router.post('/:id/adjust',
   [
     body('quantity').isInt(),
-    body('reason').notEmpty().trim(),
+    body('reason').notEmpty().trim().escape(),
     body('locationId').optional().isUUID(),
     validate
   ],
@@ -334,10 +344,11 @@ router.post('/:id/adjust',
 
       const { quantity, reason, locationId } = req.body;
 
-      // Verify item exists
+      // Verify item exists with row locking to prevent race conditions
       const itemCheck = await client.query(`
-        SELECT id, name FROM inventory_items
+        SELECT id, name, quantity FROM inventory_items
         WHERE id = $1 AND user_id = $2
+        FOR UPDATE
       `, [req.params.id, req.user.userId]);
 
       if (itemCheck.rows.length === 0) {
@@ -373,15 +384,40 @@ router.post('/:id/adjust',
           return res.status(404).json({ error: 'Location not found' });
         }
 
+        // Check if we have enough stock for negative adjustments
+        if (quantity < 0) {
+          const stockCheck = await client.query(`
+            SELECT quantity FROM location_stock
+            WHERE item_id = $1 AND location_id = $2
+          `, [item.id, targetLocationId]);
+
+          const currentStock = stockCheck.rows.length > 0 ? stockCheck.rows[0].quantity : 0;
+          if (currentStock + quantity < 0) {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ 
+              error: 'Insufficient stock',
+              currentStock,
+              requestedAdjustment: quantity
+            });
+          }
+        }
+
         // Update or create location_stock entry
         await client.query(`
           INSERT INTO location_stock (user_id, item_id, location_id, quantity)
           VALUES ($1, $2, $3, $4)
           ON CONFLICT (item_id, location_id)
           DO UPDATE SET
-            quantity = location_stock.quantity + $4,
+            quantity = GREATEST(0, location_stock.quantity + $4),
             updated_at = CURRENT_TIMESTAMP
         `, [req.user.userId, item.id, targetLocationId, quantity]);
+
+        // Update total quantity in inventory_items
+        await client.query(`
+          UPDATE inventory_items
+          SET quantity = GREATEST(0, quantity + $1), updated_at = CURRENT_TIMESTAMP
+          WHERE id = $2 AND user_id = $3
+        `, [quantity, item.id, req.user.userId]);
 
         // Log movement with location
         await client.query(`
@@ -390,9 +426,19 @@ router.post('/:id/adjust',
         `, [req.user.userId, item.id, 'Adjustment', quantity, reason, Date.now(), targetLocationId]);
       } else {
         // Fallback: adjust total quantity without location (shouldn't happen)
+        // Check if we have enough stock for negative adjustments
+        if (quantity < 0 && item.quantity + quantity < 0) {
+          await client.query('ROLLBACK');
+          return res.status(400).json({ 
+            error: 'Insufficient stock',
+            currentStock: item.quantity,
+            requestedAdjustment: quantity
+          });
+        }
+
         await client.query(`
           UPDATE inventory_items
-          SET quantity = quantity + $1, updated_at = CURRENT_TIMESTAMP
+          SET quantity = GREATEST(0, quantity + $1), updated_at = CURRENT_TIMESTAMP
           WHERE id = $2 AND user_id = $3
         `, [quantity, req.params.id, req.user.userId]);
 

@@ -79,17 +79,70 @@ export interface POReceipt {
   id: string;
   purchase_order_id: string;
   received_by?: string;
+  received_by_name?: string;
   received_at: string;
+  delivery_date?: string;
+  delivery_reference?: string;
+  carrier?: string;
+  packing_slip_number?: string;
+  has_discrepancies: boolean;
+  discrepancy_resolved: boolean;
+  total_received_value: number;
   notes?: string;
-  stock_movement_id?: string;
+  items?: POReceiptItem[];
 }
 
 export interface POReceiptItem {
   id: string;
   receipt_id: string;
   po_item_id: string;
+  item_name?: string;
   quantity_received: number;
+  quantity_expected?: number;
+  condition?: 'good' | 'damaged' | 'defective' | 'wrong_item' | 'partial';
+  discrepancy_type?: 'none' | 'short' | 'over' | 'damaged' | 'wrong_item' | 'substitution';
+  discrepancy_notes?: string;
+  unit_price_received?: number;
+  location_id?: string;
+  batch_number?: string;
   notes?: string;
+}
+
+export interface GoodsInwardDiscrepancy {
+  id: string;
+  receipt_id: string;
+  receipt_item_id?: string;
+  po_id: string;
+  po_number?: string;
+  user_id: string;
+  discrepancy_type: 'short_shipment' | 'over_shipment' | 'damaged' | 'defective' |
+                    'wrong_item' | 'substitution' | 'quality_issue' | 'price_variance' | 'other';
+  inventory_item_id?: string;
+  item_name: string;
+  quantity_expected?: number;
+  quantity_received?: number;
+  quantity_variance?: number;
+  price_expected?: number;
+  price_received?: number;
+  price_variance?: number;
+  status: 'open' | 'pending_supplier' | 'credit_requested' | 'credit_received' |
+          'replacement_ordered' | 'replacement_received' | 'written_off' | 'resolved';
+  resolution_notes?: string;
+  resolution_action?: string;
+  resolved_by?: string;
+  resolved_at?: string;
+  financial_impact?: number;
+  credit_note_number?: string;
+  credit_amount?: number;
+  supplier_notified: boolean;
+  supplier_notified_at?: string;
+  supplier_response?: string;
+  supplier_response_at?: string;
+  supplier_name?: string;
+  delivery_date?: string;
+  packing_slip_number?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface CreatePORequest {
@@ -135,8 +188,44 @@ export interface ReceivePORequest {
   items: {
     po_item_id: string;
     quantity_received: number;
+    condition?: 'good' | 'damaged' | 'defective' | 'wrong_item' | 'partial';
+    discrepancy_type?: 'none' | 'short' | 'over' | 'damaged' | 'wrong_item' | 'substitution';
+    discrepancy_notes?: string;
+    location_id?: string;
+    batch_number?: string;
+    unit_price_received?: number;
+    notes?: string;
   }[];
   notes?: string;
+  delivery_reference?: string;
+  carrier?: string;
+  packing_slip_number?: string;
+  quick_check?: 'all_correct' | 'issues_found' | null;
+}
+
+export interface ReceivePOResponse {
+  message: string;
+  receipt_id: string;
+  status: string;
+  has_discrepancies: boolean;
+  discrepancies: GoodsInwardDiscrepancy[];
+  stock_movements: {
+    id: string;
+    itemId: string;
+    itemName: string;
+    quantity: number;
+  }[];
+  items_processed: number;
+}
+
+export interface UpdateDiscrepancyRequest {
+  status?: string;
+  resolution_notes?: string;
+  resolution_action?: string;
+  credit_note_number?: string;
+  credit_amount?: number;
+  supplier_notified?: boolean;
+  supplier_response?: string;
 }
 
 export interface POStats {
@@ -206,10 +295,38 @@ export const purchaseOrdersAPI = {
   },
 
   /**
-   * Receive items from purchase order
+   * Receive items from purchase order (Goods Inward)
    */
-  receive: async (id: string, data: ReceivePORequest): Promise<{ message: string; receipt_id: string; status: string }> => {
+  receive: async (id: string, data: ReceivePORequest): Promise<ReceivePOResponse> => {
     const response = await api.post(`/purchase-orders/${id}/receive`, data);
+    return response.data;
+  },
+
+  /**
+   * Get receipts for a purchase order
+   */
+  getReceipts: async (id: string): Promise<POReceipt[]> => {
+    const response = await api.get(`/purchase-orders/${id}/receipts`);
+    return response.data;
+  },
+
+  /**
+   * Get all discrepancies with optional filters
+   */
+  getDiscrepancies: async (filters?: { status?: string; supplier_id?: string }): Promise<GoodsInwardDiscrepancy[]> => {
+    const params = new URLSearchParams();
+    if (filters?.status) params.append('status', filters.status);
+    if (filters?.supplier_id) params.append('supplier_id', filters.supplier_id);
+
+    const response = await api.get(`/purchase-orders/discrepancies/list?${params.toString()}`);
+    return response.data;
+  },
+
+  /**
+   * Update/resolve a discrepancy
+   */
+  updateDiscrepancy: async (discrepancyId: string, data: UpdateDiscrepancyRequest): Promise<GoodsInwardDiscrepancy> => {
+    const response = await api.put(`/purchase-orders/discrepancies/${discrepancyId}`, data);
     return response.data;
   },
 

@@ -8,6 +8,15 @@ const router = express.Router();
 
 router.use(authenticateToken);
 
+// Whitelist of allowed fields for job updates
+const ALLOWED_JOB_UPDATE_FIELDS = {
+  title: 'title',
+  builder: 'builder',
+  jobType: 'job_type',
+  status: 'status',
+  date: 'date'
+};
+
 // Get all jobs
 router.get('/', async (req, res) => {
   const client = await pool.connect();
@@ -124,15 +133,18 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// Create job
+// Create job with worker validation
 router.post('/',
   [
-    body('title').notEmpty().trim(),
-    body('builder').optional().trim(),
-    body('jobType').notEmpty().trim(),
+    body('title').notEmpty().trim().escape(),
+    body('builder').optional().trim().escape(),
+    body('jobType').notEmpty().trim().escape(),
     body('date').isISO8601(),
     body('assignedWorkerIds').isArray(),
+    body('assignedWorkerIds.*').isUUID(),
     body('allocatedItems').optional().isArray(),
+    body('allocatedItems.*.itemId').optional().isUUID(),
+    body('allocatedItems.*.quantity').optional().isInt({ min: 1 }),
     validate
   ],
   async (req, res) => {
@@ -142,6 +154,67 @@ router.post('/',
       await client.query('BEGIN');
 
       const { title, builder, jobType, date, assignedWorkerIds, allocatedItems } = req.body;
+
+      // Validate all worker IDs belong to valid plumber contacts
+      if (assignedWorkerIds && assignedWorkerIds.length > 0) {
+        const workerCheck = await client.query(`
+          SELECT id, name FROM contacts
+          WHERE id = ANY($1) AND user_id = $2 AND type = 'Plumber'
+        `, [assignedWorkerIds, req.user.userId]);
+
+        if (workerCheck.rows.length !== assignedWorkerIds.length) {
+          await client.query('ROLLBACK');
+          const foundIds = workerCheck.rows.map(r => r.id);
+          const invalidIds = assignedWorkerIds.filter(id => !foundIds.includes(id));
+          return res.status(400).json({ 
+            error: 'Invalid worker IDs',
+            invalidIds,
+            message: 'All workers must be valid contacts of type Plumber'
+          });
+        }
+      }
+
+      // Validate all allocated item IDs belong to the user
+      if (allocatedItems && allocatedItems.length > 0) {
+        const itemIds = allocatedItems.map(item => item.itemId);
+        const itemCheck = await client.query(`
+          SELECT id, name, quantity FROM inventory_items
+          WHERE id = ANY($1) AND user_id = $2
+        `, [itemIds, req.user.userId]);
+
+        if (itemCheck.rows.length !== itemIds.length) {
+          await client.query('ROLLBACK');
+          const foundIds = itemCheck.rows.map(r => r.id);
+          const invalidIds = itemIds.filter(id => !foundIds.includes(id));
+          return res.status(400).json({ 
+            error: 'Invalid item IDs',
+            invalidIds,
+            message: 'All allocated items must be valid inventory items'
+          });
+        }
+
+        // Check if we have enough stock for allocation
+        const stockIssues = [];
+        for (const item of allocatedItems) {
+          const dbItem = itemCheck.rows.find(r => r.id === item.itemId);
+          if (dbItem && dbItem.quantity < item.quantity) {
+            stockIssues.push({
+              itemId: item.itemId,
+              itemName: dbItem.name,
+              requested: item.quantity,
+              available: dbItem.quantity
+            });
+          }
+        }
+
+        if (stockIssues.length > 0) {
+          await client.query('ROLLBACK');
+          return res.status(400).json({
+            error: 'Insufficient stock for allocation',
+            stockIssues
+          });
+        }
+      }
 
       // Create job
       const jobResult = await client.query(`
@@ -196,12 +269,12 @@ router.post('/',
   }
 );
 
-// Update job
+// Update job - Fixed SQL injection vulnerability
 router.put('/:id',
   [
-    body('title').optional().notEmpty().trim(),
-    body('builder').optional().trim(),
-    body('jobType').optional().notEmpty().trim(),
+    body('title').optional().notEmpty().trim().escape(),
+    body('builder').optional().trim().escape(),
+    body('jobType').optional().notEmpty().trim().escape(),
     body('status').optional().isIn(['Scheduled', 'In Progress', 'Completed', 'Cancelled']),
     body('date').optional().isISO8601(),
     validate
@@ -214,23 +287,18 @@ router.put('/:id',
       const values = [];
       let paramCount = 1;
 
-      const fieldMap = {
-        title: 'title',
-        builder: 'builder',
-        jobType: 'job_type',
-        status: 'status',
-        date: 'date'
-      };
-
+      // Security: Only allow whitelisted fields
       Object.keys(req.body).forEach(key => {
-        const dbField = fieldMap[key] || key;
-        updates.push(`${dbField} = $${paramCount}`);
-        values.push(req.body[key]);
-        paramCount++;
+        const dbField = ALLOWED_JOB_UPDATE_FIELDS[key];
+        if (dbField) {
+          updates.push(`${dbField} = $${paramCount}`);
+          values.push(req.body[key]);
+          paramCount++;
+        }
       });
 
       if (updates.length === 0) {
-        return res.status(400).json({ error: 'No fields to update' });
+        return res.status(400).json({ error: 'No valid fields to update' });
       }
 
       const idParam = paramCount;
@@ -269,19 +337,20 @@ router.put('/:id',
   }
 );
 
-// Pick job (remove stock from inventory)
+// Pick job (remove stock from inventory) - Fixed race condition
 router.post('/:id/pick', async (req, res) => {
   const client = await pool.connect();
 
   try {
     await client.query('BEGIN');
 
-    // Get job with allocated items
+    // Get job with allocated items and lock the rows
     const jobResult = await client.query(`
       SELECT j.*, jai.item_id, jai.quantity
       FROM jobs j
       LEFT JOIN job_allocated_items jai ON j.id = jai.job_id
       WHERE j.id = $1 AND j.user_id = $2
+      FOR UPDATE OF j
     `, [req.params.id, req.user.userId]);
 
     if (jobResult.rows.length === 0) {
@@ -296,20 +365,65 @@ router.post('/:id/pick', async (req, res) => {
       return res.status(400).json({ error: 'Job already picked' });
     }
 
-    // Deduct items from inventory
+    // Check stock availability before deducting
+    const stockIssues = [];
+    const itemsToDeduct = [];
+
     for (const row of jobResult.rows) {
       if (row.item_id) {
-        await client.query(
-          'UPDATE inventory_items SET quantity = quantity - $1 WHERE id = $2 AND user_id = $3',
-          [row.quantity, row.item_id, req.user.userId]
-        );
+        // Lock the inventory item row
+        const itemResult = await client.query(`
+          SELECT id, name, quantity FROM inventory_items
+          WHERE id = $1 AND user_id = $2
+          FOR UPDATE
+        `, [row.item_id, req.user.userId]);
 
-        // Log movement
-        await client.query(`
-          INSERT INTO stock_movements (user_id, item_id, type, quantity, reference, timestamp)
-          VALUES ($1, $2, $3, $4, $5, $6)
-        `, [req.user.userId, row.item_id, 'Out', -row.quantity, job.id, Date.now()]);
+        if (itemResult.rows.length === 0) {
+          stockIssues.push({ itemId: row.item_id, error: 'Item not found' });
+          continue;
+        }
+
+        const item = itemResult.rows[0];
+        
+        if (item.quantity < row.quantity) {
+          stockIssues.push({
+            itemId: row.item_id,
+            itemName: item.name,
+            requested: row.quantity,
+            available: item.quantity
+          });
+        } else {
+          itemsToDeduct.push({
+            itemId: row.item_id,
+            quantity: row.quantity,
+            itemName: item.name
+          });
+        }
       }
+    }
+
+    // If there are stock issues, rollback and return error
+    if (stockIssues.length > 0) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({
+        error: 'Insufficient stock for job pick',
+        stockIssues
+      });
+    }
+
+    // Deduct items from inventory
+    for (const item of itemsToDeduct) {
+      await client.query(`
+        UPDATE inventory_items 
+        SET quantity = quantity - $1 
+        WHERE id = $2 AND user_id = $3
+      `, [item.quantity, item.itemId, req.user.userId]);
+
+      // Log movement
+      await client.query(`
+        INSERT INTO stock_movements (user_id, item_id, type, quantity, reference, timestamp)
+        VALUES ($1, $2, $3, $4, $5, $6)
+      `, [req.user.userId, item.itemId, 'Out', -item.quantity, job.id, Date.now()]);
     }
 
     // Mark job as picked
@@ -320,7 +434,11 @@ router.post('/:id/pick', async (req, res) => {
 
     await client.query('COMMIT');
 
-    res.json({ message: 'Job picked successfully', jobId: req.params.id });
+    res.json({ 
+      message: 'Job picked successfully', 
+      jobId: req.params.id,
+      itemsPicked: itemsToDeduct.length
+    });
 
   } catch (error) {
     await client.query('ROLLBACK');

@@ -58,6 +58,10 @@ import { LoginView } from './components/LoginView';
 import { PurchaseOrdersView } from './views/PurchaseOrdersView';
 import { StockReturnsView } from './views/StockReturnsView';
 import { SupplierDashboardView } from './views/SupplierDashboardView';
+import { QuotesView } from './views/QuotesView';
+import { InvoicesView } from './views/InvoicesView';
+import { ReportingView } from './views/ReportingView';
+import { TeamManagementView } from './views/TeamManagementView';
 
 // UX Components
 import { ToastProvider, useToast } from './components/ToastNotification';
@@ -67,16 +71,17 @@ import { MobileBottomNav } from './components/MobileBottomNav';
 import { StockTransferModal } from './components/StockTransferModal';
 import { onboardingService, tours } from './lib/onboardingService';
 import { addSkipLink } from './lib/accessibility';
-import { API_ROOT_URL, DEFAULT_BACKEND_PORT, hasExplicitApiUrl } from './lib/api';
+import { API_ROOT_URL, DEFAULT_BACKEND_PORT, hasExplicitApiUrl, smartOrderingAPI } from './lib/api';
 import { useAutoLogout } from './hooks/useAutoLogout';
 
 function AppContent() {
   const toast = useToast();
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'inventory' | 'calendar' | 'job-planning' | 'contacts' | 'ordering' | 'history' | 'approvals' | 'purchase-orders' | 'stock-returns' | 'supplier-dashboard' | 'settings'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'inventory' | 'calendar' | 'job-planning' | 'contacts' | 'ordering' | 'history' | 'approvals' | 'purchase-orders' | 'stock-returns' | 'supplier-dashboard' | 'quotes' | 'invoices' | 'reports' | 'team' | 'settings'>('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [theme, setTheme] = useState<'light' | 'dark' | 'auto'>('light');
   const [isMobileStockCountOpen, setIsMobileStockCountOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [reorderAlertCount, setReorderAlertCount] = useState(0);
   const user = useStore((state) => state.user);
   const logout = useStore((state) => state.logout);
   const inventory = useStore((state) => state.inventory);
@@ -164,9 +169,37 @@ function AppContent() {
     };
   }, []);
 
-  // Load all data on mount
+  // Load all data on mount with error handling
   useEffect(() => {
-    void useStore.getState().syncWithServer();
+    const loadData = async () => {
+      try {
+        await useStore.getState().syncWithServer();
+      } catch (error) {
+        logger.error('Failed to sync data on mount:', error);
+        // Error is already handled by the store, but we ensure it's logged
+      }
+    };
+    loadData();
+  }, []);
+
+  // Fetch reorder alert count periodically
+  useEffect(() => {
+    const fetchAlertCount = async () => {
+      try {
+        const alerts = await smartOrderingAPI.getAlerts({ status: 'pending' });
+        setReorderAlertCount(alerts.length);
+      } catch (error) {
+        // Silently fail - alerts are not critical
+        logger.debug('Failed to fetch reorder alerts:', error);
+      }
+    };
+
+    // Initial fetch
+    fetchAlertCount();
+
+    // Refresh every 5 minutes
+    const interval = setInterval(fetchAlertCount, 5 * 60 * 1000);
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -403,7 +436,7 @@ function AppContent() {
       setIsNewJobModalOpen(false);
       setNewJobData({ title: '', builder: '', date: '', workerIds: [], templateId: '' });
       toast.success(`Job "${title}" created successfully!`);
-      console.log('✅ Job created in database');
+      logger.info('Job created successfully');
     } catch (error: any) {
       // Errors are handled via the global store error state.
     }
@@ -416,7 +449,7 @@ function AppContent() {
     try {
       await pickJob(jobId);
       toast.success(`Job "${job.title}" picked successfully!`, 'Items Allocated');
-      console.log('✅ Job picked in database:', jobId);
+      logger.info('Job picked successfully:', jobId);
     } catch (error: any) {
       // Errors are handled via the global store error state.
     }
@@ -522,10 +555,10 @@ function AppContent() {
       });
     });
 
-    // Debug: Log first item to verify pricing was parsed
+    // Log first item to verify pricing was parsed
     if (newItems.length > 0) {
-      console.log('First parsed CSV item:', newItems[0]);
-      console.log('CSV column mappings:', csvColumnMapping);
+      logger.debug('First parsed CSV item:', newItems[0]);
+      logger.debug('CSV column mappings:', csvColumnMapping);
     }
 
     setCsvPreviewItems(newItems);
@@ -548,9 +581,9 @@ function AppContent() {
           description: item.description || undefined
         };
 
-        // Debug: Log the first item to verify pricing data
+        // Log the first item to verify pricing data
         if (selectedItems.indexOf(item) === 0) {
-          console.log('First CSV item being imported:', sanitized);
+          logger.debug('First CSV item being imported:', sanitized);
         }
 
         return sanitized;
@@ -648,7 +681,7 @@ function AppContent() {
       setIsAdjustModalOpen(false);
       setAdjustmentLocationId('');
       toast.success(`Stock adjusted for ${itemToAdjust.name}`, 'Adjustment Complete');
-      console.log('✅ Stock adjusted in database:', itemToAdjust.id);
+      logger.info('Stock adjusted successfully');
     } catch (error: any) {
       // Errors are handled via the global store error state.
     }
@@ -670,7 +703,7 @@ function AppContent() {
       await updateInventoryItem(itemToEdit.id, itemToEdit);
       setIsEditItemModalOpen(false);
       toast.success(`${itemToEdit.name} updated successfully!`);
-      console.log('✅ Inventory item updated in database:', itemToEdit.id);
+      logger.info('Inventory item updated successfully');
       setItemToEdit(null);
     } catch (error: any) {
       // Errors are handled via the global store error state.
@@ -704,7 +737,7 @@ function AppContent() {
       await addInventoryItem(payload);
       setIsAddItemModalOpen(false);
       toast.success(`${itemToEdit.name} added successfully!`);
-      console.log('✅ Inventory item created in database');
+      logger.info('Inventory item created successfully');
       setItemToEdit(null);
     } catch (error: any) {
       // Errors are handled via the global store error state.
@@ -721,7 +754,7 @@ function AppContent() {
       await adjustStock(itemId, delta, 'Mobile stock count adjustment');
 
       toast.success('Stock count updated');
-      console.log('✅ Mobile stock updated in database:', itemId);
+      logger.info('Mobile stock updated successfully');
     } catch (error: any) {
       // Errors are handled via the global store error state.
     }
@@ -760,12 +793,12 @@ function AppContent() {
         const { id, ...payload } = contactToEdit;
         await addContact(payload);
         toast.success(`${contactToEdit.name} added successfully!`);
-        console.log('✅ Contact created in database');
+        logger.info('Contact created successfully');
       } else {
         // Update existing contact in database
         await updateContact(contactToEdit.id, contactToEdit);
         toast.success(`${contactToEdit.name} updated successfully!`);
-        console.log('✅ Contact updated in database:', contactToEdit.id);
+        logger.info('Contact updated successfully');
       }
 
       setIsEditContactModalOpen(false);
@@ -781,7 +814,7 @@ function AppContent() {
     try {
       await deleteContact(contact.id);
       toast.success(`${contact.name} deleted successfully`);
-      console.log('✅ Contact deleted from database:', contact.id);
+      logger.info('Contact deleted successfully');
     } catch (error: any) {
       // Errors are handled via the global store error state.
     }
@@ -866,7 +899,7 @@ function AppContent() {
       };
       await addTemplate(newTemplate);
       toast.success(`Template "${name}" created successfully!`);
-      console.log('✅ Template created in database');
+      logger.info('Template created successfully');
     } catch (error: any) {
       // Errors are handled via the global store error state.
     }
@@ -876,7 +909,7 @@ function AppContent() {
     try {
       await updateTemplate(id, { name, items });
       toast.success(`Template "${name}" updated successfully!`);
-      console.log('✅ Template updated in database:', id);
+      logger.info('Template updated successfully');
     } catch (error: any) {
       // Errors are handled via the global store error state.
     }
@@ -886,7 +919,7 @@ function AppContent() {
     try {
       await deleteTemplate(id);
       toast.success('Template deleted successfully!');
-      console.log('✅ Template deleted from database:', id);
+      logger.info('Template deleted successfully');
     } catch (error: any) {
       // Errors are handled via the global store error state.
     }
@@ -913,14 +946,18 @@ function AppContent() {
             <div data-tour="job-planning">
               <NavItem icon={ClipboardList} label="Job Planning" active={activeTab === 'job-planning'} onClick={() => setActiveTab('job-planning')} collapsed={!isSidebarOpen} />
             </div>
-            <NavItem icon={ShoppingCart} label="Smart Ordering" active={activeTab === 'ordering'} onClick={() => setActiveTab('ordering')} collapsed={!isSidebarOpen} />
+            <NavItem icon={ShoppingCart} label="Smart Ordering" active={activeTab === 'ordering'} onClick={() => setActiveTab('ordering')} collapsed={!isSidebarOpen} badge={reorderAlertCount} />
             <NavItem icon={FileText} label="Purchase Orders" active={activeTab === 'purchase-orders'} onClick={() => setActiveTab('purchase-orders')} collapsed={!isSidebarOpen} />
+            <NavItem icon={FileText} label="Quotes" active={activeTab === 'quotes'} onClick={() => setActiveTab('quotes')} collapsed={!isSidebarOpen} />
+            <NavItem icon={FileText} label="Invoices" active={activeTab === 'invoices'} onClick={() => setActiveTab('invoices')} collapsed={!isSidebarOpen} />
             <NavItem icon={RotateCcw} label="Stock Returns" active={activeTab === 'stock-returns'} onClick={() => setActiveTab('stock-returns')} collapsed={!isSidebarOpen} />
             <NavItem icon={ArrowRightLeft} label="Stock History" active={activeTab === 'history'} onClick={() => setActiveTab('history')} collapsed={!isSidebarOpen} />
             <div data-tour="contacts">
               <NavItem icon={Users} label="Contacts" active={activeTab === 'contacts'} onClick={() => setActiveTab('contacts')} collapsed={!isSidebarOpen} />
             </div>
             <NavItem icon={TrendingUp} label="Supplier Dashboard" active={activeTab === 'supplier-dashboard'} onClick={() => setActiveTab('supplier-dashboard')} collapsed={!isSidebarOpen} />
+            <NavItem icon={TrendingUp} label="Reports" active={activeTab === 'reports'} onClick={() => setActiveTab('reports')} collapsed={!isSidebarOpen} />
+            <NavItem icon={Users} label="Team" active={activeTab === 'team'} onClick={() => setActiveTab('team')} collapsed={!isSidebarOpen} />
             <NavItem icon={CheckCircle} label="Approvals" active={activeTab === 'approvals'} onClick={() => setActiveTab('approvals')} collapsed={!isSidebarOpen} />
             <NavItem icon={Settings} label="Settings" active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} collapsed={!isSidebarOpen} />
           </nav>
@@ -1032,8 +1069,12 @@ function AppContent() {
         )}
         {activeTab === 'approvals' && <ApprovalsView />}
         {activeTab === 'purchase-orders' && <PurchaseOrdersView />}
+        {activeTab === 'quotes' && <QuotesView />}
+        {activeTab === 'invoices' && <InvoicesView />}
         {activeTab === 'stock-returns' && <StockReturnsView />}
         {activeTab === 'supplier-dashboard' && <SupplierDashboardView contacts={contacts} />}
+        {activeTab === 'reports' && <ReportingView />}
+        {activeTab === 'team' && <TeamManagementView />}
         {activeTab === 'settings' && <SettingsView onSave={(settings) => toast.success('Settings saved successfully!')} />}
       </main>
 

@@ -2,9 +2,9 @@
 
 echo "🚀 Starting PlumbPro servers..."
 
-# Start backend in background
+# Start backend in background with environment variables
 echo "Starting backend server..."
-cd server && npm run dev > ../backend.log 2>&1 &
+cd server && PORT=5001 DB_NAME=plumbpro DB_PASSWORD=5D39gvUSxZAMGusmELAL JWT_SECRET=plumbpro_secret_key_2026 npm run dev > ../backend.log 2>&1 &
 BACKEND_PID=$!
 echo "✅ Backend started (PID: $BACKEND_PID)"
 cd ..
@@ -22,7 +22,7 @@ echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "🎉 PlumbPro Inventory is running!"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "📱 Frontend:  http://localhost:3000"
+echo "📱 Frontend:  http://localhost:5173"
 echo "🔌 Backend:   http://localhost:5001/api"
 echo ""
 echo "Logs:"
