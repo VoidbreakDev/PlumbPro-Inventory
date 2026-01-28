@@ -119,3 +119,6 @@ Instead of /public/manifest.json, use /manifest.json.
 
   ➜  Local:   http://localhost:5173/
   ➜  Network: http://192.168.1.115:5173/
+9:11:10 AM [vite] (client) page reload desktop/resources/splash/loading.html
+9:11:15 AM [vite] changed tsconfig file detected: /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/desktop/tsconfig.json - Clearing cache and forcing full-reload to ensure TypeScript is compiled with updated config values.
+9:11:15 AM [vite] changed tsconfig file detected: /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/desktop/tsconfig.json - Clearing cache and forcing full-reload to ensure TypeScript is compiled with updated config values.

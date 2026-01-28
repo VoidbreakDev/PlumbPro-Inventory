@@ -1,0 +1,90 @@
+appId: com.plumbpro.inventory
+productName: PlumbPro Inventory
+copyright: Copyright (c) 2026 PlumbPro
+
+directories:
+  output: release/${version}
+  buildResources: resources
+
+files:
+  - dist/**/*
+  - "!node_modules/**/*"
+  - node_modules/electron-updater/**/*
+  - node_modules/electron-log/**/*
+  - node_modules/electron-store/**/*
+  - node_modules/portfinder/**/*
+
+extraResources:
+  - from: ../dist
+    to: frontend
+    filter:
+      - "**/*"
+  - from: ../server
+    to: server
+    filter:
+      - "**/*"
+      - "!node_modules/**/*"
+
+asar: true
+compression: maximum
+
+# Windows configuration
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+  icon: resources/icons/icon.ico
+  artifactName: ${productName}-Setup-${version}.${ext}
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  installerIcon: resources/icons/icon.ico
+  uninstallerIcon: resources/icons/icon.ico
+  installerHeaderIcon: resources/icons/icon.ico
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: PlumbPro Inventory
+  deleteAppDataOnUninstall: false
+
+# macOS configuration
+mac:
+  target:
+    - target: dmg
+      arch: [x64, arm64]
+    - target: zip
+      arch: [x64, arm64]
+  icon: resources/icons/icon.icns
+  category: public.app-category.business
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  artifactName: ${productName}-${version}-${arch}.${ext}
+
+dmg:
+  iconSize: 100
+  contents:
+    - x: 130
+      y: 220
+    - x: 410
+      y: 220
+      type: link
+      path: /Applications
+
+# Linux configuration (for future use)
+linux:
+  target:
+    - target: AppImage
+      arch: [x64]
+  icon: resources/icons
+  category: Office
+  artifactName: ${productName}-${version}.${ext}
+
+# Publishing to GitHub Releases
+publish:
+  provider: github
+  owner: VoidbreakDev
+  repo: PlumbPro-Inventory
+  releaseType: release
+
+# Auto-update configuration
+electronUpdaterCompatibility: ">=2.16"

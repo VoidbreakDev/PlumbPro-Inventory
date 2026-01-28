@@ -1,0 +1,36 @@
+import { defineConfig, externalizeDepsPlugin } from 'electron-vite';
+import { resolve } from 'path';
+
+export default defineConfig({
+  main: {
+    plugins: [externalizeDepsPlugin()],
+    build: {
+      rollupOptions: {
+        input: {
+          index: resolve(__dirname, 'main/index.ts')
+        }
+      }
+    }
+  },
+  preload: {
+    plugins: [externalizeDepsPlugin()],
+    build: {
+      rollupOptions: {
+        input: {
+          preload: resolve(__dirname, 'main/preload.ts')
+        }
+      }
+    }
+  },
+  renderer: {
+    root: resolve(__dirname, '..'),
+    build: {
+      outDir: resolve(__dirname, 'dist/renderer'),
+      rollupOptions: {
+        input: {
+          index: resolve(__dirname, '../index.html')
+        }
+      }
+    }
+  }
+});

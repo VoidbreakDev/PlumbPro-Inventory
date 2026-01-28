@@ -661,7 +661,7 @@ router.get('/permissions', async (req, res) => {
     `, [role, team_id || null]);
 
     // Group permissions by category
-    const permissions: Record<string, Record<string, boolean>> = {};
+    const permissions = {};
     for (const row of permissionsResult.rows) {
       if (!permissions[row.category]) {
         permissions[row.category] = {};

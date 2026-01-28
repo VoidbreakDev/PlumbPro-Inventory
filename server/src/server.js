@@ -33,6 +33,9 @@ import advancedAnalyticsRoutes from './routes/advancedAnalytics.js';
 import permissionsRoutes from './routes/permissions.js';
 import apiAccessRoutes from './routes/apiAccess.js';
 import vanStockRoutes from './routes/vanStock.js';
+import franchiseRoutes from './routes/franchise.js';
+import whiteLabelRoutes from './routes/whiteLabel.js';
+import portalRoutes from './routes/portal.js';
 import cron from 'node-cron';
 import { checkLowStockAlerts, checkJobReminders, sendDailySummary } from './services/notificationService.js';
 import { processEmailQueue } from './services/emailService.js';
@@ -130,13 +133,126 @@ if (isDevelopment) {
 }
 
 // Health check (no authentication required)
-app.get('/health', (req, res) => {
-  res.json({
+app.get('/health', async (req, res) => {
+  const healthCheck = {
     status: 'ok',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
-    environment: NODE_ENV
-  });
+    environment: NODE_ENV,
+    version: process.env.npm_package_version || '1.0.0',
+    checks: {}
+  };
+
+  // Database health check
+  try {
+    const dbStart = Date.now();
+    await pool.query('SELECT 1');
+    healthCheck.checks.database = {
+      status: 'ok',
+      responseTime: `${Date.now() - dbStart}ms`
+    };
+  } catch (error) {
+    healthCheck.checks.database = {
+      status: 'error',
+      message: error.message
+    };
+    healthCheck.status = 'degraded';
+  }
+
+  // Memory usage
+  const memUsage = process.memoryUsage();
+  healthCheck.checks.memory = {
+    status: 'ok',
+    used: `${Math.round(memUsage.heapUsed / 1024 / 1024)}MB`,
+    total: `${Math.round(memUsage.heapTotal / 1024 / 1024)}MB`,
+    rss: `${Math.round(memUsage.rss / 1024 / 1024)}MB`
+  };
+
+  // Determine overall status
+  const hasErrors = Object.values(healthCheck.checks).some(
+    check => check.status === 'error'
+  );
+  
+  if (hasErrors) {
+    healthCheck.status = 'error';
+    return res.status(503).json(healthCheck);
+  }
+
+  res.json(healthCheck);
+});
+
+// Detailed health check (authenticated)
+app.get('/health/detailed', authenticateToken, async (req, res) => {
+  const detailed = {
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    environment: NODE_ENV,
+    version: process.env.npm_package_version || '1.0.0',
+    node: {
+      version: process.version,
+      platform: process.platform,
+      arch: process.arch
+    },
+    checks: {},
+    stats: {}
+  };
+
+  try {
+    // Database checks
+    const dbStart = Date.now();
+    await pool.query('SELECT 1');
+    detailed.checks.database = {
+      status: 'ok',
+      responseTime: `${Date.now() - dbStart}ms`
+    };
+
+    // Get table counts
+    const tableStats = await pool.query(`
+      SELECT 
+        (SELECT COUNT(*) FROM inventory_items) as inventory_count,
+        (SELECT COUNT(*) FROM contacts) as contacts_count,
+        (SELECT COUNT(*) FROM jobs) as jobs_count,
+        (SELECT COUNT(*) FROM users) as users_count
+    `);
+    
+    detailed.stats.database = {
+      inventory_items: parseInt(tableStats.rows[0].inventory_count),
+      contacts: parseInt(tableStats.rows[0].contacts_count),
+      jobs: parseInt(tableStats.rows[0].jobs_count),
+      users: parseInt(tableStats.rows[0].users_count)
+    };
+
+    // Recent activity
+    const activity = await pool.query(`
+      SELECT 
+        (SELECT COUNT(*) FROM stock_movements WHERE created_at > NOW() - INTERVAL '24 hours') as movements_24h,
+        (SELECT COUNT(*) FROM jobs WHERE created_at > NOW() - INTERVAL '24 hours') as jobs_24h
+    `);
+    
+    detailed.stats.activity = {
+      stock_movements_24h: parseInt(activity.rows[0].movements_24h),
+      new_jobs_24h: parseInt(activity.rows[0].jobs_24h)
+    };
+
+  } catch (error) {
+    detailed.checks.database = {
+      status: 'error',
+      message: error.message
+    };
+    detailed.status = 'error';
+  }
+
+  // Memory and CPU
+  const memUsage = process.memoryUsage();
+  detailed.stats.memory = {
+    heapUsed: `${Math.round(memUsage.heapUsed / 1024 / 1024)}MB`,
+    heapTotal: `${Math.round(memUsage.heapTotal / 1024 / 1024)}MB`,
+    rss: `${Math.round(memUsage.rss / 1024 / 1024)}MB`,
+    external: `${Math.round(memUsage.external / 1024 / 1024)}MB`
+  };
+
+  res.json(detailed);
 });
 
 // API Routes
@@ -170,6 +286,9 @@ app.use('/api/advanced-analytics', advancedAnalyticsRoutes);
 app.use('/api/permissions', permissionsRoutes);
 app.use('/api/developer', apiAccessRoutes);
 app.use('/api/van-stock', vanStockRoutes);
+app.use('/api/franchise', franchiseRoutes);
+app.use('/api/white-label', whiteLabelRoutes);
+app.use('/api/portal', portalRoutes);
 
 // 404 handler
 app.use((req, res) => {

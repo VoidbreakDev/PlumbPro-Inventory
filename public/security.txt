@@ -1,0 +1,8 @@
+# PlumbPro Inventory - Security Information
+# https://securitytxt.org/
+
+Contact: mailto:security@example.com
+Expires: 2027-01-01T00:00:00.000Z
+Preferred-Languages: en
+Policy: https://example.com/security-policy
+Acknowledgments: https://example.com/hall-of-fame

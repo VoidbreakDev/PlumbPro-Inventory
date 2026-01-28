@@ -9,11 +9,11 @@ export const INITIAL_CONTACTS: Contact[] = [
 ];
 
 export const INITIAL_INVENTORY: InventoryItem[] = [
-  { id: 'i1', name: '15mm Copper Pipe (3m)', category: 'Piping', price: 24.50, quantity: 45, reorderLevel: 20, supplierId: 's1', supplierCode: 'CP-15-3M' },
-  { id: 'i2', name: 'Standard S-Trap', category: 'Fittings', price: 8.95, quantity: 12, reorderLevel: 15, supplierId: 's1', supplierCode: 'STRAP-STD' },
-  { id: 'i3', name: 'Plumber Putty 500g', category: 'Consumables', price: 5.20, quantity: 30, reorderLevel: 10, supplierId: 's2', supplierCode: 'PUT-500' },
-  { id: 'i4', name: 'Drain Snake - Industrial', category: 'Tools', price: 450.00, quantity: 3, reorderLevel: 2, supplierId: 's2', supplierCode: 'DS-IND-X' },
-  { id: 'i5', name: 'L-Shaped Elbow 15mm', category: 'Fittings', price: 1.25, quantity: 150, reorderLevel: 50, supplierId: 's1', supplierCode: 'ELB-15-L' },
+  { id: 'i1', name: '15mm Copper Pipe (3m)', category: 'Piping', price: 24.50, quantity: 45, reorderLevel: 20, supplierId: 's1', supplierCode: 'CP-15-3M', locationStock: [] },
+  { id: 'i2', name: 'Standard S-Trap', category: 'Fittings', price: 8.95, quantity: 12, reorderLevel: 15, supplierId: 's1', supplierCode: 'STRAP-STD', locationStock: [] },
+  { id: 'i3', name: 'Plumber Putty 500g', category: 'Consumables', price: 5.20, quantity: 30, reorderLevel: 10, supplierId: 's2', supplierCode: 'PUT-500', locationStock: [] },
+  { id: 'i4', name: 'Drain Snake - Industrial', category: 'Tools', price: 450.00, quantity: 3, reorderLevel: 2, supplierId: 's2', supplierCode: 'DS-IND-X', locationStock: [] },
+  { id: 'i5', name: 'L-Shaped Elbow 15mm', category: 'Fittings', price: 1.25, quantity: 150, reorderLevel: 50, supplierId: 's1', supplierCode: 'ELB-15-L', locationStock: [] },
 ];
 
 export const INITIAL_JOBS: Job[] = [

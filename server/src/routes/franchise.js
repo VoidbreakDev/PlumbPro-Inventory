@@ -1,7 +1,13 @@
-const express = require('express');
+import express from 'express';
+import pool from '../config/database.js';
+import { v4 as uuidv4 } from 'uuid';
+
 const router = express.Router();
-const db = require('../db');
-const { v4: uuidv4 } = require('uuid');
+
+// Helper for database queries
+const db = {
+  query: (text, params) => pool.query(text, params)
+};
 
 // ============================================
 // FRANCHISE NETWORKS
@@ -1319,4 +1325,4 @@ router.get('/networks/:networkId/dashboard', async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

@@ -1,0 +1,13 @@
+# robots.txt for PlumbPro Inventory
+# https://www.robotstxt.org/robotstxt.html
+
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /private/
+Disallow: /*.pdf$
+Disallow: /*.sql$
+
+# Sitemap
+Sitemap: https://example.com/sitemap.xml

@@ -15,11 +15,19 @@ import {
   Square,
   Upload,
   CheckSquare,
-  XCircle
+  XCircle,
+  Route,
+  Wifi,
+  Bell
 } from 'lucide-react';
 import { mobileAPI, type CheckIn, type Location } from '../lib/mobileAPI';
 import { useStore } from '../store/useStore';
 import { getErrorMessage } from '../lib/errors';
+import { BarcodeScanner } from '../components/BarcodeScanner';
+import { VoiceMemoRecorder } from '../components/VoiceMemoRecorder';
+import { PushNotificationManager } from '../components/PushNotificationManager';
+import { GPSBreadcrumbMap } from '../components/GPSBreadcrumbMap';
+import { OfflineSyncStatus } from '../components/OfflineSyncStatus';
 
 export function MobileFieldView() {
   const [activeCheckIn, setActiveCheckIn] = useState<CheckIn | null>(null);
@@ -35,10 +43,17 @@ export function MobileFieldView() {
   const [isRecording, setIsRecording] = useState(false);
   const [completionCheck, setCompletionCheck] = useState<any>(null);
   const [barcodeScanMode, setBarcodeScanMode] = useState(false);
+  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
+  const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
+  const [showPushSettings, setShowPushSettings] = useState(false);
+  const [showGPSMap, setShowGPSMap] = useState(false);
+  const [showGPSRoute, setShowGPSRoute] = useState(false);
+  const [gpsBreadcrumbs, setGpsBreadcrumbs] = useState<any[]>([]);
   const setError = useStore((state) => state.setError);
 
   const signaturePadRef = useRef<HTMLCanvasElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const breadcrumbTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     loadActiveCheckIn();
@@ -214,31 +229,120 @@ export function MobileFieldView() {
     }
   };
 
-  const handleBarcodeScan = async () => {
-    // In a real mobile app, this would open camera for barcode scanning
-    // For web demo, we'll use prompt
-    const barcode = prompt('Enter or scan barcode:');
-    if (!barcode) return;
+  const handleBarcodeScan = () => {
+    setBarcodeScanMode(true);
+  };
 
+  const handleBarcodeDetected = async (barcode: string, format: string) => {
     try {
       const result = await mobileAPI.scanBarcode({
         barcodeValue: barcode,
+        barcodeType: format,
         scanType: 'inventory_check',
         location: currentLocation || undefined,
         jobId: activeCheckIn?.job_id
       });
 
       if (result.found) {
-        alert(`Found: ${result.item.name}\nQuantity: ${result.item.quantity}\nPrice: £${result.item.price}`);
+        alert(`✅ Found: ${result.item.name}\nQuantity: ${result.item.quantity}\nPrice: £${result.item.price}`);
       } else {
-        alert('Item not found in inventory');
+        alert('❌ Item not found in inventory');
       }
     } catch (error) {
       const message = getErrorMessage(error, 'Scan failed');
       setError(message);
       alert(message);
     }
+    setBarcodeScanMode(false);
   };
+
+  const handleVoiceMemoSave = async (audioBlob: Blob, duration: number) => {
+    if (!activeCheckIn) return;
+
+    try {
+      const formData = new FormData();
+      formData.append('audio', audioBlob, `voice-memo-${Date.now()}.webm`);
+      formData.append('jobId', activeCheckIn.job_id);
+      formData.append('noteType', 'voice');
+      formData.append('content', `Voice memo (${Math.round(duration)}s)`);
+      formData.append('audioDuration', duration.toString());
+      if (currentLocation) {
+        formData.append('latitude', currentLocation.latitude.toString());
+        formData.append('longitude', currentLocation.longitude.toString());
+      }
+      formData.append('checkInId', activeCheckIn.id);
+
+      // TODO: Add API endpoint for voice upload
+      // await mobileAPI.uploadVoiceMemo(formData);
+      
+      alert(`✅ Voice memo saved (${Math.round(duration)} seconds)`);
+      loadJobData(activeCheckIn.job_id);
+    } catch (error) {
+      const message = getErrorMessage(error, 'Failed to save voice memo');
+      setError(message);
+      alert(message);
+    }
+  };
+
+  const startGPSBreadcrumbTracking = () => {
+    // Record breadcrumb every 30 seconds
+    breadcrumbTimerRef.current = setInterval(async () => {
+      if (activeCheckIn && currentLocation) {
+        try {
+          await mobileAPI.recordGPSBreadcrumb({
+            checkInId: activeCheckIn.id,
+            jobId: activeCheckIn.job_id,
+            latitude: currentLocation.latitude,
+            longitude: currentLocation.longitude,
+            accuracy: currentLocation.accuracy,
+            speed: currentLocation.speed,
+            heading: currentLocation.heading
+          });
+          
+          // Add to local breadcrumbs
+          setGpsBreadcrumbs(prev => [...prev, {
+            latitude: currentLocation.latitude,
+            longitude: currentLocation.longitude,
+            recorded_at: new Date().toISOString(),
+            accuracy: currentLocation.accuracy
+          }]);
+        } catch (err) {
+          console.error('Failed to record breadcrumb:', err);
+        }
+      }
+    }, 30000); // 30 seconds
+  };
+
+  const stopGPSBreadcrumbTracking = () => {
+    if (breadcrumbTimerRef.current) {
+      clearInterval(breadcrumbTimerRef.current);
+      breadcrumbTimerRef.current = null;
+    }
+  };
+
+  const viewGPSRoute = async () => {
+    if (!activeCheckIn) return;
+    
+    try {
+      const route = await mobileAPI.getJobRoute(activeCheckIn.id);
+      setGpsBreadcrumbs(route || []);
+      setShowGPSMap(true);
+    } catch (error) {
+      // Use local breadcrumbs if API fails
+      setShowGPSMap(true);
+    }
+  };
+
+  // Start/stop breadcrumb tracking based on check-in status
+  useEffect(() => {
+    if (isCheckedIn) {
+      startGPSBreadcrumbTracking();
+    } else {
+      stopGPSBreadcrumbTracking();
+    }
+    
+    return () => stopGPSBreadcrumbTracking();
+  }, [isCheckedIn, activeCheckIn]);
 
   // Signature pad drawing
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
@@ -339,9 +443,20 @@ export function MobileFieldView() {
         )}
       </div>
 
+      {/* Top Bar - Sync Status & Notifications */}
+      <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+        <OfflineSyncStatus variant="compact" />
+        <button
+          onClick={() => setShowPushSettings(true)}
+          className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
+        >
+          <Bell className="w-5 h-5 text-gray-600" />
+        </button>
+      </div>
+
       {/* Quick Actions */}
       {isCheckedIn && (
-        <div className="p-4 grid grid-cols-3 gap-3">
+        <div className="p-4 grid grid-cols-4 gap-3">
           <button
             onClick={() => document.getElementById('photo-input')?.click()}
             className="flex flex-col items-center p-4 bg-blue-50 rounded-lg border border-blue-200 hover:bg-blue-100 transition-colors"
@@ -372,6 +487,14 @@ export function MobileFieldView() {
           >
             <QrCode className="w-6 h-6 text-purple-600 mb-2" />
             <span className="text-xs font-medium text-purple-900">Scan</span>
+          </button>
+
+          <button
+            onClick={() => setShowVoiceRecorder(true)}
+            className="flex flex-col items-center p-4 bg-orange-50 rounded-lg border border-orange-200 hover:bg-orange-100 transition-colors"
+          >
+            <Mic className="w-6 h-6 text-orange-600 mb-2" />
+            <span className="text-xs font-medium text-orange-900">Voice</span>
           </button>
         </div>
       )}
@@ -423,6 +546,16 @@ export function MobileFieldView() {
                   >
                     Check Completion Status
                   </button>
+
+                  {gpsBreadcrumbs.length > 0 && (
+                    <button
+                      onClick={viewGPSRoute}
+                      className="w-full mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium flex items-center justify-center gap-2"
+                    >
+                      <Route className="w-4 h-4" />
+                      View GPS Route ({gpsBreadcrumbs.length} points)
+                    </button>
+                  )}
                 </div>
 
                 {completionCheck && (
@@ -624,6 +757,28 @@ export function MobileFieldView() {
           </button>
         </div>
       )}
+
+      {/* Barcode Scanner */}
+      <BarcodeScanner
+        isOpen={showBarcodeScanner}
+        onScan={handleBarcodeDetected}
+        onClose={() => setShowBarcodeScanner(false)}
+        scanType="job"
+      />
+
+      {/* Voice Recorder */}
+      <VoiceMemoRecorder
+        isOpen={showVoiceRecorder}
+        onClose={() => setShowVoiceRecorder(false)}
+        onSave={handleVoiceMemoSave}
+      />
+
+      {/* GPS Route Viewer */}
+      <GPSBreadcrumbMap
+        isOpen={showGPSMap}
+        onClose={() => setShowGPSMap(false)}
+        breadcrumbs={gpsBreadcrumbs}
+      />
     </div>
   );
 }

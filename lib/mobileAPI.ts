@@ -93,6 +93,19 @@ export interface JobCompletionCheck {
   summary: string;
 }
 
+export interface SyncQueueItem {
+  id: string;
+  entity_type: 'photo' | 'voice_memo' | 'note' | 'check_in' | 'barcode_scan' | 'gps_breadcrumb';
+  entity_id: string;
+  action: 'create' | 'update' | 'delete';
+  data: any;
+  status: 'pending' | 'syncing' | 'synced' | 'failed';
+  error?: string;
+  retry_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export const mobileAPI = {
   /**
    * Check in to a job
@@ -387,5 +400,38 @@ export const mobileAPI = {
     if (navigator.geolocation) {
       navigator.geolocation.clearWatch(watchId);
     }
+  },
+
+  /**
+   * Get sync queue from server
+   */
+  getSyncQueue: async (): Promise<SyncQueueItem[]> => {
+    const response = await api.get('/mobile/sync-queue');
+    return response.data;
+  },
+
+  /**
+   * Get local sync queue (from IndexedDB)
+   */
+  getLocalSyncQueue: async (): Promise<SyncQueueItem[]> => {
+    // Import dynamically to avoid circular dependency
+    const { getSyncQueue } = await import('./storage');
+    return getSyncQueue();
+  },
+
+  /**
+   * Process sync queue
+   */
+  processSyncQueue: async (): Promise<void> => {
+    const response = await api.post('/mobile/process-sync-queue');
+    return response.data;
+  },
+
+  /**
+   * Clear sync queue
+   */
+  clearSyncQueue: async (): Promise<void> => {
+    const response = await api.delete('/mobile/sync-queue');
+    return response.data;
   }
 };

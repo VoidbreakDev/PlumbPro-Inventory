@@ -183,3 +183,186 @@ CREATE TRIGGER update_templates_updated_at BEFORE UPDATE ON job_templates
 
 CREATE TRIGGER update_jobs_updated_at BEFORE UPDATE ON jobs
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- ============================================
+-- PHASE 7: Customer Portal & Invoice System
+-- ============================================
+
+-- Customer portal access tokens (for magic link authentication)
+CREATE TABLE customer_portal_tokens (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  contact_id UUID NOT NULL REFERENCES contacts(id) ON DELETE CASCADE,
+  token VARCHAR(255) UNIQUE NOT NULL,
+  expires_at TIMESTAMP NOT NULL,
+  used_at TIMESTAMP,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_portal_tokens_contact ON customer_portal_tokens(contact_id);
+CREATE INDEX idx_portal_tokens_token ON customer_portal_tokens(token);
+
+-- Invoices table
+CREATE TABLE invoices (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  contact_id UUID NOT NULL REFERENCES contacts(id) ON DELETE CASCADE,
+  job_id UUID REFERENCES jobs(id) ON DELETE SET NULL,
+  invoice_number VARCHAR(100) UNIQUE NOT NULL,
+  status VARCHAR(50) NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'sent', 'paid', 'partial', 'overdue', 'cancelled')),
+  issue_date DATE NOT NULL DEFAULT CURRENT_DATE,
+  due_date DATE NOT NULL,
+  subtotal DECIMAL(12, 2) NOT NULL DEFAULT 0,
+  tax_amount DECIMAL(12, 2) NOT NULL DEFAULT 0,
+  total_amount DECIMAL(12, 2) NOT NULL DEFAULT 0,
+  amount_paid DECIMAL(12, 2) NOT NULL DEFAULT 0,
+  notes TEXT,
+  terms TEXT,
+  sent_at TIMESTAMP,
+  paid_at TIMESTAMP,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_invoices_user_id ON invoices(user_id);
+CREATE INDEX idx_invoices_contact_id ON invoices(contact_id);
+CREATE INDEX idx_invoices_job_id ON invoices(job_id);
+CREATE INDEX idx_invoices_status ON invoices(status);
+CREATE INDEX idx_invoices_number ON invoices(invoice_number);
+
+CREATE TRIGGER update_invoices_updated_at BEFORE UPDATE ON invoices
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Invoice items (line items)
+CREATE TABLE invoice_items (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  invoice_id UUID NOT NULL REFERENCES invoices(id) ON DELETE CASCADE,
+  description TEXT NOT NULL,
+  quantity DECIMAL(10, 2) NOT NULL DEFAULT 1,
+  unit_price DECIMAL(10, 2) NOT NULL DEFAULT 0,
+  tax_rate DECIMAL(5, 2) NOT NULL DEFAULT 0,
+  line_total DECIMAL(12, 2) NOT NULL DEFAULT 0,
+  item_type VARCHAR(50) DEFAULT 'material' CHECK (item_type IN ('material', 'labor', 'service', 'other')),
+  inventory_item_id UUID REFERENCES inventory_items(id) ON DELETE SET NULL,
+  sort_order INTEGER DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_invoice_items_invoice ON invoice_items(invoice_id);
+CREATE INDEX idx_invoice_items_inventory ON invoice_items(inventory_item_id);
+
+-- Payments table
+CREATE TABLE payments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  invoice_id UUID NOT NULL REFERENCES invoices(id) ON DELETE CASCADE,
+  amount DECIMAL(12, 2) NOT NULL,
+  payment_method VARCHAR(50) NOT NULL CHECK (payment_method IN ('credit_card', 'bank_transfer', 'cash', 'check', 'stripe', 'other')),
+  payment_date DATE NOT NULL DEFAULT CURRENT_DATE,
+  stripe_payment_intent_id VARCHAR(255),
+  stripe_charge_id VARCHAR(255),
+  reference VARCHAR(255),
+  notes TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_payments_invoice ON payments(invoice_id);
+CREATE INDEX idx_payments_stripe_intent ON payments(stripe_payment_intent_id);
+CREATE INDEX idx_payments_date ON payments(payment_date);
+
+-- Email templates
+CREATE TABLE email_templates (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name VARCHAR(255) NOT NULL,
+  subject VARCHAR(500) NOT NULL,
+  body_html TEXT,
+  body_text TEXT,
+  variables JSONB DEFAULT '[]',
+  is_default BOOLEAN DEFAULT false,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(user_id, name)
+);
+
+CREATE INDEX idx_email_templates_user ON email_templates(user_id);
+
+CREATE TRIGGER update_email_templates_updated_at BEFORE UPDATE ON email_templates
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Email queue (for async email sending)
+CREATE TABLE email_queue (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  template_id UUID REFERENCES email_templates(id) ON DELETE SET NULL,
+  to_address VARCHAR(255) NOT NULL,
+  to_name VARCHAR(255),
+  subject VARCHAR(500) NOT NULL,
+  body_html TEXT,
+  body_text TEXT,
+  variables JSONB DEFAULT '{}',
+  status VARCHAR(50) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'sending', 'sent', 'failed')),
+  sent_at TIMESTAMP,
+  error_message TEXT,
+  retry_count INTEGER DEFAULT 0,
+  max_retries INTEGER DEFAULT 3,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_email_queue_status ON email_queue(status);
+CREATE INDEX idx_email_queue_user ON email_queue(user_id);
+CREATE INDEX idx_email_queue_created ON email_queue(created_at);
+
+-- Service agreements (recurring maintenance contracts)
+CREATE TABLE service_agreements (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  contact_id UUID NOT NULL REFERENCES contacts(id) ON DELETE CASCADE,
+  name VARCHAR(255) NOT NULL,
+  description TEXT,
+  status VARCHAR(50) NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'paused', 'cancelled', 'expired')),
+  frequency VARCHAR(50) NOT NULL CHECK (frequency IN ('weekly', 'monthly', 'quarterly', 'annually')),
+  start_date DATE NOT NULL,
+  end_date DATE,
+  next_service_date DATE,
+  price DECIMAL(12, 2) NOT NULL DEFAULT 0,
+  billing_frequency VARCHAR(50) CHECK (billing_frequency IN ('per_service', 'monthly', 'annually')),
+  auto_invoice BOOLEAN DEFAULT false,
+  job_template_id UUID REFERENCES job_templates(id) ON DELETE SET NULL,
+  notes TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_service_agreements_user ON service_agreements(user_id);
+CREATE INDEX idx_service_agreements_contact ON service_agreements(contact_id);
+CREATE INDEX idx_service_agreements_status ON service_agreements(status);
+CREATE INDEX idx_service_agreements_next_service ON service_agreements(next_service_date);
+
+CREATE TRIGGER update_service_agreements_updated_at BEFORE UPDATE ON service_agreements
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Quote items table (for detailed quotes)
+CREATE TABLE quote_items (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  job_id UUID NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
+  description TEXT NOT NULL,
+  quantity DECIMAL(10, 2) NOT NULL DEFAULT 1,
+  unit_price DECIMAL(10, 2) NOT NULL DEFAULT 0,
+  tax_rate DECIMAL(5, 2) NOT NULL DEFAULT 0,
+  line_total DECIMAL(12, 2) NOT NULL DEFAULT 0,
+  item_type VARCHAR(50) DEFAULT 'material' CHECK (item_type IN ('material', 'labor', 'service', 'other')),
+  inventory_item_id UUID REFERENCES inventory_items(id) ON DELETE SET NULL,
+  sort_order INTEGER DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_quote_items_job ON quote_items(job_id);
+
+-- Quote status extension (add quote status to jobs)
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS quote_status VARCHAR(50) DEFAULT NULL CHECK (quote_status IN ('draft', 'sent', 'approved', 'declined', 'expired'));
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS quote_sent_at TIMESTAMP;
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS quote_approved_at TIMESTAMP;
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS quote_declined_at TIMESTAMP;
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS quote_expires_at DATE;
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS quote_total DECIMAL(12, 2) DEFAULT 0;
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS customer_notes TEXT;

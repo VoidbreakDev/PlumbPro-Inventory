@@ -30,7 +30,10 @@ import {
   RotateCcw,
   FileUp,
   SlidersHorizontal,
-  ArrowRight
+  ArrowRight,
+  BarChart3,
+  Sparkles,
+  Zap
 } from 'lucide-react';
 import {
   Contact,
@@ -59,9 +62,14 @@ import { PurchaseOrdersView } from './views/PurchaseOrdersView';
 import { StockReturnsView } from './views/StockReturnsView';
 import { SupplierDashboardView } from './views/SupplierDashboardView';
 import { QuotesView } from './views/QuotesView';
-import { InvoicesView } from './views/InvoicesView';
+import InvoicesView from './views/InvoicesView';
 import { ReportingView } from './views/ReportingView';
 import { TeamManagementView } from './views/TeamManagementView';
+import { AnalyticsView } from './views/AnalyticsView';
+import { AIForecastView } from './views/AIForecastView';
+import { AIAssistant } from './components/AIAssistant';
+import WorkflowAutomationView from './views/WorkflowAutomationView';
+import CustomerPortalView from './views/CustomerPortalView';
 
 // UX Components
 import { ToastProvider, useToast } from './components/ToastNotification';
@@ -73,13 +81,16 @@ import { onboardingService, tours } from './lib/onboardingService';
 import { addSkipLink } from './lib/accessibility';
 import { API_ROOT_URL, DEFAULT_BACKEND_PORT, hasExplicitApiUrl, smartOrderingAPI } from './lib/api';
 import { useAutoLogout } from './hooks/useAutoLogout';
+import { logger } from './lib/logging';
+import { loadSettings } from './lib/settings';
 
 function AppContent() {
   const toast = useToast();
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'inventory' | 'calendar' | 'job-planning' | 'contacts' | 'ordering' | 'history' | 'approvals' | 'purchase-orders' | 'stock-returns' | 'supplier-dashboard' | 'quotes' | 'invoices' | 'reports' | 'team' | 'settings'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'inventory' | 'calendar' | 'job-planning' | 'contacts' | 'ordering' | 'history' | 'approvals' | 'purchase-orders' | 'stock-returns' | 'supplier-dashboard' | 'quotes' | 'invoices' | 'reports' | 'team' | 'settings' | 'analytics' | 'ai-forecast' | 'workflows'>('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [theme, setTheme] = useState<'light' | 'dark' | 'auto'>('light');
   const [isMobileStockCountOpen, setIsMobileStockCountOpen] = useState(false);
+  const [showAIAssistant, setShowAIAssistant] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [reorderAlertCount, setReorderAlertCount] = useState(0);
   const user = useStore((state) => state.user);
@@ -548,6 +559,7 @@ function AppContent() {
         reorderLevel: parseInt(row[csvColumnMapping.reorderLevel]) || 5,
         supplierId: supplierIdValue,
         supplierCode: supplierCodeValue,
+        locationStock: [],
         buyPriceExclGST: csvColumnMapping.buyPriceExclGST >= 0 ? parsePriceField(row[csvColumnMapping.buyPriceExclGST]) : undefined,
         buyPriceInclGST: csvColumnMapping.buyPriceInclGST >= 0 ? parsePriceField(row[csvColumnMapping.buyPriceInclGST]) : undefined,
         sellPriceExclGST: csvColumnMapping.sellPriceExclGST >= 0 ? parsePriceField(row[csvColumnMapping.sellPriceExclGST]) : undefined,
@@ -671,13 +683,8 @@ function AppContent() {
       return;
     }
 
-    if (!adjustmentLocationId) {
-      toast.warning('Please select a location to adjust');
-      return;
-    }
-
     try {
-      await adjustStock(itemToAdjust.id, adjustmentValue, adjustmentReason, adjustmentLocationId);
+      await adjustStock(itemToAdjust.id, adjustmentValue, adjustmentReason);
       setIsAdjustModalOpen(false);
       setAdjustmentLocationId('');
       toast.success(`Stock adjusted for ${itemToAdjust.name}`, 'Adjustment Complete');
@@ -719,7 +726,8 @@ function AppContent() {
       price: 0,
       reorderLevel: 5,
       supplierId: contacts.find(c => c.type === 'Supplier')?.id || '',
-      supplierCode: ''
+      supplierCode: '',
+      locationStock: []
     };
     setItemToEdit(newItem);
     setIsAddItemModalOpen(true);
@@ -957,6 +965,9 @@ function AppContent() {
             </div>
             <NavItem icon={TrendingUp} label="Supplier Dashboard" active={activeTab === 'supplier-dashboard'} onClick={() => setActiveTab('supplier-dashboard')} collapsed={!isSidebarOpen} />
             <NavItem icon={TrendingUp} label="Reports" active={activeTab === 'reports'} onClick={() => setActiveTab('reports')} collapsed={!isSidebarOpen} />
+            <NavItem icon={BarChart3} label="Analytics" active={activeTab === 'analytics'} onClick={() => setActiveTab('analytics')} collapsed={!isSidebarOpen} />
+            <NavItem icon={Sparkles} label="AI Forecast" active={activeTab === 'ai-forecast'} onClick={() => setActiveTab('ai-forecast')} collapsed={!isSidebarOpen} />
+            <NavItem icon={Zap} label="Workflows" active={activeTab === 'workflows'} onClick={() => setActiveTab('workflows')} collapsed={!isSidebarOpen} />
             <NavItem icon={Users} label="Team" active={activeTab === 'team'} onClick={() => setActiveTab('team')} collapsed={!isSidebarOpen} />
             <NavItem icon={CheckCircle} label="Approvals" active={activeTab === 'approvals'} onClick={() => setActiveTab('approvals')} collapsed={!isSidebarOpen} />
             <NavItem icon={Settings} label="Settings" active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} collapsed={!isSidebarOpen} />
@@ -996,6 +1007,13 @@ function AppContent() {
               <p className="text-slate-500 dark:text-slate-400 mt-1">Manage your plumbing warehouse efficiently.</p>
             </div>
             <div className="flex items-center gap-3">
+              <button
+                onClick={() => setShowAIAssistant(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg font-medium hover:from-purple-700 hover:to-blue-700 transition-all shadow-lg hover:shadow-xl"
+              >
+                <Sparkles className="w-4 h-4" />
+                <span className="hidden md:inline">AI Assistant</span>
+              </button>
               <LanguageSwitcher />
               <button onClick={() => setActiveTab('settings')} className="p-2 text-slate-400 dark:text-slate-500 hover:text-blue-500 dark:hover:text-blue-400 transition-colors" data-tour="settings">
                 <Settings className="w-6 h-6" />
@@ -1076,7 +1094,15 @@ function AppContent() {
         {activeTab === 'reports' && <ReportingView />}
         {activeTab === 'team' && <TeamManagementView />}
         {activeTab === 'settings' && <SettingsView onSave={(settings) => toast.success('Settings saved successfully!')} />}
+        {activeTab === 'analytics' && <AnalyticsView />}
+        {activeTab === 'ai-forecast' && <AIForecastView />}
+        {activeTab === 'workflows' && <WorkflowAutomationView />}
       </main>
+
+      {/* AI Assistant Panel */}
+      {showAIAssistant && (
+        <AIAssistant onClose={() => setShowAIAssistant(false)} />
+      )}
 
       {/* New Job Modal */}
       {isNewJobModalOpen && (

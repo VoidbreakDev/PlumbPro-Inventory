@@ -1,263 +1,446 @@
+/**
+ * Email Service
+ * Handles sending transactional emails via SendGrid, AWS SES, or SMTP
+ */
+
 import nodemailer from 'nodemailer';
-import dotenv from 'dotenv';
+import { pool } from '../config/database.js';
 
-dotenv.config();
+// Email provider configuration
+const EMAIL_PROVIDER = process.env.EMAIL_PROVIDER || 'smtp'; // 'sendgrid', 'ses', 'smtp'
+const FROM_EMAIL = process.env.SMTP_FROM || 'noreply@plumbpro.com';
+const FROM_NAME = process.env.SMTP_FROM_NAME || 'PlumbPro Inventory';
 
-// Create email transporter
-const createTransporter = () => {
-  // For development, use ethereal email (fake SMTP)
-  // For production, use real SMTP service (Gmail, SendGrid, AWS SES, etc.)
+// Initialize transporter
+let transporter = null;
 
-  if (process.env.NODE_ENV === 'production' && process.env.SMTP_HOST) {
-    return nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: process.env.SMTP_PORT || 587,
-      secure: process.env.SMTP_SECURE === 'true',
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASSWORD
+async function getTransporter() {
+  if (transporter) return transporter;
+  
+  switch (EMAIL_PROVIDER) {
+    case 'sendgrid':
+      if (!process.env.SENDGRID_API_KEY) {
+        throw new Error('SendGrid API key not configured');
       }
+      // Using nodemailer-sendgrid-transport or direct SendGrid SDK
+      const sgTransport = await import('nodemailer-sendgrid-transport');
+      transporter = nodemailer.createTransport(sgTransport.default({
+        auth: { api_key: process.env.SENDGRID_API_KEY }
+      }));
+      break;
+      
+    case 'ses':
+      if (!process.env.AWS_ACCESS_KEY_ID) {
+        throw new Error('AWS credentials not configured');
+      }
+      const ses = await import('nodemailer-ses-transport');
+      transporter = nodemailer.createTransport(ses.default({
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+        region: process.env.AWS_REGION || 'us-east-1'
+      }));
+      break;
+      
+    case 'smtp':
+    default:
+      if (!process.env.SMTP_HOST) {
+        // Create ethereal test account for development
+        const testAccount = await nodemailer.createTestAccount();
+        transporter = nodemailer.createTransport({
+          host: 'smtp.ethereal.email',
+          port: 587,
+          secure: false,
+          auth: {
+            user: testAccount.user,
+            pass: testAccount.pass
+          }
+        });
+        console.log('📧 Using Ethereal test email account:', testAccount.web);
+      } else {
+        transporter = nodemailer.createTransport({
+          host: process.env.SMTP_HOST,
+          port: process.env.SMTP_PORT || 587,
+          secure: process.env.SMTP_SECURE === 'true',
+          auth: {
+            user: process.env.SMTP_USER,
+            pass: process.env.SMTP_PASSWORD
+          }
+        });
+      }
+      break;
+  }
+  
+  return transporter;
+}
+
+/**
+ * Queue an email for sending
+ */
+export async function queueEmail({
+  userId,
+  templateId = null,
+  to,
+  toName = '',
+  subject,
+  bodyHtml = '',
+  bodyText = '',
+  variables = {}
+}) {
+  try {
+    const result = await pool.query(
+      `INSERT INTO email_queue (
+        user_id, template_id, to_address, to_name,
+        subject, body_html, body_text, variables, status
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'pending')
+      RETURNING *`,
+      [userId, templateId, to, toName, subject, bodyHtml, bodyText, JSON.stringify(variables)]
+    );
+    
+    return result.rows[0];
+  } catch (error) {
+    console.error('Queue email error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Send a single email immediately
+ */
+export async function sendEmail({
+  to,
+  toName = '',
+  subject,
+  bodyHtml,
+  bodyText,
+  from = FROM_EMAIL,
+  fromName = FROM_NAME,
+  attachments = []
+}) {
+  try {
+    const transport = await getTransporter();
+    
+    const info = await transport.sendMail({
+      from: `"${fromName}" <${from}>`,
+      to: `"${toName}" <${to}>`,
+      subject,
+      text: bodyText,
+      html: bodyHtml,
+      attachments
     });
-  } else {
-    // Development mode - log to console
-    console.log('📧 Email service in development mode (emails logged to console)');
-    return null;
-  }
-};
-
-const transporter = createTransporter();
-
-// Email templates
-const emailTemplates = {
-  lowStock: (item) => ({
-    subject: `⚠️ Low Stock Alert: ${item.name}`,
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #ef4444;">Low Stock Alert</h2>
-        <p>The following item is running low:</p>
-        <div style="background-color: #fef2f2; border-left: 4px solid #ef4444; padding: 15px; margin: 20px 0;">
-          <h3 style="margin: 0 0 10px 0;">${item.name}</h3>
-          <p style="margin: 5px 0;"><strong>Category:</strong> ${item.category}</p>
-          <p style="margin: 5px 0;"><strong>Current Stock:</strong> ${item.quantity}</p>
-          <p style="margin: 5px 0;"><strong>Reorder Level:</strong> ${item.reorderLevel}</p>
-          <p style="margin: 5px 0;"><strong>Supplier:</strong> ${item.supplier || 'N/A'}</p>
-        </div>
-        <p>Please reorder this item soon to avoid stockouts.</p>
-        <p style="color: #6b7280; font-size: 12px; margin-top: 30px;">
-          This is an automated notification from PlumbPro Inventory
-        </p>
-      </div>
-    `
-  }),
-
-  stockOut: (item) => ({
-    subject: `🚨 Out of Stock: ${item.name}`,
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #dc2626;">Out of Stock Alert</h2>
-        <p>The following item is out of stock:</p>
-        <div style="background-color: #fee2e2; border-left: 4px solid #dc2626; padding: 15px; margin: 20px 0;">
-          <h3 style="margin: 0 0 10px 0;">${item.name}</h3>
-          <p style="margin: 5px 0;"><strong>Category:</strong> ${item.category}</p>
-          <p style="margin: 5px 0;"><strong>Stock:</strong> 0</p>
-          <p style="margin: 5px 0;"><strong>Supplier:</strong> ${item.supplier || 'N/A'}</p>
-        </div>
-        <p><strong>Action Required:</strong> Place an order immediately to restore stock.</p>
-        <p style="color: #6b7280; font-size: 12px; margin-top: 30px;">
-          This is an automated notification from PlumbPro Inventory
-        </p>
-      </div>
-    `
-  }),
-
-  jobReminder: (job, daysUntil) => ({
-    subject: `📅 Job Reminder: ${job.title} in ${daysUntil} day${daysUntil > 1 ? 's' : ''}`,
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #3b82f6;">Upcoming Job Reminder</h2>
-        <p>You have a job scheduled in ${daysUntil} day${daysUntil > 1 ? 's' : ''}:</p>
-        <div style="background-color: #eff6ff; border-left: 4px solid #3b82f6; padding: 15px; margin: 20px 0;">
-          <h3 style="margin: 0 0 10px 0;">${job.title}</h3>
-          <p style="margin: 5px 0;"><strong>Job Type:</strong> ${job.jobType}</p>
-          <p style="margin: 5px 0;"><strong>Date:</strong> ${new Date(job.date).toLocaleDateString()}</p>
-          <p style="margin: 5px 0;"><strong>Builder:</strong> ${job.builder || 'N/A'}</p>
-          <p style="margin: 5px 0;"><strong>Status:</strong> ${job.status}</p>
-        </div>
-        ${!job.isPicked ? '<p><strong>⚠️ Note:</strong> Materials have not been picked yet.</p>' : ''}
-        <p style="color: #6b7280; font-size: 12px; margin-top: 30px;">
-          This is an automated notification from PlumbPro Inventory
-        </p>
-      </div>
-    `
-  }),
-
-  jobAssigned: (job, workerName) => ({
-    subject: `👷 New Job Assigned: ${job.title}`,
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #10b981;">New Job Assignment</h2>
-        <p>Hello ${workerName},</p>
-        <p>You have been assigned to a new job:</p>
-        <div style="background-color: #f0fdf4; border-left: 4px solid #10b981; padding: 15px; margin: 20px 0;">
-          <h3 style="margin: 0 0 10px 0;">${job.title}</h3>
-          <p style="margin: 5px 0;"><strong>Job Type:</strong> ${job.jobType}</p>
-          <p style="margin: 5px 0;"><strong>Date:</strong> ${new Date(job.date).toLocaleDateString()}</p>
-          <p style="margin: 5px 0;"><strong>Builder:</strong> ${job.builder || 'N/A'}</p>
-        </div>
-        <p>Please review the job details and materials list in the system.</p>
-        <p style="color: #6b7280; font-size: 12px; margin-top: 30px;">
-          This is an automated notification from PlumbPro Inventory
-        </p>
-      </div>
-    `
-  }),
-
-  dailySummary: (summary) => ({
-    subject: `📊 Daily Summary - ${new Date().toLocaleDateString()}`,
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #3b82f6;">Daily Summary</h2>
-        <p>Here's your daily inventory summary for ${new Date().toLocaleDateString()}:</p>
-
-        <div style="background-color: #f3f4f6; padding: 15px; margin: 20px 0; border-radius: 8px;">
-          <h3 style="margin: 0 0 10px 0;">📦 Inventory</h3>
-          <p style="margin: 5px 0;">Total Value: £${summary.totalValue?.toFixed(2) || 0}</p>
-          <p style="margin: 5px 0;">Low Stock Items: ${summary.lowStockCount || 0}</p>
-          <p style="margin: 5px 0;">Out of Stock: ${summary.outOfStockCount || 0}</p>
-        </div>
-
-        <div style="background-color: #f3f4f6; padding: 15px; margin: 20px 0; border-radius: 8px;">
-          <h3 style="margin: 0 0 10px 0;">📅 Jobs</h3>
-          <p style="margin: 5px 0;">Scheduled Today: ${summary.todayJobs || 0}</p>
-          <p style="margin: 5px 0;">In Progress: ${summary.inProgressJobs || 0}</p>
-          <p style="margin: 5px 0;">Upcoming (7 days): ${summary.upcomingJobs || 0}</p>
-        </div>
-
-        <div style="background-color: #f3f4f6; padding: 15px; margin: 20px 0; border-radius: 8px;">
-          <h3 style="margin: 0 0 10px 0;">📊 Activity</h3>
-          <p style="margin: 5px 0;">Stock Movements: ${summary.stockMovements || 0}</p>
-          <p style="margin: 5px 0;">Jobs Completed: ${summary.completedJobs || 0}</p>
-        </div>
-
-        <p style="color: #6b7280; font-size: 12px; margin-top: 30px;">
-          This is an automated daily summary from PlumbPro Inventory
-        </p>
-      </div>
-    `
-  })
-};
-
-// Send email function
-export const sendEmail = async (to, template, data) => {
-  try {
-    const emailContent = emailTemplates[template](data);
-
-    if (!emailContent) {
-      throw new Error(`Unknown email template: ${template}`);
+    
+    console.log('📧 Email sent:', info.messageId);
+    
+    // If using Ethereal, log the preview URL
+    if (info.ethereal) {
+      console.log('📧 Preview URL:', nodemailer.getTestMessageUrl(info));
     }
-
-    if (transporter) {
-      // Send via real SMTP
-      const info = await transporter.sendMail({
-        from: process.env.SMTP_FROM || '"PlumbPro Inventory" <noreply@plumbpro.com>',
-        to,
-        subject: emailContent.subject,
-        html: emailContent.html
-      });
-
-      console.log(`📧 Email sent to ${to}: ${emailContent.subject}`);
-      return { success: true, messageId: info.messageId };
-    } else {
-      // Development mode - log to console
-      console.log('\n📧 ============ EMAIL (DEV MODE) ============');
-      console.log(`To: ${to}`);
-      console.log(`Subject: ${emailContent.subject}`);
-      console.log(`Body: ${emailContent.html.substring(0, 200)}...`);
-      console.log('📧 =========================================\n');
-      return { success: true, dev: true };
-    }
+    
+    return {
+      success: true,
+      messageId: info.messageId,
+      previewUrl: info.ethereal ? nodemailer.getTestMessageUrl(info) : null
+    };
+    
   } catch (error) {
-    console.error('Email send error:', error);
+    console.error('Send email error:', error);
     throw error;
   }
-};
+}
 
-// Queue email for async sending
-export const queueEmail = async (pool, userId, toEmail, template, data, notificationId = null) => {
+/**
+ * Process the email queue
+ * Called by scheduled task runner
+ */
+export async function processEmailQueue() {
   try {
-    const emailContent = emailTemplates[template](data);
-
-    await pool.query(`
-      INSERT INTO email_queue (user_id, to_email, subject, body, notification_id, status)
-      VALUES ($1, $2, $3, $4, $5, 'pending')
-    `, [userId, toEmail, emailContent.subject, emailContent.html, notificationId]);
-
-    console.log(`📬 Email queued for ${toEmail}: ${emailContent.subject}`);
-  } catch (error) {
-    console.error('Email queue error:', error);
-    throw error;
-  }
-};
-
-// Process email queue (call this periodically)
-export const processEmailQueue = async (pool) => {
-  try {
-    const result = await pool.query(`
-      SELECT * FROM email_queue
-      WHERE status = 'pending' AND attempts < 3
-      ORDER BY created_at ASC
-      LIMIT 10
-    `);
-
-    for (const email of result.rows) {
+    // Get pending emails
+    const pendingEmails = await pool.query(
+      `SELECT * FROM email_queue 
+       WHERE status = 'pending' 
+       AND retry_count < max_retries
+       ORDER BY created_at ASC
+       LIMIT 10`
+    );
+    
+    for (const email of pendingEmails.rows) {
       try {
-        if (transporter) {
-          await transporter.sendMail({
-            from: process.env.SMTP_FROM || '"PlumbPro Inventory" <noreply@plumbpro.com>',
-            to: email.to_email,
-            subject: email.subject,
-            html: email.body
+        // Mark as sending
+        await pool.query(
+          `UPDATE email_queue SET status = 'sending', updated_at = NOW() WHERE id = $1`,
+          [email.id]
+        );
+        
+        // Prepare email content
+        let bodyHtml = email.body_html;
+        let bodyText = email.body_text;
+        let subject = email.subject;
+        
+        // Apply template variables
+        if (email.variables) {
+          const vars = typeof email.variables === 'string' 
+            ? JSON.parse(email.variables) 
+            : email.variables;
+          
+          Object.entries(vars).forEach(([key, value]) => {
+            const regex = new RegExp(`{{${key}}}`, 'g');
+            bodyHtml = bodyHtml?.replace(regex, value) || '';
+            bodyText = bodyText?.replace(regex, value) || '';
+            subject = subject?.replace(regex, value) || '';
           });
         }
-
-        await pool.query(`
-          UPDATE email_queue
-          SET status = 'sent', sent_at = CURRENT_TIMESTAMP
-          WHERE id = $1
-        `, [email.id]);
-
-        if (email.notification_id) {
-          await pool.query(`
-            UPDATE notifications
-            SET is_sent_email = true
-            WHERE id = $1
-          `, [email.notification_id]);
-        }
-
-        console.log(`✅ Email sent from queue: ${email.subject}`);
+        
+        // Send email
+        await sendEmail({
+          to: email.to_address,
+          toName: email.to_name,
+          subject,
+          bodyHtml,
+          bodyText
+        });
+        
+        // Mark as sent
+        await pool.query(
+          `UPDATE email_queue 
+           SET status = 'sent', sent_at = NOW(), updated_at = NOW() 
+           WHERE id = $1`,
+          [email.id]
+        );
+        
       } catch (error) {
-        await pool.query(`
-          UPDATE email_queue
-          SET attempts = attempts + 1, error_message = $1
-          WHERE id = $2
-        `, [error.message, email.id]);
-
-        if (email.attempts >= 2) {
-          await pool.query(`
-            UPDATE email_queue SET status = 'failed' WHERE id = $1
-          `, [email.id]);
-        }
-
-        console.error(`❌ Email failed: ${email.subject}`, error.message);
+        console.error(`Failed to send email ${email.id}:`, error);
+        
+        // Increment retry count
+        await pool.query(
+          `UPDATE email_queue 
+           SET retry_count = retry_count + 1, 
+               error_message = $1,
+               status = CASE WHEN retry_count + 1 >= max_retries THEN 'failed' ELSE 'pending' END,
+               updated_at = NOW()
+           WHERE id = $2`,
+          [error.message, email.id]
+        );
       }
     }
+    
+    return { processed: pendingEmails.rows.length };
+    
   } catch (error) {
     console.error('Process email queue error:', error);
+    throw error;
   }
-};
+}
+
+/**
+ * Send invoice email
+ */
+export async function sendInvoiceEmail({ userId, invoiceId, to, toName }) {
+  try {
+    // Get invoice details
+    const invoiceResult = await pool.query(
+      `SELECT i.*, c.name as customer_name, u.company_name as business_name
+       FROM invoices i
+       JOIN contacts c ON i.contact_id = c.id
+       JOIN users u ON i.user_id = u.id
+       WHERE i.id = $1 AND i.user_id = $2`,
+      [invoiceId, userId]
+    );
+    
+    if (invoiceResult.rows.length === 0) {
+      throw new Error('Invoice not found');
+    }
+    
+    const invoice = invoiceResult.rows[0];
+    
+    // Get invoice items
+    const itemsResult = await pool.query(
+      `SELECT * FROM invoice_items WHERE invoice_id = $1 ORDER BY sort_order`,
+      [invoiceId]
+    );
+    
+    // Build email content
+    const itemsHtml = itemsResult.rows.map(item => `
+      <tr>
+        <td style="padding: 8px; border-bottom: 1px solid #ddd;">${item.description}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: center;">${item.quantity}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: right;">$${item.unit_price}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: right;">$${item.line_total}</td>
+      </tr>
+    `).join('');
+    
+    const subject = `Invoice ${invoice.invoice_number} from ${invoice.business_name}`;
+    
+    const bodyHtml = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2>Invoice ${invoice.invoice_number}</h2>
+        <p>Dear ${invoice.customer_name},</p>
+        <p>Please find your invoice below:</p>
+        
+        <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+          <thead>
+            <tr style="background: #f5f5f5;">
+              <th style="padding: 8px; text-align: left;">Description</th>
+              <th style="padding: 8px; text-align: center;">Qty</th>
+              <th style="padding: 8px; text-align: right;">Price</th>
+              <th style="padding: 8px; text-align: right;">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemsHtml}
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colspan="3" style="padding: 8px; text-align: right; font-weight: bold;">Subtotal:</td>
+              <td style="padding: 8px; text-align: right;">$${invoice.subtotal}</td>
+            </tr>
+            <tr>
+              <td colspan="3" style="padding: 8px; text-align: right; font-weight: bold;">Tax:</td>
+              <td style="padding: 8px; text-align: right;">$${invoice.tax_amount}</td>
+            </tr>
+            <tr style="font-size: 1.2em;">
+              <td colspan="3" style="padding: 8px; text-align: right; font-weight: bold;">Total:</td>
+              <td style="padding: 8px; text-align: right; font-weight: bold;">$${invoice.total_amount}</td>
+            </tr>
+          </tfoot>
+        </table>
+        
+        <p><strong>Due Date:</strong> ${new Date(invoice.due_date).toLocaleDateString()}</p>
+        
+        ${invoice.notes ? `<p><strong>Notes:</strong> ${invoice.notes}</p>` : ''}
+        
+        <p style="margin-top: 30px;">
+          <a href="${process.env.PORTAL_URL}/portal/invoices/${invoice.id}" 
+             style="background: #0066cc; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">
+            View & Pay Online
+          </a>
+        </p>
+        
+        <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;">
+        <p style="color: #666; font-size: 0.9em;">
+          Thank you for your business!<br>
+          ${invoice.business_name}
+        </p>
+      </div>
+    `;
+    
+    const bodyText = `
+Invoice ${invoice.invoice_number} from ${invoice.business_name}
+
+Dear ${invoice.customer_name},
+
+Please find your invoice details:
+
+Total Amount: $${invoice.total_amount}
+Due Date: ${new Date(invoice.due_date).toLocaleDateString()}
+
+View and pay online: ${process.env.PORTAL_URL}/portal/invoices/${invoice.id}
+
+Thank you for your business!
+${invoice.business_name}
+    `.trim();
+    
+    // Queue the email
+    return await queueEmail({
+      userId,
+      to,
+      toName: toName || invoice.customer_name,
+      subject,
+      bodyHtml,
+      bodyText,
+      variables: {
+        invoiceNumber: invoice.invoice_number,
+        customerName: invoice.customer_name,
+        totalAmount: invoice.total_amount
+      }
+    });
+    
+  } catch (error) {
+    console.error('Send invoice email error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Send quote email
+ */
+export async function sendQuoteEmail({ userId, jobId, to, toName }) {
+  try {
+    // Get job details
+    const jobResult = await pool.query(
+      `SELECT j.*, c.name as customer_name, u.company_name as business_name
+       FROM jobs j
+       JOIN contacts c ON j.builder::uuid = c.id
+       JOIN users u ON j.user_id = u.id
+       WHERE j.id = $1 AND j.user_id = $2`,
+      [jobId, userId]
+    );
+    
+    if (jobResult.rows.length === 0) {
+      throw new Error('Job not found');
+    }
+    
+    const job = jobResult.rows[0];
+    
+    // Get quote items
+    const itemsResult = await pool.query(
+      `SELECT * FROM quote_items WHERE job_id = $1 ORDER BY sort_order`,
+      [jobId]
+    );
+    
+    const totalAmount = itemsResult.rows.reduce((sum, item) => sum + parseFloat(item.line_total), 0);
+    
+    const subject = `Quote from ${job.business_name} - ${job.title}`;
+    
+    const bodyHtml = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2>Quote: ${job.title}</h2>
+        <p>Dear ${job.customer_name},</p>
+        <p>Please find your quote below:</p>
+        
+        <p><strong>Job Type:</strong> ${job.job_type}<br>
+           <strong>Proposed Date:</strong> ${new Date(job.date).toLocaleDateString()}</p>
+        
+        <p style="margin-top: 30px;">
+          <a href="${process.env.PORTAL_URL}/portal/quotes/${job.id}" 
+             style="background: #28a745; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block; margin-right: 10px;">
+            Accept Quote
+          </a>
+          <a href="${process.env.PORTAL_URL}/portal/quotes/${job.id}" 
+             style="background: #dc3545; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">
+            Decline Quote
+          </a>
+        </p>
+        
+        <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;">
+        <p style="color: #666; font-size: 0.9em;">
+          We look forward to working with you!<br>
+          ${job.business_name}
+        </p>
+      </div>
+    `;
+    
+    return await queueEmail({
+      userId,
+      to,
+      toName: toName || job.customer_name,
+      subject,
+      bodyHtml,
+      variables: {
+        jobTitle: job.title,
+        customerName: job.customer_name,
+        totalAmount
+      }
+    });
+    
+  } catch (error) {
+    console.error('Send quote email error:', error);
+    throw error;
+  }
+}
 
 export default {
-  sendEmail,
   queueEmail,
-  processEmailQueue
+  sendEmail,
+  processEmailQueue,
+  sendInvoiceEmail,
+  sendQuoteEmail
 };
