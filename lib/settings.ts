@@ -34,18 +34,18 @@ export const defaultSettings: AppSettings = {
     currency: 'AUD'
   },
   ai: {
-    defaultProvider: 'auto',
-    geminiApiKey: '',
-    ollamaUrl: 'http://localhost:11434',
-    ollamaModel: 'llama3',
+    subscriptionTier: 'solo',
+    preferredProvider: 'auto',
+    preferredModel: 'auto',
+    hasCustomApiKey: false,
     featureProviders: {
-      forecast: 'gemini',
-      search: 'ollama',
-      template: 'ollama',
-      anomaly: 'gemini',
-      purchaseOrders: 'gemini',
-      insights: 'gemini',
-      jobCompletion: 'ollama'
+      forecast: 'auto',
+      search: 'auto',
+      template: 'auto',
+      anomaly: 'auto',
+      purchaseOrders: 'auto',
+      insights: 'auto',
+      jobCompletion: 'auto'
     }
   }
 };

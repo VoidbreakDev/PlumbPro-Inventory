@@ -308,26 +308,29 @@ SMTP_PASSWORD=your-app-password
 SMTP_FROM=PlumbPro Inventory <noreply@plumbpro.com>
 
 # AI Provider Configuration
+# Only cloud AI providers are supported (Ollama/local LLM removed for simplicity)
 AI_PROVIDER=auto
 
-# Google Gemini AI (Free tier)
+# Google Gemini AI (Free tier - 60 requests/min)
 GEMINI_API_KEY=
 
-# Ollama (Local AI - FREE)
-OLLAMA_URL=http://localhost:11434
-OLLAMA_MODEL=llama3
+# OpenAI (Optional - for Team/Business tiers)
+OPENAI_API_KEY=
+
+# Anthropic Claude (Optional - for Business tier)
+ANTHROPIC_API_KEY=
 
 # Feature Toggles
 ENABLE_NOTIFICATIONS=true
 
-# Feature-Specific AI Providers
-AI_PROVIDER_FORECAST=gemini
-AI_PROVIDER_SEARCH=ollama
-AI_PROVIDER_TEMPLATE=ollama
-AI_PROVIDER_ANOMALY=gemini
-AI_PROVIDER_PURCHASE_ORDERS=gemini
-AI_PROVIDER_INSIGHTS=gemini
-AI_PROVIDER_JOB_COMPLETION=ollama
+# Feature-Specific AI Providers (all set to auto)
+AI_PROVIDER_FORECAST=auto
+AI_PROVIDER_SEARCH=auto
+AI_PROVIDER_TEMPLATE=auto
+AI_PROVIDER_ANOMALY=auto
+AI_PROVIDER_PURCHASE_ORDERS=auto
+AI_PROVIDER_INSIGHTS=auto
+AI_PROVIDER_JOB_COMPLETION=auto
 EOF
 
     # Create client .env

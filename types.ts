@@ -351,11 +351,15 @@ export interface AppearanceSettings {
 }
 
 export interface AiSettings {
-  defaultProvider: string;
-  geminiApiKey: string;
-  ollamaUrl: string;
-  ollamaModel: string;
+  // Tier-based AI configuration (Ollama/local LLM removed)
+  subscriptionTier: 'solo' | 'team' | 'business';
+  preferredProvider: 'auto' | 'gemini' | 'openai' | 'anthropic';
+  preferredModel: string;
+  dailyQuotaUsed: number;
+  dailyQuotaReset: string;
   featureProviders: Record<string, string>;
+  // API keys (stored server-side for security)
+  hasCustomApiKey: boolean;
 }
 
 export interface AppSettings {
