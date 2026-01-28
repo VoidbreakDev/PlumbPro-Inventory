@@ -23,17 +23,17 @@
     "release:mac": "npm run build && electron-builder --mac --publish always"
   },
   "dependencies": {
-    "electron-updater": "^6.1.7",
     "electron-log": "^5.0.3",
     "electron-store": "^8.1.0",
+    "electron-updater": "^6.1.7",
     "portfinder": "^1.0.32"
   },
   "devDependencies": {
-    "electron": "^28.2.0",
-    "electron-builder": "^24.9.1",
-    "electron-vite": "^2.0.0",
     "@electron/notarize": "^2.2.0",
     "@types/node": "^20.10.0",
+    "electron": "^40.0.0",
+    "electron-builder": "^26.6.0",
+    "electron-vite": "^5.0.0",
     "typescript": "^5.3.3"
   },
   "engines": {
