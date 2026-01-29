@@ -8,11 +8,11 @@ interface PushNotificationManagerProps {
 }
 
 interface NotificationSettings {
-  jobAssignments: boolean;
-  jobUpdates: boolean;
-  lowStockAlerts: boolean;
-  urgentMessages: boolean;
-  completionReminders: boolean;
+  jobAlerts: boolean;
+  stockAlerts: boolean;
+  teamMessages: boolean;
+  systemUpdates: boolean;
+  emailDigest: boolean;
 }
 
 export function PushNotificationManager({ isOpen, onClose }: PushNotificationManagerProps) {
@@ -21,11 +21,11 @@ export function PushNotificationManager({ isOpen, onClose }: PushNotificationMan
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [settings, setSettings] = useState<NotificationSettings>({
-    jobAssignments: true,
-    jobUpdates: true,
-    lowStockAlerts: true,
-    urgentMessages: true,
-    completionReminders: true
+    jobAlerts: true,
+    stockAlerts: true,
+    teamMessages: true,
+    systemUpdates: true,
+    emailDigest: true
   });
   const [deviceInfo, setDeviceInfo] = useState<any>(null);
 
@@ -338,42 +338,42 @@ export function PushNotificationManager({ isOpen, onClose }: PushNotificationMan
                   <div className="space-y-3">
                     <ToggleItem
                       icon={<Smartphone className="w-5 h-5" />}
-                      title="Job Assignments"
-                      description="New jobs assigned to you"
-                      enabled={settings.jobAssignments}
-                      onToggle={() => toggleSetting('jobAssignments')}
-                    />
-                    
-                    <ToggleItem
-                      icon={<Bell className="w-5 h-5" />}
-                      title="Job Updates"
-                      description="Changes to your assigned jobs"
-                      enabled={settings.jobUpdates}
-                      onToggle={() => toggleSetting('jobUpdates')}
+                      title="Job Alerts"
+                      description="New jobs and job updates"
+                      enabled={settings.jobAlerts}
+                      onToggle={() => toggleSetting('jobAlerts')}
                     />
                     
                     <ToggleItem
                       icon={<AlertCircle className="w-5 h-5" />}
-                      title="Low Stock Alerts"
+                      title="Stock Alerts"
                       description="When inventory items are running low"
-                      enabled={settings.lowStockAlerts}
-                      onToggle={() => toggleSetting('lowStockAlerts')}
+                      enabled={settings.stockAlerts}
+                      onToggle={() => toggleSetting('stockAlerts')}
                     />
                     
                     <ToggleItem
                       icon={<Bell className="w-5 h-5" />}
-                      title="Urgent Messages"
-                      description="Important messages from dispatch"
-                      enabled={settings.urgentMessages}
-                      onToggle={() => toggleSetting('urgentMessages')}
+                      title="Team Messages"
+                      description="Messages from your team"
+                      enabled={settings.teamMessages}
+                      onToggle={() => toggleSetting('teamMessages')}
                     />
                     
                     <ToggleItem
                       icon={<Bell className="w-5 h-5" />}
-                      title="Completion Reminders"
-                      description="Reminders for jobs approaching deadline"
-                      enabled={settings.completionReminders}
-                      onToggle={() => toggleSetting('completionReminders')}
+                      title="System Updates"
+                      description="Important system notifications"
+                      enabled={settings.systemUpdates}
+                      onToggle={() => toggleSetting('systemUpdates')}
+                    />
+                    
+                    <ToggleItem
+                      icon={<Bell className="w-5 h-5" />}
+                      title="Email Digest"
+                      description="Daily summary emails"
+                      enabled={settings.emailDigest}
+                      onToggle={() => toggleSetting('emailDigest')}
                     />
                   </div>
                 </div>

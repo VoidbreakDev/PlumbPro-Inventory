@@ -26,5 +26,6 @@
     },
     "allowImportingTsExtensions": true,
     "noEmit": true
-  }
+  },
+  "exclude": ["desktop/**/*", "dist/**/*", "node_modules/**/*"]
 }
