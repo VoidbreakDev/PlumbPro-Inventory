@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { InventoryItem } from '../types';
 
-export const Badge = ({ children, variant = 'blue' }: { children: React.ReactNode, variant?: string }) => {
+export const Badge = ({ children, variant = 'blue', className = '' }: { children: React.ReactNode, variant?: string, className?: string }) => {
   const styles: Record<string, string> = {
     blue: 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300',
     yellow: 'bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300',
@@ -18,7 +18,7 @@ export const Badge = ({ children, variant = 'blue' }: { children: React.ReactNod
     purple: 'bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300',
     gray: 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300',
   };
-  return <span className={`px-2 py-1 rounded-full text-xs font-semibold ${styles[variant]}`}>{children}</span>;
+  return <span className={`px-2 py-1 rounded-full text-xs font-semibold ${styles[variant]} ${className}`}>{children}</span>;
 };
 
 export const getStockStatus = (quantity: number, reorderLevel: number) => {

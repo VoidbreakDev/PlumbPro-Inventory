@@ -105,7 +105,11 @@ export function OfflineSyncStatus({ variant = 'compact' }: OfflineSyncStatusProp
     try {
       // Trigger background sync
       const registration = await navigator.serviceWorker.ready;
-      await registration.sync.register('sync-offline-queue');
+      // Use type assertion for Background Sync API
+      const syncManager = (registration as any).sync;
+      if (syncManager && 'register' in syncManager) {
+        await syncManager.register('sync-offline-queue');
+      }
     } catch (err) {
       console.error('Sync registration failed:', err);
     }

@@ -351,12 +351,12 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ commands: customCommand
                 No commands found
               </div>
             ) : (
-              Object.entries(groupedCommands).map(([category, commands]) => (
+              Object.entries(groupedCommands).map(([category, commands]: [string, Command[]]) => (
                 <div key={category}>
                   <div className="px-4 py-2 text-xs font-semibold text-gray-500 bg-gray-50 sticky top-0">
                     {category}
                   </div>
-                  {commands.map((cmd, idx) => {
+                  {(commands as Command[]).map((cmd, idx) => {
                     const globalIndex = filteredCommands.indexOf(cmd);
                     const isSelected = globalIndex === selectedIndex;
 

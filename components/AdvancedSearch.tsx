@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../lib/api';
 import { useStore } from '../store/useStore';
 import { getErrorMessage } from '../lib/errors';
+import { loadRecentSearches, saveRecentSearches } from '../lib/recentSearches';
 
 export interface SearchResult {
   id: string;

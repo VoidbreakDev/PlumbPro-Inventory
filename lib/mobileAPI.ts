@@ -317,8 +317,33 @@ export const mobileAPI = {
     deviceName?: string;
     osVersion?: string;
     appVersion?: string;
+    subscription?: any;
   }): Promise<any> => {
     const response = await api.post('/mobile/register-device', deviceData);
+    return response.data;
+  },
+
+  /**
+   * Unregister mobile device from push notifications
+   */
+  unregisterDevice: async (deviceToken: string): Promise<any> => {
+    const response = await api.post('/mobile/unregister-device', { deviceToken });
+    return response.data;
+  },
+
+  /**
+   * Update notification preferences
+   */
+  updateNotificationPreferences: async (preferences: {
+    jobAlerts?: boolean;
+    stockAlerts?: boolean;
+    teamMessages?: boolean;
+    systemUpdates?: boolean;
+    emailDigest?: boolean;
+    quietHoursStart?: string;
+    quietHoursEnd?: string;
+  }): Promise<any> => {
+    const response = await api.post('/mobile/notification-preferences', preferences);
     return response.data;
   },
 
