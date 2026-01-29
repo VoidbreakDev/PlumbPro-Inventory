@@ -6,9 +6,14 @@ FROM node:18-alpine AS frontend-builder
 
 WORKDIR /app/frontend
 
+# Install build dependencies
+RUN apk add --no-cache python3 make g++
+
 # Copy package files
 COPY package*.json ./
-RUN npm ci --only=production
+
+# Install ALL dependencies (including devDependencies needed for build)
+RUN npm install --legacy-peer-deps
 
 # Copy source and build
 COPY . .
@@ -21,6 +26,8 @@ WORKDIR /app/backend
 
 # Copy server package files
 COPY server/package*.json ./
+
+# Install server dependencies
 RUN npm ci --only=production
 
 # Copy server source
@@ -49,8 +56,10 @@ RUN chmod +x ./scripts/*.sh
 RUN addgroup -g 1001 -S nodejs
 RUN adduser -S nodejs -u 1001
 
+# Create uploads directory and set permissions
+RUN mkdir -p /app/server/uploads && chown -R nodejs:nodejs /app
+
 # Change ownership
-RUN chown -R nodejs:nodejs /app
 USER nodejs
 
 # Expose port
