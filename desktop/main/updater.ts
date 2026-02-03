@@ -34,14 +34,13 @@ export function configureAutoUpdater(mainWindow: BrowserWindow): void {
   autoUpdater.autoInstallOnAppQuit = true;
   autoUpdater.allowDowngrade = false;
 
-  // Set feed URL explicitly to use GitHub releases
-  // This avoids the deprecated releases.atom endpoint
-  const feedURL = 'https://github.com/VoidbreakDev/PlumbPro-Inventory/releases/latest';
+  // Set feed URL to use generic provider with GitHub latest release URL
+  // This avoids the deprecated releases.atom endpoint that GitHub removed
+  // GitHub redirects /releases/latest/download/ to the actual latest release
   autoUpdater.setFeedURL({
-    provider: 'github',
-    owner: 'VoidbreakDev',
-    repo: 'PlumbPro-Inventory',
-    releaseType: 'release'
+    provider: 'generic',
+    url: 'https://github.com/VoidbreakDev/PlumbPro-Inventory/releases/latest/download',
+    channel: 'latest'
   });
 
   // For development testing, enable dev update config
