@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { User, Building2, Bell, Shield, Database, Palette, Globe, Save, Brain, Cloud, Trash2, Link2, RefreshCw, Check, X, AlertCircle, Clock, Users, FileText, CreditCard } from 'lucide-react';
+import { User, Building2, Bell, Shield, Database, Palette, Globe, Save, Brain, Cloud, Trash2, Link2, RefreshCw, Check, X, AlertCircle, Clock, Users, FileText, CreditCard, Download } from 'lucide-react';
 import api from '../lib/api';
 import { useStore } from '../store/useStore';
 import { getErrorMessage } from '../lib/errors';
 import { defaultSettings } from '../lib/settings';
+import { UpdatesPanel } from '../components/UpdatesPanel';
 import { xeroAPI, XeroConnection, XeroSyncLog, XeroSettings } from '../lib/xeroAPI';
 
 interface SettingsViewProps {
@@ -11,7 +12,7 @@ interface SettingsViewProps {
 }
 
 export const SettingsView: React.FC<SettingsViewProps> = ({ onSave }) => {
-  const [activeSection, setActiveSection] = useState<'profile' | 'company' | 'notifications' | 'security' | 'data' | 'appearance' | 'ai' | 'integrations'>('profile');
+  const [activeSection, setActiveSection] = useState<'profile' | 'company' | 'notifications' | 'security' | 'data' | 'appearance' | 'ai' | 'integrations' | 'updates'>('profile');
   const setError = useStore((state) => state.setError);
 
   // Load settings from localStorage on mount
@@ -318,7 +319,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSave }) => {
     { id: 'integrations', label: 'Integrations', icon: Link2 },
     { id: 'ai', label: 'AI Integration', icon: Brain },
     { id: 'data', label: 'Data & Backup', icon: Database },
-    { id: 'appearance', label: 'Appearance', icon: Palette }
+    { id: 'appearance', label: 'Appearance', icon: Palette },
+    { id: 'updates', label: 'Updates', icon: Download }
   ];
 
   const hasGeminiKey = aiSettings.geminiApiKey.trim().length > 0 || geminiKeyStatus.hasKey;
@@ -1079,6 +1081,18 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSave }) => {
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Updates Settings */}
+        {activeSection === 'updates' && (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-2">Application Updates</h2>
+              <p className="text-slate-500 dark:text-slate-400">Check for and install application updates</p>
+            </div>
+
+            <UpdatesPanel />
           </div>
         )}
 
