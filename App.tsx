@@ -45,7 +45,8 @@ import {
 } from './types';
 import { useStore } from './store/useStore';
 
-import { NavItem, getStockStatus, StockMeter, Badge } from './components/Shared';
+import { getStockStatus, StockMeter, Badge } from './components/Shared';
+import { Navigation, NavTab } from './components/Navigation';
 import { DashboardView } from './views/DashboardView';
 import { InventoryView } from './views/InventoryView';
 import { JobsView } from './views/JobsView';
@@ -67,9 +68,15 @@ import { ReportingView } from './views/ReportingView';
 import { TeamManagementView } from './views/TeamManagementView';
 import { AnalyticsView } from './views/AnalyticsView';
 import { AIForecastView } from './views/AIForecastView';
+import { KitManagementView } from './views/KitManagementView';
+import { AssetManagementView } from './views/AssetManagementView';
+import { TechnicianPerformanceView } from './views/TechnicianPerformanceView';
+import { SubcontractorManagementView } from './views/SubcontractorManagementView';
+import { LeadPipelineView } from './views/LeadPipelineView';
 import { AIAssistant } from './components/AIAssistant';
 import WorkflowAutomationView from './views/WorkflowAutomationView';
 import CustomerPortalView from './views/CustomerPortalView';
+import { TitleBar } from './components/TitleBar';
 
 // UX Components
 import { ToastProvider, useToast } from './components/ToastNotification';
@@ -86,7 +93,7 @@ import { loadSettings } from './lib/settings';
 
 function AppContent() {
   const toast = useToast();
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'inventory' | 'calendar' | 'job-planning' | 'contacts' | 'ordering' | 'history' | 'approvals' | 'purchase-orders' | 'stock-returns' | 'supplier-dashboard' | 'quotes' | 'invoices' | 'reports' | 'team' | 'settings' | 'analytics' | 'ai-forecast' | 'workflows'>('dashboard');
+  const [activeTab, setActiveTab] = useState<NavTab>('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [theme, setTheme] = useState<'light' | 'dark' | 'auto'>('light');
   const [isMobileStockCountOpen, setIsMobileStockCountOpen] = useState(false);
@@ -934,43 +941,23 @@ function AppContent() {
   };
 
   return (
-    <>
+    <div className="h-screen flex flex-col bg-slate-50 dark:bg-slate-900 overflow-hidden">
       <CommandPalette />
-
-      <div className="min-h-screen flex bg-slate-50 dark:bg-slate-900">
+      <TitleBar />
+      
+      <div className="flex-1 min-h-0 flex">
         <aside className={`hidden md:flex ${isSidebarOpen ? 'w-64' : 'w-20'} bg-slate-900 dark:bg-slate-950 text-slate-400 dark:text-slate-500 transition-all duration-300 flex-col fixed h-full z-20`}>
           <div className="p-6 flex items-center space-x-3 text-white" data-tour="logo">
             <Package className="w-8 h-8 text-blue-400 shrink-0" />
             {isSidebarOpen && <span className="font-bold text-xl tracking-tight">PlumbStock</span>}
           </div>
-          <nav className="flex-1 mt-4" data-tour="navigation">
-            <NavItem icon={TrendingUp} label="Dashboard" active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} collapsed={!isSidebarOpen} />
-            <div data-tour="inventory">
-              <NavItem icon={Package} label="Inventory" active={activeTab === 'inventory'} onClick={() => setActiveTab('inventory')} collapsed={!isSidebarOpen} />
-            </div>
-            <div data-tour="calendar">
-              <NavItem icon={Calendar} label="Calendar" active={activeTab === 'calendar'} onClick={() => setActiveTab('calendar')} collapsed={!isSidebarOpen} />
-            </div>
-            <div data-tour="job-planning">
-              <NavItem icon={ClipboardList} label="Job Planning" active={activeTab === 'job-planning'} onClick={() => setActiveTab('job-planning')} collapsed={!isSidebarOpen} />
-            </div>
-            <NavItem icon={ShoppingCart} label="Smart Ordering" active={activeTab === 'ordering'} onClick={() => setActiveTab('ordering')} collapsed={!isSidebarOpen} badge={reorderAlertCount} />
-            <NavItem icon={FileText} label="Purchase Orders" active={activeTab === 'purchase-orders'} onClick={() => setActiveTab('purchase-orders')} collapsed={!isSidebarOpen} />
-            <NavItem icon={FileText} label="Quotes" active={activeTab === 'quotes'} onClick={() => setActiveTab('quotes')} collapsed={!isSidebarOpen} />
-            <NavItem icon={FileText} label="Invoices" active={activeTab === 'invoices'} onClick={() => setActiveTab('invoices')} collapsed={!isSidebarOpen} />
-            <NavItem icon={RotateCcw} label="Stock Returns" active={activeTab === 'stock-returns'} onClick={() => setActiveTab('stock-returns')} collapsed={!isSidebarOpen} />
-            <NavItem icon={ArrowRightLeft} label="Stock History" active={activeTab === 'history'} onClick={() => setActiveTab('history')} collapsed={!isSidebarOpen} />
-            <div data-tour="contacts">
-              <NavItem icon={Users} label="Contacts" active={activeTab === 'contacts'} onClick={() => setActiveTab('contacts')} collapsed={!isSidebarOpen} />
-            </div>
-            <NavItem icon={TrendingUp} label="Supplier Dashboard" active={activeTab === 'supplier-dashboard'} onClick={() => setActiveTab('supplier-dashboard')} collapsed={!isSidebarOpen} />
-            <NavItem icon={TrendingUp} label="Reports" active={activeTab === 'reports'} onClick={() => setActiveTab('reports')} collapsed={!isSidebarOpen} />
-            <NavItem icon={BarChart3} label="Analytics" active={activeTab === 'analytics'} onClick={() => setActiveTab('analytics')} collapsed={!isSidebarOpen} />
-            <NavItem icon={Sparkles} label="AI Forecast" active={activeTab === 'ai-forecast'} onClick={() => setActiveTab('ai-forecast')} collapsed={!isSidebarOpen} />
-            <NavItem icon={Zap} label="Workflows" active={activeTab === 'workflows'} onClick={() => setActiveTab('workflows')} collapsed={!isSidebarOpen} />
-            <NavItem icon={Users} label="Team" active={activeTab === 'team'} onClick={() => setActiveTab('team')} collapsed={!isSidebarOpen} />
-            <NavItem icon={CheckCircle} label="Approvals" active={activeTab === 'approvals'} onClick={() => setActiveTab('approvals')} collapsed={!isSidebarOpen} />
-            <NavItem icon={Settings} label="Settings" active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} collapsed={!isSidebarOpen} />
+          <nav className="flex-1 mt-4 overflow-y-auto" data-tour="navigation">
+            <Navigation 
+              activeTab={activeTab}
+              onNavigate={setActiveTab}
+              collapsed={!isSidebarOpen}
+              getBadgeForTab={(tab) => tab === 'ordering' ? reorderAlertCount : 0}
+            />
           </nav>
           <div className="p-4 border-t border-slate-800 space-y-2">
             {/* User Info */}
@@ -1075,6 +1062,7 @@ function AppContent() {
             onDeleteTemplate={handleDeleteTemplate}
           />
         )}
+        {activeTab === 'kits' && <KitManagementView />}
         {activeTab === 'ordering' && <OrderingView inventory={inventory} jobs={jobs} />}
         {activeTab === 'history' && <HistoryView movements={movements} inventory={inventory} />}
         {activeTab === 'contacts' && (
@@ -1085,16 +1073,20 @@ function AppContent() {
             onDeleteContact={handleDeleteContact}
           />
         )}
+        {activeTab === 'subcontractors' && <SubcontractorManagementView />}
         {activeTab === 'approvals' && <ApprovalsView />}
         {activeTab === 'purchase-orders' && <PurchaseOrdersView />}
+        {activeTab === 'leads' && <LeadPipelineView />}
         {activeTab === 'quotes' && <QuotesView />}
         {activeTab === 'invoices' && <InvoicesView />}
         {activeTab === 'stock-returns' && <StockReturnsView />}
         {activeTab === 'supplier-dashboard' && <SupplierDashboardView contacts={contacts} />}
         {activeTab === 'reports' && <ReportingView />}
         {activeTab === 'team' && <TeamManagementView />}
+        {activeTab === 'assets' && <AssetManagementView />}
         {activeTab === 'settings' && <SettingsView onSave={(settings) => toast.success('Settings saved successfully!')} />}
         {activeTab === 'analytics' && <AnalyticsView />}
+        {activeTab === 'performance' && <TechnicianPerformanceView />}
         {activeTab === 'ai-forecast' && <AIForecastView />}
         {activeTab === 'workflows' && <WorkflowAutomationView />}
       </main>
@@ -2041,7 +2033,7 @@ function AppContent() {
         </>
       )}
       </div>
-    </>
+    </div>
   );
 }
 

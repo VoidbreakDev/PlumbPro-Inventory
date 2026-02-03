@@ -23,9 +23,10 @@ export async function createWindow(serverPort: number): Promise<BrowserWindow> {
     },
     icon: getIconPath(),
     show: false,
-    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
+    frame: false, // Custom title bar for all platforms
+    titleBarStyle: 'hidden', // Hide default title bar
     backgroundColor: '#ffffff',
-    autoHideMenuBar: process.platform !== 'darwin'
+    autoHideMenuBar: true
   });
 
   // Show loading screen first
