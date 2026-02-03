@@ -946,7 +946,7 @@ function AppContent() {
       <TitleBar />
       
       <div className="flex-1 min-h-0 flex">
-        <aside className={`hidden md:flex ${isSidebarOpen ? 'w-64' : 'w-20'} bg-slate-900 dark:bg-slate-950 text-slate-400 dark:text-slate-500 transition-all duration-300 flex-col fixed h-full z-20`}>
+        <aside className={`hidden md:flex ${isSidebarOpen ? 'w-64' : 'w-20'} bg-slate-900 dark:bg-slate-950 text-slate-400 dark:text-slate-500 transition-all duration-300 flex-col fixed z-20`} style={{ top: '2.25rem', height: 'calc(100vh - 2.25rem)' }}>
           <div className="p-6 flex items-center space-x-3 text-white" data-tour="logo">
             <Package className="w-8 h-8 text-blue-400 shrink-0" />
             {isSidebarOpen && <span className="font-bold text-xl tracking-tight">PlumbStock</span>}
@@ -987,7 +987,7 @@ function AppContent() {
           </div>
         </aside>
 
-        <main id="main-content" className={`flex-1 md:${isSidebarOpen ? 'ml-64' : 'ml-20'} transition-all duration-300 p-4 md:p-8 pb-20 md:pb-8`}>
+        <main id="main-content" className={`flex-1 overflow-auto ${isSidebarOpen ? 'md:ml-64' : 'md:ml-20'} transition-all duration-300 p-4 md:p-8 pb-20 md:pb-8`} style={{ marginTop: '2.25rem' }}>
           <header className="mb-8 flex justify-between items-center">
             <div>
               <h1 className="text-3xl font-extrabold text-slate-800 dark:text-slate-100 capitalize">{activeTab.replace('-', ' ')}</h1>
