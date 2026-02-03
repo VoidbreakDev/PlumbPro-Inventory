@@ -88,6 +88,10 @@ publish:
   owner: VoidbreakDev
   repo: PlumbPro-Inventory
   releaseType: release
+  vPrefixedTagName: true
 
 # Auto-update configuration
 electronUpdaterCompatibility: ">=2.16"
+
+# Generate update info files
+generateUpdatesFilesForAllChannels: true

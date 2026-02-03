@@ -1,6 +1,6 @@
 {
   "name": "plumbpro-inventory-desktop",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "PlumbPro Inventory Desktop Application",
   "main": "dist/main/index.js",
   "author": {
