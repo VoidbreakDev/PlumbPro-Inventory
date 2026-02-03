@@ -56,10 +56,12 @@ mac:
       arch: [arm64]
   icon: resources/icons/icon.icns
   category: public.app-category.business
-  hardenedRuntime: true
+  hardenedRuntime: false
   gatekeeperAssess: false
   artifactName: ${productName}-${version}-${arch}.${ext}
   identity: null
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
 
 dmg:
   iconSize: 100
