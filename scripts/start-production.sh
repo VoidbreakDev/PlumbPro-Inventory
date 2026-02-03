@@ -199,4 +199,4 @@ esac
 
 echo ""
 echo -e "${GREEN}✅ PlumbPro Inventory is running!${NC}"
-echo "Health Check: http://localhost:5000/health"
+echo "Health Check: http://localhost:5001/health"

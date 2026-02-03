@@ -686,6 +686,10 @@
   </footer>
 
   <script>
+    // GitHub repository info
+    const REPO_OWNER = 'VoidbreakDev';
+    const REPO_NAME = 'PlumbPro-Inventory';
+    
     // Auto-detect platform and highlight the appropriate download
     const platform = navigator.platform.toLowerCase();
 
@@ -695,17 +699,52 @@
       document.getElementById('download-mac').closest('.download-card').style.border = '2px solid var(--primary)';
     }
 
-    // Fetch latest version from GitHub
-    fetch('https://api.github.com/repos/VoidbreakDev/PlumbPro-Inventory/releases/latest')
-      .then(response => response.json())
+    // Fetch latest release from GitHub
+    fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases/latest`)
+      .then(response => {
+        if (!response.ok) throw new Error('No releases found');
+        return response.json();
+      })
       .then(data => {
         if (data.tag_name) {
           document.getElementById('version').textContent = `Version ${data.tag_name.replace('v', '')}`;
+          
+          // Find actual asset filenames from the release
+          const assets = data.assets || [];
+          
+          // Look for Windows installer (.exe)
+          const windowsAsset = assets.find(a => a.name.endsWith('.exe'));
+          if (windowsAsset) {
+            document.getElementById('download-windows').href = windowsAsset.browser_download_url;
+          } else {
+            // No Windows build available - show coming soon
+            showComingSoon('download-windows', 'Windows build coming soon');
+          }
+          
+          // Look for macOS installer (.dmg or .zip)
+          const macAsset = assets.find(a => a.name.endsWith('.dmg') || a.name.endsWith('-mac.zip'));
+          if (macAsset) {
+            document.getElementById('download-mac').href = macAsset.browser_download_url;
+          } else {
+            // No macOS build available - show coming soon
+            showComingSoon('download-mac', 'macOS build coming soon');
+          }
         }
       })
       .catch(() => {
-        // Keep default version if fetch fails
+        // No releases yet - show coming soon for both
+        showComingSoon('download-windows', 'Windows build coming soon');
+        showComingSoon('download-mac', 'macOS build coming soon');
+        document.getElementById('version').textContent = 'Coming Soon';
       });
+    
+    function showComingSoon(elementId, message) {
+      const link = document.getElementById(elementId);
+      link.href = `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases`;
+      link.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> ${message}`;
+      link.style.background = '#64748b';
+      link.style.cursor = 'default';
+    }
   </script>
 </body>
 </html>

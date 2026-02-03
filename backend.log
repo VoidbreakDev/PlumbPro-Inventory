@@ -13,1483 +13,133 @@
 🚀 PlumbPro Inventory Server
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 📡 Server running on port 5001
-🌍 Environment: production
+🌍 Environment: development
 🔗 API Base URL: http://localhost:5001/api
 ❤️  Health Check: http://localhost:5001/health
 🔔 Notifications: Enabled
+🛡️  Security Headers: Enabled
+⏱️  Rate Limiting: Enabled
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-⏰ Running scheduled workflows...
-[Scheduler] Checking scheduled tasks...
-✅[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-📅 Scheduled tasks initialized
-🤖 Workflow automation enabled
-node:events:497
-      throw er; // Unhandled 'error' event
-      ^
-
-Error: listen EADDRINUSE: address already in use 0.0.0.0:5001
-    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
-    at listenInCluster (node:net:1997:12)
-    at node:net:2206:7
-    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
-Emitted 'error' event on Server instance at:
-    at emitErrorNT (node:net:1976:8)
-    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
-  code: 'EADDRINUSE',
-  errno: -48,
-  syscall: 'listen',
-  address: '0.0.0.0',
-  port: 5001
+2026-02-02T19:27:25.775Z - GET /health
+2026-02-02T19:27:25.782Z - GET /api/inventory
+2026-02-02T19:27:25.787Z - GET /api/contacts
+2026-02-02T19:27:25.788Z - GET /api/smart-ordering/alerts
+2026-02-02T19:27:25.789Z - GET /api/locations
+2026-02-02T19:27:25.789Z - GET /api/jobs
+✅ PostgreSQL connected successfully
+✅ PostgreSQL connected successfully
+✅ PostgreSQL connected successfully
+✅ PostgreSQL connected successfully
+✅ PostgreSQL connected successfully
+✅ PostgreSQL connected successfully
+2026-02-02T19:27:25.795Z - GET /api/templates
+Get alerts error: error: column i.sku does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg/lib/client.js:545:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/smartOrdering.js:83:20 {
+  length: 104,
+  severity: 'ERROR',
+  code: '42703',
+  detail: undefined,
+  hint: undefined,
+  position: '103',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '3675',
+  routine: 'errorMissingColumn'
 }
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-📅 Scheduled tasks initialized
-🤖 Workflow automation enabled
-node:events:497
-      throw er; // Unhandled 'error' event
-      ^
-
-Error: listen EADDRINUSE: address already in use 0.0.0.0:5001
-    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
-    at listenInCluster (node:net:1997:12)
-    at node:net:2206:7
-    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
-Emitted 'error' event on Server instance at:
-    at emitErrorNT (node:net:1976:8)
-    at process.processTi[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-📅 Scheduled tasks initialized
-🤖 Workflow automation enabled
-node:events:497
-      throw er; // Unhandled 'error' event
-      ^
-
-Error: listen EADDRINUSE: address already in use 0.0.0.0:5001
-    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
-    at listenInCluster (node:net:1997:12)
-    at node:net:2206:7
-    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
-Emitted 'error' event on Server instance at:
-    at emitErrorNT (node:net:1976:8)
-    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
-  code: 'EADDRINUSE',
-  errno: -48,
-  syscall: 'listen',
-  address: '0.0.0.0',
-  port: 5001
-}
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-📅 Scheduled tasks initialized
-🤖 Workflow automation enabled
-node:events:497
-      throw er; // Unhandled 'error' event
-      ^
-
-Error: listen EADDRINUSE: address already in use 0.0.0.0:5001
-    at Server.setupListenHandle [as _listen2] (node:net📅 Scheduled tasks initialized
-🤖 Workflow automation enabled
-node:events:497
-      throw er; // Unhandled 'error' event
-      ^
-
-Error: listen EADDRINUSE: address already in use 0.0.0.0:5001
-    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
-    at listenInCluster (node:net:1997:12)
-    at node:net:2206:7
-    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
-Emitted 'error' event on Server instance at:
-    at emitErrorNT (node:net:1976:8)
-    at process.processTi[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-📅 Scheduled tasks initialized
-🤖 Workflow automation enabled
-node:events:497
-      throw er; // Unhandled 'error' event
-      ^
-
-Error: listen EADDRINUSE: address already in use 0.0.0.0:5001
-    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
-    at listenInCluster (node:net:1997:12)
-    at node:net:2206:7
-    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
-Emitted 'error' event on Server instance at:
-    at emitErrorNT (node:net:1976:8)
-    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
-  code: 'EADDRINUSE',
-  errno: -48,
-  syscall:🔔 Notifications: Enabled
-━━━━━━━━━━━━�[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-📅 Scheduled tasks initialized
-🤖 Workflow automation enabled
-node:events:497
-      throw er; // Unhandled 'error' event
-      ^
-
-Error: listen EADDRINUSE: address already in use 0.0.0.0:5001
-    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
-    at listenInCluster (node:net:1997:12)
-    at node:net:2206:7
-    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
-Emitted 'error' event on Server instance at:
-    at emitErrorNT (node:net:1976:8)
-    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
-  code: 'EADDRINUSE',
-  errno: -48,
-  syscall: 'listen',
-  address: '0.0.0.0',
-  port: 5001
-}
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-📅 Scheduled tasks initialized
-🤖 Workflow automation enabled
-node:events:497
-      throw er; // Unhandled 'error' event
-      ^
-
-Error: listen EADDRINUSE: address already in use 0.0.0.0:5001
-    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
-    at listenInCluster (node:net:1997:12)
-    at node:net:2206:7
-    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
-Emitted 'error' event on Server instance at:
-    at emitErrorNT (node:net:1976:8)
-    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
-  code: 'EADDRINUSE',
-  errno: -48,
-  syscall: 'listen',
-  address: '0.0.0.0',
-  port: 5001
-}
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-📅 Scheduled tasks initialized
-🤖 Workflow automation enabled
-node:events:497
-      throw er; // Unhandled 'error' event
-      ^
-
-Error: listen EADDRINUSE: address already in use 0.0.0.0:5001
-    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
-    at listenInCluster (node:net:1997:12)
-    at node:net:2206:7
-    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
-Emitted 'error' event on Server instance at:
-    at emitErrorNT (node:net:1976:8)
-    at process.processTi⏰ Running low stock check...
-✅ Database connected successfully
-Check low stock alerts error: error: relation "notifications" does not exist
-    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg/l[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-📅 Scheduled tasks initialized
-🤖 Workflow automation enabled
-
-🚀 PlumbPro Inventory Server
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📡 Server running on port 5001
-🌍 Environment: production
-🔗 API Base URL: http://localhost:5001/api
-❤️  Health Check: http://localhost:5001/health
-🔔 Notifications: Enabled
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-[32m[nodemon] restarting due to changes...[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-[32m[nodemon] restarting due to changes...[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/server.js:184
-app.get('/health/detailed', authenticateToken, async (req, res) => {
-                            ^
-
-ReferenceError: authenticateToken is not defined
-    at file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/server.js:184:29
-    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
-    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/server.js:184
-app.get('/health/detailed', authenticateToken, async (req, res) => {
-                            ^
-
-ReferenceError: authenticateToken is not defined
-    at file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/server.js:184:29
-    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
-    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/invoices.js:7
-import { pool } from '../config/database.js';
-         ^^^^
-SyntaxError: The requested module '../config/database.js' does not provide an export named 'pool'
-    at ModuleJob._instantiate (node:internal/modules/esm/module_job:226:21)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-    at async ModuleJob.run (node:internal/modules/esm/module_job:335:5)
-    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
-    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:7
-import { pool } from '../config/database.js';
-         ^^^^
-SyntaxError: The requested module '../config/database.js' does not provide an export named 'pool'
-    at ModuleJob._instantiate (node:internal/modules/esm/module_job:226:21)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-    at async ModuleJob.run (node:internal/modules/esm/module_job:335:5)
-    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
-    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:7
-import { pool } from '../config/database.js';
-         ^^^^
-SyntaxError: The requested module '../config/database.js' does not provide an export named 'pool'
-    at ModuleJob._instantiate (node:internal/modules/esm/module_job:226:21)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-    at async ModuleJob.run (node:internal/modules/esm/module_job:335:5)
-    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
-    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:7
-import { pool } from '../config/database.js';
-         ^^^^
-SyntaxError: The requested module '../config/database.js' does not provide an export named 'pool'
-    at ModuleJob._instantiate (node:internal/modules/esm/module_job:226:21)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-    at async ModuleJob.run (node:internal/modules/esm/module_job:335:5)
-    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
-    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:7
-import { pool } from '../config/database.js';
-         ^^^^
-SyntaxError: The requested module '../config/database.js' does not provide an export named 'pool'
-    at ModuleJob._instantiate (node:internal/modules/esm/module_job:226:21)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-    at async ModuleJob.run (node:internal/modules/esm/module_job:335:5)
-    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
-    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:7
-import { pool } from '../config/database.js';
-         ^^^^
-SyntaxError: The requested module '../config/database.js' does not provide an export named 'pool'
-    at ModuleJob._instantiate (node:internal/modules/esm/module_job:226:21)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-    at async ModuleJob.run (node:internal/modules/esm/module_job:335:5)
-    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
-    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:7
-import { pool } from '../config/database.js';
-         ^^^^
-SyntaxError: The requested module '../config/database.js' does not provide an export named 'pool'
-    at ModuleJob._instantiate (node:internal/modules/esm/module_job:226:21)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-    at async ModuleJob.run (node:internal/modules/esm/module_job:335:5)
-    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
-    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-:internal/process/task_queues:105:5)
-    at async ModuleJob.run (node:internal/modules/esm/module_job:335:5)
-    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
-    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:7
-import { pool } from '../config/database.js';
-         ^^^^
-SyntaxError: The requested module '../config/database.js' does not provide an export named 'pool'
-    at ModuleJob._instantiate (node:internal/modules/esm/module_job:226:21)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-    at async ModuleJob.run (node:internal/modules/esm/module_job:335:5)
-    at async onImport.tracePromise.__proto__ (node:internal/modules/efile:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-e requested module '../config/database.js' does not provide an export named 'pool'
-    at ModuleJob._instantiate (node:internal/modules/esm/module_job:226:21)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-    at async ModuleJob.run (node:internal/modules/esm/module_job:335:5)
-    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
-    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-[32m[nodemon] restarting due to changes...[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/server.js:184
-app.get('/health/detailed', authenticateToken, async (req, res) => {
-                            ^
-
-ReferenceError: authenticateToken is not defined
-    at file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/server.js:184:29
-    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
-    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/server.js:184
-app.get('/health/detailed', authenticateToken, async (req, res) => {
-                            ^
-
-ReferenceError: authenticateToken is not defined
-    at file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/server.js:184:29
-    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
-    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/invoices.js:7
-import { pool } from '../config/database.js';
-         ^^^^
-SyntaxError: The requested module '../config/database.js' does not provide an export named 'pool'
-    at ModuleJob._instantiate (node:internal/modules/esm/module_job:226:21)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-    at async ModuleJob.run (node:internal/modules/esm/module_job:335:5)
-    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
-    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:7
-import { pool } from '../config/database.js';
-         ^^^^
-SyntaxError: The requested module '../config/database.js' does not provide an export named 'pool'
-    at ModuleJob._instantiate (node:internal/modules/esm/module_job:226:21)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-    at async ModuleJob.run (node:internal/modules/esm/module_job:335:5)
-    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
-    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:7
-import { pool } from '../config/database.js';
-         ^^^^
-SyntaxError: The requested module '../config/database.js' does not provide an export named 'pool'
-    at ModuleJob._instantiate (node:internal/modules/esm/module_job:226:21)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-    at async ModuleJob.run (node:internal/modules/esm/module_job:335:5)
-    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
-    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:7
-import { pool } from '../config/database.js';
-         ^^^^
-SyntaxError: The requested module '../config/database.js' does not provide an export named 'pool'
-    at ModuleJob._instantiate (node:internal/modules/esm/module_job:226:21)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-    at async ModuleJob.run (node:internal/modules/esm/module_job:335:5)
-    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
-    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:7
-import { pool } from '../config/database.js';
-         ^^^^
-SyntaxError: The requested module '../config/database.js' does not provide an export named 'pool'
-    at ModuleJob._instantiate (node:internal/modules/esm/module_job:226:21)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-    at async ModuleJob.run (node:internal/modules/esm/module_job:335:5)
-    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
-    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:7
-import { pool } from '../config/database.js';
-         ^^^^
-SyntaxError: The requested module '../config/database.js' does not provide an export named 'pool'
-    at ModuleJob._instantiate (node:internal/modules/esm/module_job:226:21)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-    at async ModuleJob.run (node:internal/modules/esm/module_job:335:5)
-    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
-    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:7
-import { pool } from '../config/database.js';
-         ^^^^
-SyntaxError: The requested module '../config/database.js' does not provide an export named 'pool'
-    at ModuleJob._instantiate (node:internal/modules/esm/module_job:226:21)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-    at async ModuleJob.run (node:internal/modules/esm/module_job:335:5)
-    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
-    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-ound 0 tasks to execute
-⏰ Running scheduled workflows...
-[Scheduler] Checking scheduled tasks...
-✅ Database connected successfully
-✅ Database connected successfully
-Process email queue error: error: relation "email_queue" does not exist
+2026-02-02T19:27:25.880Z - GET /api/movements
+2026-02-02T19:28:25.689Z - GET /api/smart-ordering/dashboard
+✅ PostgreSQL connected successfully
+2026-02-02T19:28:26.757Z - GET /api/purchase-orders
+2026-02-02T19:28:26.759Z - GET /api/purchase-orders/stats/summary
+✅ PostgreSQL connected successfully
+2026-02-02T19:28:51.401Z - GET /api/quotes/stats
+2026-02-02T19:28:51.402Z - GET /api/quotes
+2026-02-02T19:28:58.255Z - GET /api/ai/forecast
+Forecast error: error: operator does not exist: bigint >= timestamp with time zone
     at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg-pool/index.js:45:11
     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-    at async processEmailQueue (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:205:20) {
-  length: 110,
+    at async forecastStockDemand (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/aiService.js:26:33)
+    at async file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/ai.js:26:20 {
+  length: 220,
+  severity: 'ERROR',
+  code: '42883',
+  detail: undefined,
+  hint: 'No operator matches the given name and argument types. You might need to add explicit type casts.',
+  position: '228',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_oper.c',
+  line: '656',
+  routine: 'op_error'
+}
+Forecast error: Error: Failed to generate stock forecast
+    at forecastStockDemand (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/aiService.js:138:11)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/ai.js:26:20
+⏰ Running low stock check...
+⏰ Running scheduled workflows...
+[Scheduler] Checking scheduled tasks...
+✅ PostgreSQL connected successfully
+✅ PostgreSQL connected successfully
+✅ PostgreSQL connected successfully
+[Scheduler] Found 0 tasks to execute
+Process email queue error: error: column "retry_count" does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async processEmailQueue (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:185:27)
+    at async Task._execution (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/server.js:364:7) {
+  length: 111,
+  severity: 'ERROR',
+  code: '42703',
+  detail: undefined,
+  hint: undefined,
+  position: '72',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '3675',
+  routine: 'errorMissingColumn'
+}
+[Scheduled] Email queue processing error: column "retry_count" does not exist
+✅ Checked 0 low stock items and 3 out of stock items
+2026-02-02T19:30:36.527Z - GET /api/team
+2026-02-02T19:30:36.529Z - GET /api/team/invitations
+2026-02-02T19:30:36.530Z - GET /api/permissions/users
+✅ PostgreSQL connected successfully
+✅ PostgreSQL connected successfully
+✅ PostgreSQL connected successfully
+Get users with roles error: error: relation "user_role_assignments" does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg/lib/client.js:545:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/permissions.js:253:20 {
+  length: 121,
   severity: 'ERROR',
   code: '42P01',
   detail: undefined,
   hint: undefined,
-  position: '22',
+  position: '529',
   internalPosition: undefined,
   internalQuery: undefined,
   where: undefined,
@@ -1502,21 +152,26 @@ Process email queue error: error: relation "email_queue" does not exist
   line: '1395',
   routine: 'parserOpenTable'
 }
-[Scheduler] Found 0 tasks to execute
-⏰ Running scheduled workflows...
-[Scheduler] Checking scheduled tasks...
-✅ Database connected successfully
-✅ Database connected successfully
-Process email queue error: error: relation "email_queue" does not exist
-    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg-pool/index.js:45:11
+2026-02-02T19:31:55.008Z - GET /api/team
+2026-02-02T19:31:55.010Z - GET /api/permissions/users
+2026-02-02T19:31:55.012Z - GET /api/team/invitations
+2026-02-02T19:31:55.012Z - GET /api/team
+2026-02-02T19:31:55.013Z - GET /api/team/invitations
+2026-02-02T19:31:55.015Z - GET /api/permissions/users
+✅ PostgreSQL connected successfully
+✅ PostgreSQL connected successfully
+✅ PostgreSQL connected successfully
+✅ PostgreSQL connected successfully
+Get users with roles error: error: relation "user_role_assignments" does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg/lib/client.js:545:17
     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-    at async processEmailQueue (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:205:20) {
-  length: 110,
+    at async file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/permissions.js:253:20 {
+  length: 121,
   severity: 'ERROR',
   code: '42P01',
   detail: undefined,
   hint: undefined,
-  position: '22',
+  position: '529',
   internalPosition: undefined,
   internalQuery: undefined,
   where: undefined,
@@ -1529,21 +184,18 @@ Process email queue error: error: relation "email_queue" does not exist
   line: '1395',
   routine: 'parserOpenTable'
 }
-[Scheduler] Found 0 tasks to execute
-⏰ Running scheduled workflows...
-[Scheduler] Checking scheduled tasks...
-✅ Database connected successfully
-✅ Database connected successfully
-Process email queue error: error: relation "email_queue" does not exist
-    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg-pool/index.js:45:11
+✅ PostgreSQL connected successfully
+✅ PostgreSQL connected successfully
+Get users with roles error: error: relation "user_role_assignments" does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg/lib/client.js:545:17
     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-    at async processEmailQueue (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:205:20) {
-  length: 110,
+    at async file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/permissions.js:253:20 {
+  length: 121,
   severity: 'ERROR',
   code: '42P01',
   detail: undefined,
   hint: undefined,
-  position: '22',
+  position: '529',
   internalPosition: undefined,
   internalQuery: undefined,
   where: undefined,
@@ -1556,21 +208,205 @@ Process email queue error: error: relation "email_queue" does not exist
   line: '1395',
   routine: 'parserOpenTable'
 }
-[Scheduler] Found 0 tasks to execute
+2026-02-02T19:31:56.642Z - GET /api/analytics/dashboard
+2026-02-02T19:31:56.643Z - GET /api/advanced-analytics/dashboard
+Analytics dashboard error: error: column "total_amount" does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg/lib/client.js:545:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async Promise.all (index 0)
+    at async file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/advancedAnalytics.js:43:9 {
+  length: 178,
+  severity: 'ERROR',
+  code: '42703',
+  detail: undefined,
+  hint: 'Perhaps you meant to reference the column "invoices.tax_amount".',
+  position: '40',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '3675',
+  routine: 'errorMissingColumn'
+}
+2026-02-02T19:31:59.073Z - GET /api/analytics/inventory
+2026-02-02T19:32:00.580Z - GET /api/advanced-analytics/dashboard
+2026-02-02T19:32:00.581Z - GET /api/advanced-analytics/dashboard
+2026-02-02T19:32:00.582Z - GET /api/analytics/dashboard
+2026-02-02T19:32:00.582Z - GET /api/analytics/dashboard
+Analytics dashboard error: error: column "total_amount" does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg/lib/client.js:545:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async Promise.all (index 0)
+    at async file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/advancedAnalytics.js:43:9 {
+  length: 178,
+  severity: 'ERROR',
+  code: '42703',
+  detail: undefined,
+  hint: 'Perhaps you meant to reference the column "invoices.tax_amount".',
+  position: '40',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '3675',
+  routine: 'errorMissingColumn'
+}
+Analytics dashboard error: error: column "total_amount" does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg/lib/client.js:545:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async Promise.all (index 0)
+    at async file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/advancedAnalytics.js:43:9 {
+  length: 178,
+  severity: 'ERROR',
+  code: '42703',
+  detail: undefined,
+  hint: 'Perhaps you meant to reference the column "invoices.tax_amount".',
+  position: '40',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '3675',
+  routine: 'errorMissingColumn'
+}
+2026-02-02T19:32:01.203Z - GET /api/analytics/inventory
+2026-02-02T19:32:01.206Z - GET /api/analytics/inventory
+2026-02-02T19:32:02.428Z - GET /api/advanced-analytics/dashboard
+2026-02-02T19:32:02.430Z - GET /api/analytics/dashboard
+2026-02-02T19:32:02.430Z - GET /api/analytics/dashboard
+2026-02-02T19:32:02.431Z - GET /api/advanced-analytics/dashboard
+Analytics dashboard error: error: column "total_amount" does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg/lib/client.js:545:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async Promise.all (index 0)
+    at async file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/advancedAnalytics.js:43:9 {
+  length: 178,
+  severity: 'ERROR',
+  code: '42703',
+  detail: undefined,
+  hint: 'Perhaps you meant to reference the column "invoices.tax_amount".',
+  position: '40',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '3675',
+  routine: 'errorMissingColumn'
+}
+Analytics dashboard error: error: column "total_amount" does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg/lib/client.js:545:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async Promise.all (index 0)
+    at async file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/advancedAnalytics.js:43:9 {
+  length: 178,
+  severity: 'ERROR',
+  code: '42703',
+  detail: undefined,
+  hint: 'Perhaps you meant to reference the column "invoices.tax_amount".',
+  position: '40',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '3675',
+  routine: 'errorMissingColumn'
+}
+2026-02-02T19:32:14.506Z - GET /api/quotes
+2026-02-02T19:32:14.508Z - GET /api/quotes
+2026-02-02T19:32:14.509Z - GET /api/quotes/stats
+2026-02-02T19:32:14.510Z - GET /api/quotes/stats
+2026-02-02T19:32:25.779Z - GET /api/smart-ordering/alerts
+Get alerts error: error: column i.sku does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg/lib/client.js:545:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/smartOrdering.js:83:20 {
+  length: 104,
+  severity: 'ERROR',
+  code: '42703',
+  detail: undefined,
+  hint: undefined,
+  position: '103',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '3675',
+  routine: 'errorMissingColumn'
+}
 ⏰ Running scheduled workflows...
 [Scheduler] Checking scheduled tasks...
-✅ Database connected successfully
-✅ Database connected successfully
-Process email queue error: error: relation "email_queue" does not exist
+✅ PostgreSQL connected successfully
+✅ PostgreSQL connected successfully
+[Scheduler] Found 0 tasks to execute
+Process email queue error: error: column "retry_count" does not exist
     at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg-pool/index.js:45:11
     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-    at async processEmailQueue (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:205:20) {
-  length: 110,
+    at async processEmailQueue (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:185:27)
+    at async Task._execution (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/server.js:364:7) {
+  length: 111,
+  severity: 'ERROR',
+  code: '42703',
+  detail: undefined,
+  hint: undefined,
+  position: '72',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '3675',
+  routine: 'errorMissingColumn'
+}
+[Scheduled] Email queue processing error: column "retry_count" does not exist
+2026-02-02T19:35:44.223Z - GET /api/xero/status
+2026-02-02T19:35:44.226Z - GET /api/xero/status
+2026-02-02T19:35:44.227Z - GET /api/settings/ai-keys
+✅ PostgreSQL connected successfully
+Failed to load AI key status: error: relation "ai_provider_keys" does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async getProviderKeyStatus (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/aiKeyService.js:74:20)
+    at async file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/settings.js:11:20 {
+  length: 115,
   severity: 'ERROR',
   code: '42P01',
   detail: undefined,
   hint: undefined,
-  position: '22',
+  position: '35',
   internalPosition: undefined,
   internalQuery: undefined,
   where: undefined,
@@ -1583,920 +419,56 @@ Process email queue error: error: relation "email_queue" does not exist
   line: '1395',
   routine: 'parserOpenTable'
 }
+2026-02-02T19:40:23.581Z - GET /api/smart-ordering/alerts
+✅ PostgreSQL connected successfully
+Get alerts error: error: column i.sku does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg/lib/client.js:545:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/smartOrdering.js:83:20 {
+  length: 104,
+  severity: 'ERROR',
+  code: '42703',
+  detail: undefined,
+  hint: undefined,
+  position: '103',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '3675',
+  routine: 'errorMissingColumn'
+}
+⏰ Running scheduled workflows...
+[Scheduler] Checking scheduled tasks...
+✅ PostgreSQL connected successfully
+✅ PostgreSQL connected successfully
 [Scheduler] Found 0 tasks to execute
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-📅 Scheduled tasks initialized
-🤖 Workflow automation enabled
-node:events:497
-      throw er; // Unhandled 'error' event
-      ^
-
-Error: listen EADDRINUSE: address already in use 0.0.0.0:5001
-    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
-    at listenInCluster (node:net:1997:12)
-    at node:net:2206:7
-    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
-Emitted 'error' event on Server instance at:
-    at emitErrorNT (node:net:1976:8)
-    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
-  code: 'EADDRINUSE',
-  errno: -48,
-  syscall: 'listen',
-  address: '0.0.0.0',
-  port: 5001
+Process email queue error: error: column "retry_count" does not exist
+    at /Users/ryan_sinclair/Documents/GitHub/PlumbPro Inventory/PlumbPro-Inventory/server/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async processEmailQueue (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:185:27)
+    at async Task._execution (file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/server.js:364:7) {
+  length: 111,
+  severity: 'ERROR',
+  code: '42703',
+  detail: undefined,
+  hint: undefined,
+  position: '72',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '3675',
+  routine: 'errorMissingColumn'
 }
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-📅 Scheduled tasks initialized
-🤖 Workflow automation enabled
-node:events:497
-      throw er; // Unhandled 'error' event
-      ^
-
-Error: listen EADDRINUSE: address already in use 0.0.0.0:5001
-    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
-    at listenInCluster (node:net:1997:12)
-    at node:net:2206:7
-    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
-Emitted 'error' event on Server instance at:
-    at emitErrorNT (node:net:1976:8)
-    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
-  code: 'EADDRINUSE',
-  errno: -48,
-  syscall: 'listen',
-  address: '0.0.0.0',
-  port: 5001
-}
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-[32m[nodemon] restarting due to changes...[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-[32m[nodemon] restarting due to changes...[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-[32m[nodemon] restarting due to changes...[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] restarting due to changes...[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-[32m[nodemon] restarting due to changes...[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/team.js:664
-    const permissions: Record<string, Record<string, boolean>> = {};
-          ^^^^^^^^^^^
-
-SyntaxError: Missing initializer in const declaration
-    at compileSourceTextModule (node:internal/modules/esm/utils:346:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:107:18)
-    at #translate (node:internal/modules/esm/loader:546:20)
-    at afterLoad (node:internal/modules/esm/loader:596:29)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:601:12)
-    at #createModuleJob (node:internal/modules/esm/loader:624:36)
-    at #getJobFromResolveResult (node:internal/modules/esm/loader:343:34)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:311:41)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/server.js:184
-app.get('/health/detailed', authenticateToken, async (req, res) => {
-                            ^
-
-ReferenceError: authenticateToken is not defined
-    at file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/server.js:184:29
-    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
-    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/server.js:184
-app.get('/health/detailed', authenticateToken, async (req, res) => {
-                            ^
-
-ReferenceError: authenticateToken is not defined
-    at file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/server.js:184:29
-    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
-    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/routes/invoices.js:7
-import { pool } from '../config/database.js';
-         ^^^^
-SyntaxError: The requested module '../config/database.js' does not provide an export named 'pool'
-    at ModuleJob._instantiate (node:internal/modules/esm/module_job:226:21)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-    at async ModuleJob.run (node:internal/modules/esm/module_job:335:5)
-    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
-    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:7
-import { pool } from '../config/database.js';
-         ^^^^
-SyntaxError: The requested module '../config/database.js' does not provide an export named 'pool'
-    at ModuleJob._instantiate (node:internal/modules/esm/module_job:226:21)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-    at async ModuleJob.run (node:internal/modules/esm/module_job:335:5)
-    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
-    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:7
-import { pool } from '../config/database.js';
-         ^^^^
-SyntaxError: The requested module '../config/database.js' does not provide an export named 'pool'
-    at ModuleJob._instantiate (node:internal/modules/esm/module_job:226:21)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-    at async ModuleJob.run (node:internal/modules/esm/module_job:335:5)
-    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
-    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:7
-import { pool } from '../config/database.js';
-         ^^^^
-SyntaxError: The requested module '../config/database.js' does not provide an export named 'pool'
-    at ModuleJob._instantiate (node:internal/modules/esm/module_job:226:21)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-    at async ModuleJob.run (node:internal/modules/esm/module_job:335:5)
-    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
-    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:7
-import { pool } from '../config/database.js';
-         ^^^^
-SyntaxError: The requested module '../config/database.js' does not provide an export named 'pool'
-    at ModuleJob._instantiate (node:internal/modules/esm/module_job:226:21)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-    at async ModuleJob.run (node:internal/modules/esm/module_job:335:5)
-    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
-    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:7
-import { pool } from '../config/database.js';
-         ^^^^
-SyntaxError: The requested module '../config/database.js' does not provide an export named 'pool'
-    at ModuleJob._instantiate (node:internal/modules/esm/module_job:226:21)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-    at async ModuleJob.run (node:internal/modules/esm/module_job:335:5)
-    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
-    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
-[32m[nodemon] restarting due to changes...[39m
-[32m[nodemon] starting `node src/server.js`[39m
-file:///Users/ryan_sinclair/Documents/GitHub/PlumbPro%20Inventory/PlumbPro-Inventory/server/src/services/emailService.js:7
-import { pool } from '../config/database.js';
-         ^^^^
-SyntaxError: The requested module '../config/database.js' does not provide an export named 'pool'
-    at ModuleJob._instantiate (node:internal/modules/esm/module_job:226:21)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-    at async ModuleJob.run (node:internal/modules/esm/module_job:335:5)
-    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
-    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
-
-Node.js v22.21.0
-[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[Scheduled] Email queue processing error: column "retry_count" does not exist

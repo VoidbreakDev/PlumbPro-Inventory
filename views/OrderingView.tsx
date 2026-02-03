@@ -371,7 +371,7 @@ export const OrderingView: React.FC<OrderingViewProps> = ({ inventory, jobs }) =
               <RefreshCw className="w-8 h-8 animate-spin mx-auto text-blue-600 mb-4" />
               <p className="text-slate-600">Loading dashboard...</p>
             </div>
-          ) : dashboard ? (
+          ) : dashboard && dashboard.summary ? (
             <>
               {/* Summary Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -380,10 +380,10 @@ export const OrderingView: React.FC<OrderingViewProps> = ({ inventory, jobs }) =
                     <span className="text-slate-600 text-sm">Pending Alerts</span>
                     <Bell className="w-5 h-5 text-yellow-500" />
                   </div>
-                  <p className="text-3xl font-bold text-slate-800">{dashboard.summary.pendingAlerts}</p>
-                  {dashboard.summary.criticalAlerts > 0 && (
+                  <p className="text-3xl font-bold text-slate-800">{dashboard.summary?.pendingAlerts || 0}</p>
+                  {dashboard.summary?.criticalAlerts > 0 && (
                     <p className="text-sm text-red-600 mt-1">
-                      {dashboard.summary.criticalAlerts} critical
+                      {dashboard.summary?.criticalAlerts} critical
                     </p>
                   )}
                 </div>
@@ -393,7 +393,7 @@ export const OrderingView: React.FC<OrderingViewProps> = ({ inventory, jobs }) =
                     <span className="text-slate-600 text-sm">Low Stock Items</span>
                     <AlertTriangle className="w-5 h-5 text-orange-500" />
                   </div>
-                  <p className="text-3xl font-bold text-slate-800">{dashboard.summary.lowStockItems}</p>
+                  <p className="text-3xl font-bold text-slate-800">{dashboard.summary?.lowStockItems || 0}</p>
                   <p className="text-sm text-slate-500 mt-1">Below reorder level</p>
                 </div>
 
@@ -402,7 +402,7 @@ export const OrderingView: React.FC<OrderingViewProps> = ({ inventory, jobs }) =
                     <span className="text-slate-600 text-sm">Items to Reorder</span>
                     <ShoppingCart className="w-5 h-5 text-blue-500" />
                   </div>
-                  <p className="text-3xl font-bold text-slate-800">{dashboard.summary.itemsToReorder}</p>
+                  <p className="text-3xl font-bold text-slate-800">{dashboard.summary?.itemsToReorder || 0}</p>
                   <p className="text-sm text-slate-500 mt-1">Suggested for ordering</p>
                 </div>
 
@@ -412,14 +412,14 @@ export const OrderingView: React.FC<OrderingViewProps> = ({ inventory, jobs }) =
                     <FileText className="w-5 h-5 text-green-500" />
                   </div>
                   <p className="text-3xl font-bold text-slate-800">
-                    ${dashboard.summary.estimatedOrderValue?.toLocaleString() || '0'}
+                    ${dashboard.summary?.estimatedOrderValue?.toLocaleString() || '0'}
                   </p>
                   <p className="text-sm text-slate-500 mt-1">Total pending orders</p>
                 </div>
               </div>
 
               {/* Low Stock Items */}
-              {dashboard.lowStockItems.length > 0 && (
+              {dashboard.lowStockItems?.length > 0 && (
                 <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
                   <div className="p-6 border-b border-slate-100">
                     <h4 className="font-bold text-slate-800 flex items-center">
@@ -428,7 +428,7 @@ export const OrderingView: React.FC<OrderingViewProps> = ({ inventory, jobs }) =
                     </h4>
                   </div>
                   <div className="divide-y divide-slate-100">
-                    {dashboard.lowStockItems.slice(0, 5).map(item => (
+                    {dashboard.lowStockItems?.slice(0, 5).map(item => (
                       <div key={item.id} className="p-4 flex items-center justify-between hover:bg-slate-50">
                         <div>
                           <p className="font-medium text-slate-800">{item.name}</p>
@@ -448,7 +448,7 @@ export const OrderingView: React.FC<OrderingViewProps> = ({ inventory, jobs }) =
               )}
 
               {/* Upcoming Shortages */}
-              {dashboard.upcomingShortages.length > 0 && (
+              {dashboard.upcomingShortages?.length > 0 && (
                 <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
                   <div className="p-6 border-b border-slate-100">
                     <h4 className="font-bold text-slate-800 flex items-center">
@@ -457,7 +457,7 @@ export const OrderingView: React.FC<OrderingViewProps> = ({ inventory, jobs }) =
                     </h4>
                   </div>
                   <div className="divide-y divide-slate-100">
-                    {dashboard.upcomingShortages.slice(0, 5).map(item => (
+                    {dashboard.upcomingShortages?.slice(0, 5).map(item => (
                       <div key={item.id} className="p-4 flex items-center justify-between hover:bg-slate-50">
                         <div>
                           <p className="font-medium text-slate-800">{item.name}</p>
@@ -480,7 +480,7 @@ export const OrderingView: React.FC<OrderingViewProps> = ({ inventory, jobs }) =
               )}
 
               {/* Recent Orders */}
-              {dashboard.recentOrders.length > 0 && (
+              {dashboard.recentOrders?.length > 0 && (
                 <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
                   <div className="p-6 border-b border-slate-100">
                     <h4 className="font-bold text-slate-800 flex items-center">
@@ -489,7 +489,7 @@ export const OrderingView: React.FC<OrderingViewProps> = ({ inventory, jobs }) =
                     </h4>
                   </div>
                   <div className="divide-y divide-slate-100">
-                    {dashboard.recentOrders.slice(0, 5).map(order => (
+                    {dashboard.recentOrders?.slice(0, 5).map(order => (
                       <div key={order.id} className="p-4 flex items-center justify-between hover:bg-slate-50">
                         <div>
                           <p className="font-medium text-slate-800">{order.poNumber}</p>

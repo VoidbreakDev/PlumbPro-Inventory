@@ -369,8 +369,8 @@ export function ReportingView() {
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Stock Movements</h3>
               {reportData.recentMovements?.length > 0 ? (
                 <div className="space-y-3">
-                  {reportData.recentMovements.map((movement, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  {reportData.recentMovements.map((movement) => (
+                    <div key={`movement-${movement.type}`} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                       <div className="flex items-center gap-3">
                         {movement.type === 'In' ? (
                           <ArrowDownRight className="w-5 h-5 text-green-500" />
@@ -579,7 +579,7 @@ export function ReportingView() {
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Top Clients by Job Volume</h3>
               <div className="space-y-3">
                 {jobReport.topClients.map((client, idx) => (
-                  <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div key={client.name || `client-${idx}`} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div className="flex items-center gap-3">
                       <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
                         idx === 0 ? 'bg-yellow-100 text-yellow-700' :
@@ -807,8 +807,8 @@ export function ReportingView() {
             <div className="bg-white rounded-lg shadow p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Revenue by Customer Type</h3>
               <div className="space-y-3">
-                {customerAnalytics.bySegment.map((segment, idx) => (
-                  <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                {customerAnalytics.bySegment.map((segment) => (
+                  <div key={`segment-${segment.customerType || 'other'}`} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div>
                       <p className="font-medium text-gray-900 capitalize">{segment.customerType || 'Other'}</p>
                       <p className="text-sm text-gray-500">{segment.customerCount} customers, {segment.totalJobs} jobs</p>

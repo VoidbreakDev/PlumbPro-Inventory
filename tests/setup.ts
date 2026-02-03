@@ -9,8 +9,8 @@ afterEach(() => {
 
 // Mock environment variables
 vi.mock('../lib/api', () => ({
-  API_ROOT_URL: 'http://localhost:5000',
-  DEFAULT_BACKEND_PORT: 5000,
+  API_ROOT_URL: 'http://localhost:5001',
+  DEFAULT_BACKEND_PORT: 5001,
 }));
 
 // Mock matchMedia

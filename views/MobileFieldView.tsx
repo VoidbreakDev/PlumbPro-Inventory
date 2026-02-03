@@ -25,6 +25,7 @@ import { useStore } from '../store/useStore';
 import { getErrorMessage } from '../lib/errors';
 import { BarcodeScanner } from '../components/BarcodeScanner';
 import { VoiceMemoRecorder } from '../components/VoiceMemoRecorder';
+import { VoiceNotesList } from '../components/VoiceNotesList';
 import { PushNotificationManager } from '../components/PushNotificationManager';
 import { GPSBreadcrumbMap } from '../components/GPSBreadcrumbMap';
 import { OfflineSyncStatus } from '../components/OfflineSyncStatus';
@@ -641,13 +642,26 @@ export function MobileFieldView() {
             {/* Notes Tab */}
             {activeTab === 'notes' && (
               <div className="space-y-4">
-                <button
-                  onClick={handleAddNote}
-                  className="w-full px-4 py-3 bg-green-600 text-white rounded-lg flex items-center justify-center gap-2"
-                >
-                  <StickyNote className="w-5 h-5" />
-                  Add Note
-                </button>
+                {/* Voice Notes Section */}
+                <VoiceNotesList jobId={activeCheckIn?.job_id} />
+                
+                {/* Divider */}
+                <div className="border-t border-gray-200 my-4" />
+                
+                {/* Text Notes Section */}
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-semibold text-gray-800 flex items-center gap-2">
+                    <StickyNote className="w-4 h-4" />
+                    Text Notes
+                  </h3>
+                  <button
+                    onClick={handleAddNote}
+                    className="px-3 py-1.5 bg-green-600 text-white text-sm rounded-lg flex items-center gap-1"
+                  >
+                    <StickyNote className="w-4 h-4" />
+                    Add
+                  </button>
+                </div>
 
                 <div className="space-y-3">
                   {notes.map((note) => (
@@ -673,9 +687,9 @@ export function MobileFieldView() {
                 </div>
 
                 {notes.length === 0 && (
-                  <div className="text-center py-8 text-gray-500">
-                    <StickyNote className="w-12 h-12 mx-auto mb-2 text-gray-300" />
-                    <p>No notes yet</p>
+                  <div className="text-center py-4 text-gray-500">
+                    <StickyNote className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                    <p className="text-sm">No text notes</p>
                   </div>
                 )}
               </div>

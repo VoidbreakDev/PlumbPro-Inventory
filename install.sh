@@ -277,8 +277,8 @@ create_env_file() {
     echo "Application Configuration:"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-    read -p "Server port [5000]: " PORT
-    PORT=${PORT:-5000}
+    read -p "Server port [5001]: " PORT
+    PORT=${PORT:-5001}
 
     read -p "Client port [3000]: " CLIENT_PORT
     CLIENT_PORT=${CLIENT_PORT:-3000}
@@ -593,7 +593,7 @@ case "$1" in
         echo "Starting PlumbPro Inventory..."
         cd "$SCRIPT_DIR/server" && npm start &
         cd "$SCRIPT_DIR" && npm run dev &
-        echo "Server starting... Access at http://localhost:3000"
+        echo "Server starting... Access at http://localhost:5173"
         ;;
     stop)
         echo "Stopping PlumbPro Inventory..."

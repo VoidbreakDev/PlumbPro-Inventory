@@ -44,6 +44,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSave }) => {
     preferredProvider: savedAiSettings.preferredProvider || 'auto',
     preferredModel: savedAiSettings.preferredModel || 'auto',
     hasCustomApiKey: savedAiSettings.hasCustomApiKey || false,
+    geminiApiKey: '',
     featureProviders: savedAiSettings.featureProviders || {
       forecast: 'auto',
       search: 'auto',

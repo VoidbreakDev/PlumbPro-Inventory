@@ -101,11 +101,11 @@ export function SupplierDashboardView({ contacts }: SupplierDashboardViewProps) 
     setLoading(true);
     try {
       const [alertsData, performersData] = await Promise.all([
-        priceAlertsAPI.getAll({ acknowledged: false }).catch(() => []),
+        priceAlertsAPI.getAll({ acknowledged: false }).catch(() => ({ alerts: [], pagination: {}, statistics: {} })),
         supplierAnalyticsAPI.getTopPerformers('rating', 10).catch(() => ({ suppliers: [] }))
       ]);
 
-      setPriceAlerts(alertsData);
+      setPriceAlerts(alertsData.alerts || []);
       setTopPerformers(performersData.suppliers || []);
     } catch (err) {
       console.error('Failed to load dashboard data:', err);
@@ -131,7 +131,7 @@ export function SupplierDashboardView({ contacts }: SupplierDashboardViewProps) 
 
   const handleAcknowledgeAlert = async (alertId: string) => {
     try {
-      await priceAlertsAPI.acknowledge(alertId);
+      await priceAlertsAPI.markAcknowledged(alertId);
       setPriceAlerts(prev => prev.map(a =>
         a.id === alertId ? { ...a, isAcknowledged: true } : a
       ));
@@ -156,12 +156,13 @@ export function SupplierDashboardView({ contacts }: SupplierDashboardViewProps) 
 
   // Render star rating
   const renderStars = (rating: number) => {
+    const safeRating = Math.max(0, Math.min(5, Math.round(rating || 0)));
     const stars = [];
     for (let i = 1; i <= 5; i++) {
       stars.push(
         <Star
           key={i}
-          className={`w-4 h-4 ${i <= rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`}
+          className={`w-4 h-4 ${i <= safeRating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`}
         />
       );
     }
@@ -206,27 +207,27 @@ export function SupplierDashboardView({ contacts }: SupplierDashboardViewProps) 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           icon={Users}
-          label="Total Suppliers"
+          title="Total Suppliers"
           value={stats.totalSuppliers.toString()}
-          color="blue"
+          color="bg-blue-500"
         />
         <StatCard
           icon={Award}
-          label="Top Rated (4.5+)"
+          title="Top Rated (4.5+)"
           value={stats.topRated.toString()}
-          color="yellow"
+          color="bg-yellow-500"
         />
         <StatCard
           icon={Star}
-          label="Average Rating"
+          title="Average Rating"
           value={avgRating > 0 ? avgRating.toFixed(1) : 'N/A'}
-          color="purple"
+          color="bg-purple-500"
         />
         <StatCard
           icon={AlertTriangle}
-          label="Price Alerts"
+          title="Price Alerts"
           value={stats.priceAlerts.toString()}
-          color={stats.priceAlerts > 0 ? 'red' : 'green'}
+          color={stats.priceAlerts > 0 ? 'bg-red-500' : 'bg-green-500'}
         />
       </div>
 
@@ -381,7 +382,11 @@ export function SupplierDashboardView({ contacts }: SupplierDashboardViewProps) 
                     <div className="flex items-center gap-1">
                       <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
                       <span className="font-semibold text-gray-900">
-                        {performer.averageRating?.toFixed(1) || 'N/A'}
+                        {typeof performer.averageRating === 'number' 
+                          ? performer.averageRating.toFixed(1) 
+                          : typeof performer.averageRating === 'string' 
+                            ? parseFloat(performer.averageRating).toFixed(1)
+                            : 'N/A'}
                       </span>
                     </div>
                   </div>

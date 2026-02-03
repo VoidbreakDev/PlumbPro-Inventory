@@ -10,16 +10,18 @@ services:
     container_name: plumbpro-app
     restart: unless-stopped
     ports:
-      - "5000:5000"
+      - "5001:5001"
     environment:
       - NODE_ENV=production
-      - PORT=5000
+      - PORT=5001
       - DB_HOST=db
       - DB_PORT=5432
       - DB_NAME=${DB_NAME:-plumbpro_inventory}
       - DB_USER=${DB_USER:-plumbpro_user}
-      - DB_PASSWORD=${DB_PASSWORD:-changeme}
-      - JWT_SECRET=${JWT_SECRET}
+      # SECURITY: DB_PASSWORD is REQUIRED - no default for production safety
+      - DB_PASSWORD=${DB_PASSWORD:?DB_PASSWORD environment variable is required}
+      # SECURITY: JWT_SECRET is REQUIRED - no default for production safety
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET environment variable is required}
       - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-7d}
       - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost}
       - RATE_LIMIT_WINDOW_MS=${RATE_LIMIT_WINDOW_MS:-900000}
@@ -39,7 +41,7 @@ services:
       - ./logs:/app/logs
       - ./uploads:/app/server/uploads
     healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:5000/health', (r) => r.statusCode === 200 ? process.exit(0) : process.exit(1))"]
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:5001/health', (r) => r.statusCode === 200 ? process.exit(0) : process.exit(1))"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -52,7 +54,8 @@ services:
     restart: unless-stopped
     environment:
       - POSTGRES_USER=${DB_USER:-plumbpro_user}
-      - POSTGRES_PASSWORD=${DB_PASSWORD:-changeme}
+      # SECURITY: POSTGRES_PASSWORD is REQUIRED - no default for production safety
+      - POSTGRES_PASSWORD=${DB_PASSWORD:?DB_PASSWORD environment variable is required}
       - POSTGRES_DB=${DB_NAME:-plumbpro_inventory}
     volumes:
       - postgres_data:/var/lib/postgresql/data

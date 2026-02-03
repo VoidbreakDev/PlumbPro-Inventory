@@ -249,14 +249,14 @@ function Create-EnvFile {
     Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
     if (-not $Unattended) {
-        $script:PORT = Read-Host "Server port [5000]"
-        if ([string]::IsNullOrWhiteSpace($PORT)) { $script:PORT = "5000" }
+        $script:PORT = Read-Host "Server port [5001]"
+        if ([string]::IsNullOrWhiteSpace($PORT)) { $script:PORT = "5001" }
 
         $script:CLIENT_PORT = Read-Host "Client port [3000]"
         if ([string]::IsNullOrWhiteSpace($CLIENT_PORT)) { $script:CLIENT_PORT = "3000" }
     }
     else {
-        $script:PORT = "5000"
+        $script:PORT = "5001"
         $script:CLIENT_PORT = "3000"
     }
 

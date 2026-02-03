@@ -48,7 +48,7 @@ export const isElectron = typeof window !== 'undefined' && !!(window as any).ele
 function getApiBaseUrl(): string {
   if (isElectron) {
     // In Electron, server port may be injected by the main process
-    const electronPort = (window as any).__PLUMBPRO_SERVER_PORT__ || 5000;
+    const electronPort = (window as any).__PLUMBPRO_SERVER_PORT__ || 5001;
     return `http://localhost:${electronPort}/api`;
   }
   return import.meta.env.VITE_API_URL || DEFAULT_API_URL;

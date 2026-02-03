@@ -703,7 +703,7 @@ function InvoiceDetailModal({ invoice, onClose, onUpdate }: InvoiceDetailModalPr
               </thead>
               <tbody>
                 {invoice.items?.map((item, idx) => (
-                  <tr key={idx} className="border-b">
+                  <tr key={item.id || `item-${idx}`} className="border-b">
                     <td className="py-3 px-3">{item.description}</td>
                     <td className="py-3 px-3 text-center">{item.quantity}</td>
                     <td className="py-3 px-3 text-right">{formatCurrency(item.unit_price)}</td>

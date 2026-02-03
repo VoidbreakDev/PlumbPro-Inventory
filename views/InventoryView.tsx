@@ -389,8 +389,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     <td className="px-6 py-4">
                       {item.locationStock && item.locationStock.length > 0 ? (
                         <div className="space-y-1">
-                          {item.locationStock.map((loc, idx) => (
-                            <div key={idx} className="flex items-center gap-1.5 text-xs">
+                          {item.locationStock.map((loc) => (
+                            <div key={loc.locationId || loc.locationName} className="flex items-center gap-1.5 text-xs">
                               <MapPin className="w-3 h-3 text-slate-400" />
                               <span className="text-slate-600 font-medium">{loc.locationName}:</span>
                               <span className="text-slate-800 font-bold">{loc.quantity}</span>
@@ -512,8 +512,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     <div className="col-span-2">
                       <p className="text-xs text-slate-500 mb-1">Locations</p>
                       <div className="space-y-1">
-                        {item.locationStock.map((loc, idx) => (
-                          <div key={idx} className="flex items-center gap-1.5 text-xs">
+                        {item.locationStock.map((loc) => (
+                          <div key={loc.locationId || loc.locationName} className="flex items-center gap-1.5 text-xs">
                             <MapPin className="w-3 h-3 text-slate-400" />
                             <span className="text-slate-600 font-medium">{loc.locationName}:</span>
                             <span className="text-slate-800 font-bold">{loc.quantity}</span>

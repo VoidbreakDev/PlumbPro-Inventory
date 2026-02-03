@@ -1170,3 +1170,958 @@ export interface ForecastResponse {
   criticalItems: ItemForecast[];
   upcomingShortages: ItemForecast[];
 }
+
+// ====================================
+// Kit/BOM Management Types
+// ====================================
+
+export type KitType = 'service' | 'installation' | 'repair' | 'maintenance' | 'emergency' | 'inspection';
+export type KitItemType = 'inventory' | 'labor' | 'subcontractor' | 'sub-kit';
+export type KitStatus = 'active' | 'draft' | 'archived';
+
+/**
+ * Main Kit/BOM (Bill of Materials) Interface
+ * Represents a predefined set of materials and labor for common jobs
+ */
+export interface Kit {
+  id: string;
+  name: string;
+  description?: string;
+  kitType: KitType;
+  category: string; // e.g., "Bathroom", "Kitchen", "Hot Water", "Blocked Drain", "Gas Fitting"
+  status: KitStatus;
+  
+  // Visual
+  color?: string; // Hex color for visual identification
+  icon?: string; // Lucide icon name
+  
+  // Job type linkage - what types of jobs this kit applies to
+  applicableJobTypes: string[];
+  
+  // Items in the kit
+  items: KitItem[];
+  
+  // Variations (e.g., Small/Medium/Large bathroom)
+  variations?: KitVariation[];
+  
+  // Pricing Summary (calculated from items)
+  totalCostPrice: number;
+  totalSellPrice: number;
+  totalLaborHours: number;
+  
+  // Markup settings
+  defaultMarkupPercentage: number;
+  
+  // Metadata
+  usageCount: number;
+  lastUsedAt?: string;
+  averageJobProfit?: number;
+  averageCompletionTime?: number; // in hours
+  
+  // Tags for searching/filtering
+  tags: string[];
+  
+  // Version control
+  version: number;
+  parentKitId?: string; // If this is a variant/copy of another kit
+  
+  // Timestamps
+  createdAt: string;
+  updatedAt: string;
+  createdBy?: string;
+}
+
+/**
+ * Individual item within a kit
+ */
+export interface KitItem {
+  id: string;
+  itemType: KitItemType;
+  
+  // For inventory items
+  inventoryItemId?: string;
+  itemName: string;
+  itemCode?: string;
+  category?: string;
+  
+  // For labor items
+  laborType?: string; // e.g., "Licensed Plumber", "Apprentice", "Gas Fitter"
+  hourlyRate?: number;
+  
+  // For subcontractor items
+  subcontractorType?: string;
+  
+  // For sub-kits (nested kits)
+  subKitId?: string;
+  subKitName?: string;
+  
+  // Quantities
+  quantity: number;
+  unit: string;
+  
+  // Pricing (stored at time of kit creation for historical accuracy)
+  unitCost: number;
+  unitSellPrice: number;
+  lineCostTotal: number;
+  lineSellTotal: number;
+  
+  // Alternatives - if primary item not available
+  alternativeItemIds?: string[];
+  
+  // Item configuration
+  isOptional: boolean;
+  isConsumable: boolean; // Single-use vs returnable (e.g., tools)
+  notes?: string;
+  
+  // Sort order for display
+  sortOrder: number;
+}
+
+/**
+ * Kit Variations - Different configurations of the same kit
+ * Example: "Small Bathroom", "Standard Bathroom", "Luxury Bathroom"
+ */
+export interface KitVariation {
+  id: string;
+  name: string; // e.g., "Small", "Standard", "Large", "Basic", "Premium"
+  description?: string;
+  
+  // Pricing multiplier (e.g., 0.8 for small, 1.2 for large)
+  costMultiplier: number;
+  
+  // Override items for this variation
+  // If empty, uses base kit items with multiplier applied
+  itemOverrides?: KitItem[];
+  
+  // Additional items unique to this variation
+  additionalItems?: KitItem[];
+  
+  // Items to remove from base kit
+  excludedItemIds?: string[];
+}
+
+/**
+ * Kit Category for organization
+ */
+export interface KitCategory {
+  id: string;
+  name: string;
+  description?: string;
+  color: string;
+  icon?: string;
+  sortOrder: number;
+  kitCount: number;
+}
+
+/**
+ * Kit Application - When a kit is applied to a job
+ */
+export interface KitApplication {
+  id: string;
+  kitId: string;
+  kitName: string;
+  kitType: KitType;
+  variationId?: string;
+  variationName?: string;
+  
+  // Linked entities
+  jobId: string;
+  jobTitle?: string;
+  quoteId?: string;
+  
+  // Actual items planned/used
+  appliedItems: AppliedKitItem[];
+  
+  // Stock management
+  stockReservationId?: string;
+  reservationStatus: 'pending' | 'reserved' | 'picked' | 'partial' | 'complete';
+  
+  // Usage tracking
+  appliedAt: string;
+  appliedBy: string;
+  pickedAt?: string;
+  pickedBy?: string;
+  
+  // Customization notes
+  customizations?: string;
+}
+
+/**
+ * Individual item within a kit application
+ */
+export interface AppliedKitItem {
+  kitItemId: string;
+  itemType: KitItemType;
+  
+  // Inventory linkage
+  inventoryItemId?: string;
+  itemName: string;
+  itemCode?: string;
+  
+  // Quantities
+  plannedQuantity: number;
+  actualQuantity?: number;
+  wastedQuantity?: number; // For tracking waste/returns
+  
+  // Status
+  status: 'planned' | 'reserved' | 'picked' | 'used' | 'returned' | 'wasted';
+  
+  // Original kit configuration
+  isOptional: boolean;
+  wasModified: boolean; // User changed quantity or substituted item
+  
+  // Substitution tracking
+  substitutedItemId?: string;
+  substitutedItemName?: string;
+  substitutionReason?: string;
+  
+  // Pricing (locked at application time)
+  unitCost: number;
+  unitSellPrice: number;
+}
+
+/**
+ * Kit Stock Availability Check Result
+ */
+export interface KitAvailability {
+  kitId: string;
+  kitName: string;
+  
+  availabilityStatus: 'available' | 'partial' | 'unavailable';
+  
+  // Item-level availability
+  items: {
+    kitItemId: string;
+    itemName: string;
+    requiredQty: number;
+    availableQty: number;
+    allocatedQty: number;
+    canFulfill: boolean;
+    shortageQty: number;
+    locationAvailability?: LocationStock[];
+  }[];
+  
+  // Summary
+  totalItems: number;
+  availableItems: number;
+  shortageItems: number;
+  optionalItemsShort: number;
+  
+  // Alternatives available
+  alternativesAvailable: boolean;
+}
+
+/**
+ * Kit Usage Analytics
+ */
+export interface KitAnalytics {
+  kitId: string;
+  kitName: string;
+  
+  usageStats: {
+    totalApplications: number;
+    thisMonth: number;
+    thisQuarter: number;
+    thisYear: number;
+    averagePerMonth: number;
+  };
+  
+  financialStats: {
+    totalRevenue: number;
+    totalCost: number;
+    totalProfit: number;
+    averageProfitMargin: number;
+    averageJobValue: number;
+  };
+  
+  efficiencyStats: {
+    averagePrepTime: number; // Time from job creation to stock pick
+    averageCompletionTime: number; // Actual job duration
+    stockoutFrequency: number; // How often kits can't be fulfilled
+    modificationRate: number; // How often kits are customized
+  };
+  
+  popularVariations?: {
+    variationId: string;
+    variationName: string;
+    usageCount: number;
+    percentage: number;
+  }[];
+}
+
+/**
+ * Kit Comparison (for comparing similar kits)
+ */
+export interface KitComparison {
+  kits: {
+    kitId: string;
+    kitName: string;
+    category: string;
+    totalCost: number;
+    totalSellPrice: number;
+    laborHours: number;
+    itemCount: number;
+  }[];
+  
+  itemComparison: {
+    itemName: string;
+    category: string;
+    quantities: Record<string, number>; // kitId -> quantity
+    priceComparison: Record<string, number>; // kitId -> line total
+  }[];
+}
+
+/**
+ * AI Kit Recommendation
+ */
+export interface KitRecommendation {
+  kit: Kit;
+  matchScore: number; // 0-100
+  matchReason: string;
+  estimatedJobDuration: number;
+  estimatedProfit: number;
+  stockAvailability: KitAvailability;
+  
+  // If kit needs modifications
+  suggestedModifications?: {
+    itemId: string;
+    currentQty: number;
+    suggestedQty: number;
+    reason: string;
+  }[];
+}
+
+/**
+ * Create/Update Kit Input
+ */
+export interface CreateKitInput {
+  name: string;
+  description?: string;
+  kitType: KitType;
+  category: string;
+  color?: string;
+  icon?: string;
+  applicableJobTypes: string[];
+  items: CreateKitItemInput[];
+  variations?: CreateKitVariationInput[];
+  defaultMarkupPercentage?: number;
+  tags?: string[];
+}
+
+export interface CreateKitItemInput {
+  itemType: KitItemType;
+  inventoryItemId?: string;
+  itemName: string;
+  itemCode?: string;
+  laborType?: string;
+  hourlyRate?: number;
+  subcontractorType?: string;
+  subKitId?: string;
+  quantity: number;
+  unit: string;
+  unitCost: number;
+  unitSellPrice: number;
+  alternativeItemIds?: string[];
+  isOptional: boolean;
+  isConsumable: boolean;
+  notes?: string;
+  sortOrder: number;
+}
+
+export interface CreateKitVariationInput {
+  name: string;
+  description?: string;
+  costMultiplier: number;
+  itemOverrides?: CreateKitItemInput[];
+  additionalItems?: CreateKitItemInput[];
+  excludedItemIds?: string[];
+}
+
+export interface ApplyKitToJobInput {
+  kitId: string;
+  jobId: string;
+  variationId?: string;
+  customizations?: string;
+  // Allow overriding quantities at application time
+  itemOverrides?: {
+    kitItemId: string;
+    quantity: number;
+    substitutedItemId?: string;
+  }[];
+}
+
+export interface KitFilterOptions {
+  search?: string;
+  kitType?: KitType;
+  category?: string;
+  status?: KitStatus;
+  tags?: string[];
+  jobType?: string;
+  sortBy?: 'name' | 'usageCount' | 'profit' | 'recent';
+  sortDirection?: 'asc' | 'desc';
+}
+
+// ====================================
+// Voice Notes & Speech-to-Text Types
+// ====================================
+
+export type VoiceNoteStatus = 'recording' | 'processing' | 'transcribed' | 'error';
+
+export interface VoiceNote {
+  id: string;
+  jobId?: string;
+  contactId?: string;
+  userId: string;
+  userName?: string;
+  
+  // Audio file
+  audioUrl: string;
+  audioDuration: number; // in seconds
+  fileSize?: number;
+  mimeType: string;
+  
+  // Transcription
+  transcription?: string;
+  transcriptionStatus: VoiceNoteStatus;
+  transcriptionError?: string;
+  language?: string;
+  confidence?: number; // Speech recognition confidence (0-1)
+  
+  // Categorized content (AI-extracted)
+  extractedItems?: ExtractedVoiceItem[];
+  summary?: string;
+  actionItems?: string[];
+  
+  // Metadata
+  recordedAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ExtractedVoiceItem {
+  type: 'inventory' | 'task' | 'contact' | 'date' | 'location' | 'issue' | 'other';
+  text: string;
+  confidence: number;
+  startTime?: number; // Timestamp in audio (seconds)
+  endTime?: number;
+}
+
+export interface CreateVoiceNoteInput {
+  jobId?: string;
+  contactId?: string;
+  audioBlob: Blob;
+  audioDuration: number;
+  language?: string;
+}
+
+export interface VoiceNoteFilterOptions {
+  jobId?: string;
+  contactId?: string;
+  userId?: string;
+  transcriptionStatus?: VoiceNoteStatus;
+  dateFrom?: string;
+  dateTo?: string;
+  search?: string; // Search in transcription
+}
+
+export interface VoiceTranscriptionResult {
+  text: string;
+  confidence: number;
+  language: string;
+  segments?: {
+    startTime: number;
+    endTime: number;
+    text: string;
+    confidence: number;
+  }[];
+}
+
+// ====================================
+// Asset Management Types (Vehicles & Tools)
+// ====================================
+
+export type AssetType = 'vehicle' | 'tool' | 'equipment' | 'machinery';
+export type AssetStatus = 'active' | 'maintenance' | 'retired' | 'lost' | 'stolen';
+export type AssetCondition = 'excellent' | 'good' | 'fair' | 'poor' | 'unusable';
+export type MaintenanceType = 'routine' | 'repair' | 'inspection' | 'test_tag' | 'compliance';
+export type MaintenanceStatus = 'scheduled' | 'in_progress' | 'completed' | 'overdue';
+
+export interface Asset {
+  id: string;
+  name: string;
+  description?: string;
+  assetType: AssetType;
+  assetCode: string; // Internal tracking code (e.g., "VAN-001", "TOOL-045")
+  
+  // Identification
+  serialNumber?: string;
+  model?: string;
+  manufacturer?: string;
+  year?: number;
+  
+  // Purchase info
+  purchaseDate?: string;
+  purchasePrice?: number;
+  supplierId?: string;
+  supplierName?: string;
+  warrantyExpiry?: string;
+  
+  // Current status
+  status: AssetStatus;
+  condition: AssetCondition;
+  currentLocation?: string;
+  assignedTo?: string; // User ID
+  assignedToName?: string;
+  
+  // For vehicles
+  registrationNumber?: string;
+  vin?: string;
+  fuelType?: string;
+  currentOdometer?: number;
+  lastServiceOdometer?: number;
+  nextServiceOdometer?: number;
+  
+  // Insurance & compliance
+  insuranceProvider?: string;
+  insurancePolicyNumber?: string;
+  insuranceExpiry?: string;
+  complianceDocuments?: ComplianceDocument[];
+  
+  // Photos
+  photos?: string[];
+  
+  // Maintenance schedule
+  maintenanceSchedule?: MaintenanceSchedule;
+  
+  // Metadata
+  notes?: string;
+  tags?: string[];
+  
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ComplianceDocument {
+  id: string;
+  type: 'insurance' | 'registration' | 'license' | 'certification' | 'warranty' | 'other';
+  title: string;
+  documentNumber?: string;
+  issueDate?: string;
+  expiryDate?: string;
+  fileUrl?: string;
+  status: 'valid' | 'expiring' | 'expired';
+}
+
+export interface MaintenanceSchedule {
+  frequencyMonths?: number;
+  frequencyKilometers?: number; // For vehicles
+  lastMaintenanceDate?: string;
+  nextMaintenanceDate?: string;
+  lastTestTagDate?: string; // For electrical tools
+  nextTestTagDate?: string;
+}
+
+export interface MaintenanceRecord {
+  id: string;
+  assetId: string;
+  assetName?: string;
+  maintenanceType: MaintenanceType;
+  status: MaintenanceStatus;
+  
+  // Scheduling
+  scheduledDate: string;
+  completedDate?: string;
+  
+  // Details
+  description: string;
+  workPerformed?: string;
+  partsUsed?: string[];
+  cost?: number;
+  
+  // Provider
+  performedBy?: string;
+  performedByName?: string;
+  serviceProvider?: string;
+  
+  // Results
+  conditionAfter?: AssetCondition;
+  odometerReading?: number; // For vehicles
+  testTagExpiry?: string; // For electrical tools
+  
+  // Documents
+  invoiceUrl?: string;
+  certificateUrl?: string;
+  photos?: string[];
+  
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AssetAllocation {
+  id: string;
+  assetId: string;
+  assetName: string;
+  assetType: AssetType;
+  
+  // Allocation to job/user
+  jobId?: string;
+  jobTitle?: string;
+  userId?: string;
+  userName?: string;
+  
+  // GPS Check-in/Check-out for vehicles
+  checkOutLocation?: GeoLocation;
+  checkInLocation?: GeoLocation;
+  
+  // Times
+  allocatedAt: string;
+  expectedReturnAt?: string;
+  checkOutAt?: string;
+  checkInAt?: string;
+  
+  // Condition tracking
+  conditionAtCheckOut?: AssetCondition;
+  conditionAtCheckIn?: AssetCondition;
+  odometerAtCheckOut?: number;
+  odometerAtCheckIn?: number;
+  
+  // Status
+  status: 'allocated' | 'checked_out' | 'checked_in' | 'overdue';
+  
+  notes?: string;
+}
+
+export interface GeoLocation {
+  latitude: number;
+  longitude: number;
+  accuracy?: number;
+  timestamp: string;
+  address?: string;
+}
+
+// ====================================
+// Subcontractor Management Types
+// ====================================
+
+export interface Subcontractor extends Contact {
+  // Business Details
+  abn: string;
+  businessName?: string;
+  tradingName?: string;
+  
+  // Classification
+  tradeType: string[]; // e.g., ['Electrical', 'HVAC', 'Concrete']
+  expertise?: string[]; // Specific skills
+  
+  // Insurance & Compliance
+  insuranceDocuments: InsuranceDocument[];
+  licenseDocuments: LicenseDocument[];
+  complianceStatus: 'compliant' | 'pending' | 'non_compliant' | 'expired';
+  
+  // Performance
+  rating?: number;
+  totalJobs?: number;
+  completedJobs?: number;
+  averageJobValue?: number;
+  
+  // Availability
+  availabilityStatus: 'available' | 'busy' | 'limited' | 'unavailable';
+  typicalLeadTime?: number; // Days
+  preferredJobTypes?: string[];
+  serviceArea?: string[]; // Postcodes or regions
+  
+  // Rates
+  hourlyRate?: number;
+  dailyRate?: number;
+  callOutFee?: number;
+  
+  // Emergency Contact
+  emergencyContactName?: string;
+  emergencyContactPhone?: string;
+  
+  // Bank Details (for payments - optional)
+  bankAccountName?: string;
+  bankBsb?: string;
+  bankAccountNumber?: string;
+}
+
+export interface InsuranceDocument {
+  id: string;
+  type: 'public_liability' | 'professional_indemnity' | 'workers_compensation' | 'vehicle' | 'tool' | 'income_protection' | 'other';
+  provider: string;
+  policyNumber: string;
+  coverageAmount: number;
+  issueDate: string;
+  expiryDate: string;
+  documentUrl?: string;
+  verifiedAt?: string;
+  verifiedBy?: string;
+  status: 'valid' | 'expiring' | 'expired' | 'pending_verification';
+}
+
+export interface LicenseDocument {
+  id: string;
+  type: 'trade_license' | 'contractor_license' | 'safety_certificate' | 'white_card' | 'working_with_children' | 'other';
+  licenseNumber: string;
+  issuingAuthority: string;
+  issueDate?: string;
+  expiryDate: string;
+  documentUrl?: string;
+  verifiedAt?: string;
+  verifiedBy?: string;
+  status: 'valid' | 'expiring' | 'expired' | 'pending_verification';
+}
+
+export interface SubcontractorJob {
+  id: string;
+  subcontractorId: string;
+  jobId: string;
+  jobTitle: string;
+  
+  // Work details
+  scopeOfWork: string;
+  estimatedHours?: number;
+  actualHours?: number;
+  hourlyRate: number;
+  totalValue: number;
+  
+  // Status
+  status: 'quoted' | 'approved' | 'in_progress' | 'completed' | 'invoiced' | 'paid';
+  
+  // Timeline
+  quotedAt?: string;
+  approvedAt?: string;
+  startedAt?: string;
+  completedAt?: string;
+  invoicedAt?: string;
+  paidAt?: string;
+  
+  // Documents
+  quoteUrl?: string;
+  invoiceUrl?: string;
+  completionPhotos?: string[];
+  
+  // Rating
+  rating?: number;
+  review?: string;
+  wouldRecommend?: boolean;
+}
+
+// ====================================
+// Lead Pipeline Types
+// ====================================
+
+export type LeadSource = 'website' | 'phone' | 'referral' | 'social_media' | 'email' | 'walk_in' | 'advertisement' | 'other';
+export type LeadStatus = 'new' | 'contacted' | 'qualified' | 'quoted' | 'negotiation' | 'won' | 'lost' | 'on_hold';
+export type LeadPriority = 'hot' | 'warm' | 'cold';
+export type LostReason = 'price' | 'timing' | 'competitor' | 'no_response' | 'not_qualified' | 'other';
+
+export interface Lead {
+  id: string;
+  leadNumber: string; // e.g., "LEAD-2026-001"
+  
+  // Contact info
+  contactName: string;
+  companyName?: string;
+  email?: string;
+  phone: string;
+  address?: string;
+  
+  // Lead details
+  source: LeadSource;
+  status: LeadStatus;
+  priority: LeadPriority;
+  
+  // Job info
+  jobType?: string;
+  description?: string;
+  estimatedValue?: number;
+  estimatedStartDate?: string;
+  
+  // Assignment
+  assignedTo?: string; // User ID
+  assignedToName?: string;
+  
+  // Timeline
+  receivedAt: string;
+  firstContactAt?: string;
+  lastContactAt?: string;
+  quotedAt?: string;
+  convertedAt?: string;
+  
+  // If lost
+  lostReason?: LostReason;
+  lostReasonDetail?: string;
+  
+  // Conversion
+  quoteId?: string;
+  jobId?: string;
+  customerId?: string;
+  
+  // Follow-up
+  nextFollowUpDate?: string;
+  nextFollowUpType?: 'call' | 'email' | 'sms' | 'visit';
+  followUpNotes?: string;
+  
+  // Communications
+  communications: LeadCommunication[];
+  
+  // Tags
+  tags?: string[];
+  
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LeadCommunication {
+  id: string;
+  leadId: string;
+  type: 'inbound' | 'outbound';
+  method: 'phone' | 'email' | 'sms' | 'meeting' | 'other';
+  userId?: string;
+  userName?: string;
+  timestamp: string;
+  summary: string;
+  notes?: string;
+  followUpRequired?: boolean;
+  followUpDate?: string;
+}
+
+export interface LeadPipelineStats {
+  totalLeads: number;
+  newLeads: number;
+  contactedLeads: number;
+  quotedLeads: number;
+  wonLeads: number;
+  lostLeads: number;
+  conversionRate: number; // Percentage
+  averageTimeToQuote: number; // Days
+  averageTimeToWin: number; // Days
+  totalPipelineValue: number;
+  
+  bySource: Record<LeadSource, { count: number; won: number; conversionRate: number }>;
+  byStatus: Record<LeadStatus, { count: number; value: number }>;
+}
+
+// ====================================
+// Technician Performance Types
+// ====================================
+
+export interface TechnicianPerformance {
+  userId: string;
+  userName: string;
+  
+  // Job metrics
+  totalJobs: number;
+  completedJobs: number;
+  cancelledJobs: number;
+  completionRate: number; // Percentage
+  
+  // Time metrics
+  averageJobDuration: number; // Hours
+  onTimeArrivalRate: number; // Percentage
+  averageResponseTime: number; // Minutes
+  
+  // Financial metrics
+  totalRevenue: number;
+  totalCost: number;
+  totalProfit: number;
+  averageJobValue: number;
+  profitMargin: number; // Percentage
+  
+  // Quality metrics
+  callbackCount: number;
+  callbackRate: number; // Percentage
+  customerRating: number; // Average rating
+  
+  // Efficiency metrics
+  averageTravelTime: number; // Minutes per job
+  materialsUtilization: number; // Percentage of planned materials used
+  
+  // Period comparison
+  periodLabel: string; // e.g., "This Month", "Last Month"
+  previousPeriod?: TechnicianPerformance;
+  trends: {
+    jobsTrend: 'up' | 'down' | 'stable';
+    revenueTrend: 'up' | 'down' | 'stable';
+    profitTrend: 'up' | 'down' | 'stable';
+    ratingTrend: 'up' | 'down' | 'stable';
+  };
+}
+
+export interface TechnicianComparison {
+  period: string;
+  technicians: TechnicianPerformance[];
+  rankings: {
+    byRevenue: string[]; // User IDs
+    byJobs: string[];
+    byProfit: string[];
+    byRating: string[];
+    byEfficiency: string[];
+  };
+}
+
+// ====================================
+// Cash Flow Forecasting Types
+// ====================================
+
+export interface CashFlowForecast {
+  generatedAt: string;
+  forecastPeriodDays: number;
+  
+  // Starting position
+  currentBalance: number;
+  
+  // Projected inflows
+  expectedIncome: {
+    fromInvoices: ProjectedCashItem[];
+    fromQuotes: ProjectedCashItem[]; // Expected conversions
+    total: number;
+  };
+  
+  // Projected outflows
+  expectedOutflows: {
+    purchaseOrders: ProjectedCashItem[];
+    payroll: ProjectedCashItem[];
+    expenses: ProjectedCashItem[];
+    total: number;
+  };
+  
+  // Daily projections
+  dailyProjections: DailyCashProjection[];
+  
+  // Summary
+  netCashFlow: number;
+  projectedBalance: number;
+  lowestBalanceDate?: string;
+  lowestBalanceAmount?: number;
+  
+  // Alerts
+  alerts: CashFlowAlert[];
+}
+
+export interface ProjectedCashItem {
+  id: string;
+  description: string;
+  expectedDate: string;
+  amount: number;
+  confidence: 'high' | 'medium' | 'low';
+  source?: string; // e.g., invoice number, PO number
+}
+
+export interface DailyCashProjection {
+  date: string;
+  startingBalance: number;
+  inflows: number;
+  outflows: number;
+  netFlow: number;
+  endingBalance: number;
+}
+
+export interface CashFlowAlert {
+  type: 'negative_balance' | 'low_balance' | 'large_outflow' | 'missed_payment';
+  severity: 'critical' | 'warning' | 'info';
+  date: string;
+  message: string;
+  suggestedAction?: string;
+}

@@ -38,6 +38,8 @@ export const defaultSettings: AppSettings = {
     preferredProvider: 'auto',
     preferredModel: 'auto',
     hasCustomApiKey: false,
+    dailyQuotaUsed: 0,
+    dailyQuotaReset: new Date().toISOString(),
     featureProviders: {
       forecast: 'auto',
       search: 'auto',

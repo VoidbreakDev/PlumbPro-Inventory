@@ -588,7 +588,7 @@ function QuoteDetailModal({ quote, onClose, onApprove, onDecline, loading, forma
                 </thead>
                 <tbody>
                   {quote.items.map((item, idx) => (
-                    <tr key={idx} className="border-b">
+                    <tr key={item.id || `quote-item-${idx}`} className="border-b">
                       <td className="py-3 px-3">{item.description}</td>
                       <td className="py-3 px-3 text-center">{item.quantity}</td>
                       <td className="py-3 px-3 text-right">{formatCurrency(item.unit_price)}</td>
@@ -727,7 +727,7 @@ function InvoiceDetailModal({ invoice, onClose, formatCurrency, formatDate }: In
                 </thead>
                 <tbody>
                   {invoice.items.map((item, idx) => (
-                    <tr key={idx} className="border-b">
+                    <tr key={item.id || `invoice-item-${idx}`} className="border-b">
                       <td className="py-3 px-3">{item.description}</td>
                       <td className="py-3 px-3 text-center">{item.quantity}</td>
                       <td className="py-3 px-3 text-right">{formatCurrency(item.unit_price)}</td>
@@ -758,7 +758,7 @@ function InvoiceDetailModal({ invoice, onClose, formatCurrency, formatDate }: In
               <h4 className="font-medium text-gray-900 mb-3">Payment History</h4>
               <div className="space-y-2">
                 {invoice.payments.map((payment, idx) => (
-                  <div key={idx} className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                  <div key={payment.id || `payment-${payment.payment_date}-${idx}`} className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
                     <div>
                       <p className="font-medium text-gray-900">{formatCurrency(payment.amount)}</p>
                       <p className="text-sm text-gray-600">{payment.payment_method}</p>

@@ -22,6 +22,18 @@ export interface Tour {
   onComplete?: () => void;
 }
 
+/**
+ * Escape HTML special characters to prevent XSS
+ */
+function escapeHtml(unsafe: string): string {
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 class OnboardingService {
   private currentTour: Tour | null = null;
   private currentStepIndex: number = 0;
@@ -37,9 +49,17 @@ class OnboardingService {
    * Load completed tours from localStorage
    */
   private loadCompletedTours() {
-    const completed = localStorage.getItem('plumbpro_completed_tours');
-    if (completed) {
-      this.completedTours = new Set(JSON.parse(completed));
+    try {
+      const completed = localStorage.getItem('plumbpro_completed_tours');
+      if (completed) {
+        const parsed = JSON.parse(completed);
+        if (Array.isArray(parsed)) {
+          this.completedTours = new Set(parsed.filter(item => typeof item === 'string'));
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to load completed tours from localStorage:', error);
+      this.completedTours = new Set();
     }
   }
 
@@ -205,15 +225,19 @@ class OnboardingService {
     const stepNumber = this.currentStepIndex + 1;
     const totalSteps = this.currentTour!.steps.length;
 
+    // SECURITY: Escape HTML to prevent XSS attacks
+    const safeTitle = escapeHtml(step.title);
+    const safeContent = escapeHtml(step.content);
+
     this.tooltip.innerHTML = `
       <div style="margin-bottom: 12px; font-size: 12px; color: #6b7280; font-weight: 500;">
         STEP ${stepNumber} OF ${totalSteps}
       </div>
       <h3 style="margin: 0 0 12px 0; font-size: 18px; font-weight: 600; color: #111827;">
-        ${step.title}
+        ${safeTitle}
       </h3>
       <p style="margin: 0 0 20px 0; color: #4b5563; line-height: 1.6;">
-        ${step.content}
+        ${safeContent}
       </p>
       <div style="display: flex; justify-content: space-between; align-items: center;">
         <button id="onboarding-skip" style="

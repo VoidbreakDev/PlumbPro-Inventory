@@ -279,3 +279,147 @@ Built with ❤️ for the plumbing and trades industry.
 ---
 
 *For technical documentation, API reference, and developer guides, see the `/docs` folder.*
+
+---
+
+## 🖥️ Desktop Application
+
+PlumbPro Inventory can be packaged as a desktop application for Windows, macOS, and Linux with an embedded database and auto-updater.
+
+### Building Desktop App
+
+**Quick Start:**
+```bash
+# Prepare for deployment
+./scripts/prepare-deployment.sh v1.0.0
+
+# Build for your platform
+cd desktop
+npm run package:win    # Windows
+npm run package:mac    # macOS
+npm run package:linux  # Linux
+npm run package:all    # All platforms
+```
+
+**Find installers in:** `desktop/release/{version}/`
+
+### Auto-Updates
+
+The desktop app includes automatic updates:
+- Checks for updates on startup
+- Downloads in background
+- Prompts to install
+- Installs on restart
+
+Configure in `desktop/electron-builder.yml`.
+
+### Deployment Documentation
+
+- **[DEPLOYMENT_QUICKSTART.md](DEPLOYMENT_QUICKSTART.md)** - Quick deployment guide
+- **[DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)** - Comprehensive deployment documentation
+
+---
+
+## 🏢 Enterprise Features
+
+### Multi-User Support
+- Role-based access control
+- User permissions and restrictions
+- Activity audit logs
+
+### Data Security
+- Encrypted database storage
+- Secure authentication (JWT)
+- Automatic backups
+
+### Customization
+- White-label branding
+- Custom fields for inventory
+- Configurable workflows
+
+---
+
+## 🔧 Development
+
+### Tech Stack
+- **Frontend**: React 19 + TypeScript + Vite
+- **Backend**: Node.js + Express + PostgreSQL
+- **Desktop**: Electron + electron-builder
+- **AI**: Google Gemini API
+
+### Project Structure
+```
+PlumbPro-Inventory/
+├── components/        # React components
+├── views/            # Page views
+├── lib/              # API clients and utilities
+├── server/           # Backend API
+├── desktop/          # Electron desktop app
+└── docs/             # Documentation
+```
+
+### Running Locally
+
+```bash
+# Install dependencies
+npm install
+cd server && npm install && cd ..
+
+# Start development server
+npm run dev
+
+# Start backend
+cd server && npm start
+```
+
+---
+
+## 📊 All Features
+
+| Category | Features |
+|----------|----------|
+| **Inventory** | Stock tracking, multi-location, barcode scanning, price history, ABC classification |
+| **Jobs** | Scheduling, templates, stock picking, progress tracking, photo docs |
+| **Purchasing** | Smart ordering, purchase orders, supplier management, price alerts |
+| **Sales** | Quotes, invoices, customer portal, service agreements |
+| **CRM** | Contacts, communications, customer history, ratings |
+| **Mobile** | PWA, GPS check-in, offline mode, voice notes, digital signatures |
+| **AI** | Demand forecasting, smart search, anomaly detection, recommendations |
+| **Assets** | Vehicle tracking, tool registry, maintenance schedules, GPS check-in/out |
+| **Subcontractors** | Compliance tracking, insurance, licenses, job assignments |
+| **Lead Pipeline** | Sales funnel, conversion tracking, follow-up management |
+| **Analytics** | Technician performance, profitability reports, business insights |
+| **Integrations** | Xero accounting, Google Calendar, payment processing |
+
+---
+
+## 🤝 Contributing
+
+This is an open-source project. Contributions are welcome!
+
+- Report bugs via GitHub Issues
+- Submit feature requests
+- Contribute code via Pull Requests
+
+---
+
+## 📄 License
+
+MIT License - See [LICENSE](LICENSE) file
+
+---
+
+## 🙏 Acknowledgments
+
+Built with ❤️ for the plumbing and trades industry.
+
+**Technologies Used:**
+- React & TypeScript
+- PostgreSQL
+- Google Gemini AI
+- Tailwind CSS
+- Electron
+
+---
+
+*For technical documentation, API reference, and developer guides, see the `/docs` folder.*
