@@ -1,0 +1,36 @@
+# Build outputs
+dist/
+release/
+*.dmg
+*.zip
+*.exe
+*.AppImage
+*.deb
+*.rpm
+*.snap
+
+# Logs
+logs/
+*.log
+
+# Runtime data
+pids/
+*.pid
+*.seed
+
+# Dependency directories
+node_modules/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local

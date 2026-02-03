@@ -13,7 +13,7 @@ log.transports.console.level = 'debug';
 autoUpdater.logger = log;
 
 // Store server port
-let serverPort: number = 5000;
+let serverPort: number = 5001;
 
 // App startup
 async function initialize(): Promise<void> {
@@ -25,14 +25,19 @@ async function initialize(): Promise<void> {
 
   // Start embedded server first
   try {
+    log.info('About to start embedded server...');
     serverPort = await startEmbeddedServer();
     log.info(`Embedded server started on port ${serverPort}`);
-  } catch (error) {
+  } catch (error: any) {
     log.error('Failed to start embedded server:', error);
+    log.error('Error message:', error?.message || 'Unknown error');
+    log.error('Error stack:', error?.stack || 'No stack trace');
     dialog.showErrorBox(
       'Server Error',
-      'Failed to start the application server. Please check the logs and try again.'
+      `Failed to start the application server.\n\nError: ${error?.message || 'Unknown error'}\n\nPlease check the logs and try again.`
     );
+    // Don't continue if server failed to start
+    return;
   }
 
   // Setup application menu

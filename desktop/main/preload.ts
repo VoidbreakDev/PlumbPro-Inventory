@@ -1,7 +1,17 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
+// Get server port from command line arguments (passed via additionalArguments)
+const serverPortArg = process.argv.find(arg => arg.startsWith('--server-port='));
+const serverPort = serverPortArg ? parseInt(serverPortArg.split('=')[1], 10) : 5001;
+
+// Expose server port immediately on window object (before API calls are made)
+// This is needed because API_BASE_URL is evaluated at module load time
+(window as any).__PLUMBPRO_SERVER_PORT__ = serverPort;
+
 // Define the API that will be exposed to the renderer process
 const electronAPI = {
+  // Server port (available immediately)
+  serverPort,
   // App information
   getAppVersion: (): Promise<string> => ipcRenderer.invoke('get-app-version'),
   getPlatform: (): string => process.platform,

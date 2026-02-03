@@ -8,22 +8,22 @@ directories:
 
 files:
   - dist/**/*
-  - "!node_modules/**/*"
-  - node_modules/electron-updater/**/*
-  - node_modules/electron-log/**/*
-  - node_modules/electron-store/**/*
-  - node_modules/portfinder/**/*
+  - node_modules/**/*
 
 extraResources:
-  - from: ../dist
+  - from: dist/renderer
     to: frontend
     filter:
       - "**/*"
-  - from: ../server
+  - from: ../server/dist-prod
     to: server
     filter:
       - "**/*"
-      - "!node_modules/**/*"
+      - "!**/.env"
+  - from: ../server/dist-prod/node_modules
+    to: server/node_modules
+    filter:
+      - "**/*"
 
 asar: true
 compression: maximum
@@ -51,14 +51,15 @@ nsis:
 mac:
   target:
     - target: dmg
-      arch: [x64, arm64]
+      arch: [arm64]
     - target: zip
-      arch: [x64, arm64]
+      arch: [arm64]
   icon: resources/icons/icon.icns
   category: public.app-category.business
   hardenedRuntime: true
   gatekeeperAssess: false
   artifactName: ${productName}-${version}-${arch}.${ext}
+  identity: null
 
 dmg:
   iconSize: 100

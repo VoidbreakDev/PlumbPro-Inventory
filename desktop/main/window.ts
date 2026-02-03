@@ -13,11 +13,13 @@ export async function createWindow(serverPort: number): Promise<BrowserWindow> {
     minWidth: 1024,
     minHeight: 700,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
+      preload: path.join(__dirname, '..', 'preload', 'preload.js'),
       nodeIntegration: false,
       contextIsolation: true,
       sandbox: true,
-      webSecurity: true
+      webSecurity: true,
+      // Pass server port to renderer so it's available immediately
+      additionalArguments: [`--server-port=${serverPort}`]
     },
     icon: getIconPath(),
     show: false,

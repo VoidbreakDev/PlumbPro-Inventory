@@ -5,7 +5,7 @@ import log from 'electron-log';
 import portfinder from 'portfinder';
 
 let serverProcess: ChildProcess | null = null;
-let currentPort: number = 5000;
+let currentPort: number = 5001;
 let isShuttingDown: boolean = false;
 
 /**
@@ -17,18 +17,19 @@ export async function startEmbeddedServer(): Promise<number> {
     await stopEmbeddedServer();
   }
 
-  // Find an available port starting from 5000
-  portfinder.basePort = 5000;
+  // Find an available port starting from 5001
+  portfinder.basePort = 5001;
   try {
     currentPort = await portfinder.getPortPromise();
   } catch (error) {
     log.error('Failed to find available port:', error);
-    currentPort = 5000; // Fallback to default
+    currentPort = 5001; // Fallback to default
   }
 
   log.info(`Starting embedded server on port ${currentPort}...`);
 
   // Determine server path based on packaged state
+  // In production, use the desktop server; in dev, use the source
   const serverPath = app.isPackaged
     ? path.join(process.resourcesPath, 'server', 'src', 'server.js')
     : path.join(__dirname, '../../server/src/server.js');
@@ -40,6 +41,11 @@ export async function startEmbeddedServer(): Promise<number> {
     ...process.env,
     PORT: String(currentPort),
     NODE_ENV: app.isPackaged ? 'production' : 'development',
+    // Use SQLite for standalone desktop app
+    DB_TYPE: 'sqlite',
+    SQLITE_PATH: path.join(app.getPath('userData'), 'data', 'plumbpro.db'),
+    // JWT secret for authentication (generated per installation)
+    JWT_SECRET: process.env.JWT_SECRET || 'plumbpro-desktop-' + app.getPath('userData').replace(/[^a-zA-Z0-9]/g, ''),
     // Use the user data directory for logs and uploads
     LOG_DIR: path.join(app.getPath('userData'), 'logs'),
     UPLOAD_DIR: path.join(app.getPath('userData'), 'uploads'),
@@ -48,15 +54,32 @@ export async function startEmbeddedServer(): Promise<number> {
     NO_UPDATE_NOTIFIER: '1'
   };
 
+  // Ensure data directory exists
+  const dataDir = path.join(app.getPath('userData'), 'data');
+  if (!require('fs').existsSync(dataDir)) {
+    require('fs').mkdirSync(dataDir, { recursive: true });
+  }
+
   return new Promise((resolve, reject) => {
     try {
+      log.info('Spawning server process...');
+      const serverCwd = app.isPackaged
+        ? path.join(process.resourcesPath, 'server')
+        : path.join(__dirname, '../../server');
+      log.info(`CWD: ${serverCwd}`);
+      
+      // Use fork to spawn the server as a Node.js process
+      // In Electron, we need to set ELECTRON_RUN_AS_NODE to use Node.js mode
+      log.info('Forking server process...');
+      
       serverProcess = fork(serverPath, [], {
-        env: serverEnv,
+        env: { ...serverEnv, ELECTRON_RUN_AS_NODE: '1' },
         stdio: ['pipe', 'pipe', 'pipe', 'ipc'],
-        cwd: app.isPackaged
-          ? path.join(process.resourcesPath, 'server')
-          : path.join(__dirname, '../../server')
+        cwd: serverCwd,
+        execArgv: [] // Don't pass Electron flags to the forked process
       });
+      
+      log.info(`Server process spawned with PID: ${serverProcess.pid}`);
 
       // Handle stdout
       serverProcess.stdout?.on('data', (data: Buffer) => {
@@ -74,19 +97,36 @@ export async function startEmbeddedServer(): Promise<number> {
         }
       });
 
-      // Handle IPC messages from server
-      serverProcess.on('message', (message: any) => {
-        log.info('[Server IPC]', message);
-        if (message.type === 'ready') {
+      // Server is considered ready after timeout (since we can't use IPC with spawn)
+      setTimeout(() => {
+        if (serverProcess && !serverProcess.killed) {
+          log.info('Server assumed ready after startup timeout');
           resolve(currentPort);
+        } else {
+          log.error('Server process not running after timeout');
+          reject(new Error('Server process exited before ready'));
         }
-      });
+      }, 12000);  // Increased timeout to 12 seconds
 
       // Handle process errors
       serverProcess.on('error', (error: Error) => {
         log.error('Server process error:', error);
+        console.error('Server process error:', error); // Also log to console
         if (!isShuttingDown) {
           reject(error);
+        }
+      });
+      
+      // Handle spawn errors
+      serverProcess.on('spawn', () => {
+        log.info('Server process spawned successfully');
+      });
+      
+      // Handle exit immediately
+      serverProcess.on('exit', (code: number | null, signal: string | null) => {
+        log.error(`Server process exited early with code ${code}, signal ${signal}`);
+        if (!isShuttingDown && code !== 0) {
+          reject(new Error(`Server exited with code ${code}`));
         }
       });
 

@@ -10,12 +10,14 @@
   "license": "MIT",
   "scripts": {
     "dev": "electron-vite dev",
-    "build": "electron-vite build",
+    "build": "electron-vite build && npm run copy-resources",
+    "copy-resources": "cp -r resources dist/",
     "preview": "electron-vite preview",
     "postinstall": "electron-builder install-app-deps",
     "package": "npm run build && electron-builder",
     "package:win": "npm run build && electron-builder --win",
     "package:mac": "npm run build && electron-builder --mac",
+    "package:mac:fix": "./scripts/build-mac.sh",
     "package:linux": "npm run build && electron-builder --linux",
     "package:all": "npm run build && electron-builder -mwl",
     "release": "npm run build && electron-builder --publish always",
@@ -23,10 +25,25 @@
     "release:mac": "npm run build && electron-builder --mac --publish always"
   },
   "dependencies": {
+    "ajv": "^8.17.1",
+    "argparse": "^2.0.1",
+    "async": "^3.2.6",
+    "builder-util-runtime": "^9.5.1",
+    "debug": "^4.4.3",
     "electron-log": "^5.0.3",
     "electron-store": "^8.1.0",
     "electron-updater": "^6.1.7",
-    "portfinder": "^1.0.32"
+    "fs-extra": "^11.3.3",
+    "isexe": "^3.1.1",
+    "js-yaml": "^4.1.1",
+    "lazy-val": "^1.0.5",
+    "lodash.escaperegexp": "^4.1.2",
+    "lodash.isequal": "^4.5.0",
+    "lru-cache": "^11.2.5",
+    "portfinder": "^1.0.32",
+    "semver": "^7.7.3",
+    "tiny-typed-emitter": "^2.1.0",
+    "which": "^6.0.0"
   },
   "devDependencies": {
     "@electron/notarize": "^2.2.0",
