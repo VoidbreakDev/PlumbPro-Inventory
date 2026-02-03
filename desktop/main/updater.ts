@@ -34,13 +34,14 @@ export function configureAutoUpdater(mainWindow: BrowserWindow): void {
   autoUpdater.autoInstallOnAppQuit = true;
   autoUpdater.allowDowngrade = false;
 
-  // Set feed URL to use generic provider with GitHub latest release URL
-  // This avoids the deprecated releases.atom endpoint that GitHub removed
-  // GitHub redirects /releases/latest/download/ to the actual latest release
+  // Use GitHub provider with private token if available
+  // electron-updater 6.x uses GitHub API instead of deprecated releases.atom
   autoUpdater.setFeedURL({
-    provider: 'generic',
-    url: 'https://github.com/VoidbreakDev/PlumbPro-Inventory/releases/latest/download',
-    channel: 'latest'
+    provider: 'github',
+    owner: 'VoidbreakDev',
+    repo: 'PlumbPro-Inventory',
+    releaseType: 'release',
+    vPrefixedTagName: true
   });
 
   // For development testing, enable dev update config
