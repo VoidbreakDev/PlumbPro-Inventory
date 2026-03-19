@@ -85,12 +85,7 @@ Windows (PowerShell as Administrator):
 .\install.ps1
 ```
 
-**Option 2: Docker (Simplest)**
-```bash
-docker-compose up -d
-```
-
-**Option 3: Manual Setup**
+**Option 2: Manual Setup**
 
 See [INSTALLATION_GUIDE.md](INSTALLATION_GUIDE.md) for step-by-step instructions.
 

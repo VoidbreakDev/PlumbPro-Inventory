@@ -2,7 +2,7 @@
 
 # PlumbPro Inventory - Production Startup Script
 # Usage: ./start-production.sh [environment]
-# Environments: local (default), docker, pm2
+# Environments: local (default), pm2
 
 set -e
 
@@ -122,32 +122,6 @@ start_pm2() {
     echo "Monitor: pm2 monit"
 }
 
-# Start with Docker
-start_docker() {
-    echo "🐳 Starting with Docker Compose..."
-    cd "$PROJECT_DIR"
-    
-    if ! command -v docker-compose &> /dev/null && ! docker compose version &> /dev/null; then
-        echo -e "${RED}❌ Docker Compose not found${NC}"
-        exit 1
-    fi
-    
-    # Use docker compose (new) or docker-compose (old)
-    if docker compose version &> /dev/null; then
-        DOCKER_COMPOSE="docker compose"
-    else
-        DOCKER_COMPOSE="docker-compose"
-    fi
-    
-    # Pull latest images and start
-    $DOCKER_COMPOSE pull
-    $DOCKER_COMPOSE up -d
-    
-    echo -e "${GREEN}✓ Docker containers started${NC}"
-    echo "View logs: $DOCKER_COMPOSE logs -f"
-    echo "Stop: $DOCKER_COMPOSE down"
-}
-
 # Start locally (development)
 start_local() {
     echo "💻 Starting locally..."
@@ -181,18 +155,12 @@ case $ENVIRONMENT in
         build_frontend
         start_pm2
         ;;
-    docker)
-        check_env
-        validate_env
-        start_docker
-        ;;
     *)
-        echo "Usage: $0 [local|pm2|docker]"
+        echo "Usage: $0 [local|pm2]"
         echo ""
         echo "Environments:"
         echo "  local  - Run locally (development mode)"
         echo "  pm2    - Run with PM2 process manager"
-        echo "  docker - Run with Docker Compose"
         exit 1
         ;;
 esac
