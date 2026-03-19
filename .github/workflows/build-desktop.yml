@@ -29,14 +29,18 @@ jobs:
           node-version: '18'
 
       - name: Install frontend dependencies
-        run: npm install --legacy-peer-deps
+        run: npm ci
 
       - name: Build frontend
         run: npm run build
 
+      - name: Install server dependencies
+        working-directory: ./server
+        run: npm ci
+
       - name: Install desktop dependencies
         working-directory: ./desktop
-        run: npm install
+        run: npm ci
 
       - name: Build Windows installer
         working-directory: ./desktop
@@ -61,14 +65,18 @@ jobs:
           node-version: '18'
 
       - name: Install frontend dependencies
-        run: npm install --legacy-peer-deps
+        run: npm ci
 
       - name: Build frontend
         run: npm run build
 
+      - name: Install server dependencies
+        working-directory: ./server
+        run: npm ci
+
       - name: Install desktop dependencies
         working-directory: ./desktop
-        run: npm install
+        run: npm ci
 
       - name: Build macOS installer
         working-directory: ./desktop

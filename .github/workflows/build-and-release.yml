@@ -25,15 +25,15 @@ jobs:
           cache: 'npm'
 
       - name: Install root dependencies
-        run: npm install
+        run: npm ci
 
       - name: Install server dependencies
         working-directory: ./server
-        run: npm install
+        run: npm ci
 
       - name: Install desktop dependencies
         working-directory: ./desktop
-        run: npm install
+        run: npm ci
 
       - name: Build frontend
         run: npm run build
@@ -68,15 +68,15 @@ jobs:
           cache: 'npm'
 
       - name: Install root dependencies
-        run: npm install
+        run: npm ci
 
       - name: Install server dependencies
         working-directory: ./server
-        run: npm install
+        run: npm ci
 
       - name: Install desktop dependencies
         working-directory: ./desktop
-        run: npm install
+        run: npm ci
 
       - name: Build frontend
         run: npm run build
@@ -113,15 +113,15 @@ jobs:
           sudo apt-get install -y icnsutils graphicsmagick
 
       - name: Install root dependencies
-        run: npm install
+        run: npm ci
 
       - name: Install server dependencies
         working-directory: ./server
-        run: npm install
+        run: npm ci
 
       - name: Install desktop dependencies
         working-directory: ./desktop
-        run: npm install
+        run: npm ci
 
       - name: Build frontend
         run: npm run build

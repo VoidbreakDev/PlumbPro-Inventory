@@ -46,7 +46,7 @@ jobs:
       # Build backend dependencies
       - name: Install backend dependencies
         working-directory: ./server
-        run: npm ci --omit=dev
+        run: npm ci
 
       # Build desktop app
       - name: Install desktop dependencies

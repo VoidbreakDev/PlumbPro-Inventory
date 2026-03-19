@@ -10,7 +10,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "electron-vite dev",
-    "build": "electron-vite build && npm run copy-resources",
+    "build": "npm --prefix ../server run build && electron-vite build && npm run copy-resources",
     "copy-resources": "cp -r resources dist/",
     "preview": "electron-vite preview",
     "postinstall": "electron-builder install-app-deps",
