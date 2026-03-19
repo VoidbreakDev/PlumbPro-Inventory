@@ -6,6 +6,7 @@
 import express from 'express';
 import pool from '../config/database.js';
 import { authenticateToken } from '../middleware/auth.js';
+import { sendInvoiceEmail } from '../services/emailService.js';
 
 const router = express.Router();
 
@@ -328,23 +329,60 @@ router.post('/:id/send', authenticateToken, async (req, res) => {
   const { id } = req.params;
   
   try {
-    // Update invoice status
-    const result = await pool.query(
-      `UPDATE invoices 
-       SET status = 'sent', sent_at = NOW(), updated_at = NOW()
-       WHERE id = $1 AND user_id = $2 AND status = 'draft'
-       RETURNING *`,
-      [id, userId]
-    );
+    const client = await pool.connect();
+
+    try {
+      await client.query('BEGIN');
+
+      const recipientResult = await client.query(
+        `SELECT i.id, c.name as customer_name, c.email as customer_email
+         FROM invoices i
+         JOIN contacts c ON i.contact_id = c.id
+         WHERE i.id = $1 AND i.user_id = $2`,
+        [id, userId]
+      );
+
+      if (recipientResult.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return res.status(404).json({ error: 'Invoice not found' });
+      }
+
+      const result = await client.query(
+        `UPDATE invoices 
+         SET status = 'sent', sent_at = NOW(), updated_at = NOW()
+         WHERE id = $1 AND user_id = $2 AND status = 'draft'
+         RETURNING *`,
+        [id, userId]
+      );
     
-    if (result.rows.length === 0) {
-      return res.status(400).json({ error: 'Invoice not found or already sent' });
+      if (result.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: 'Invoice not found or already sent' });
+      }
+
+      const invoice = recipientResult.rows[0];
+      const recipientEmail = req.body?.to || invoice.customer_email;
+
+      if (!recipientEmail) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: 'Customer email is required before sending an invoice' });
+      }
+
+      await sendInvoiceEmail({
+        userId,
+        invoiceId: id,
+        to: recipientEmail,
+        toName: req.body?.toName || invoice.customer_name || undefined,
+      });
+
+      await client.query('COMMIT');
+      res.json(result.rows[0]);
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
     }
-    
-    // TODO: Send email notification
-    // This will be handled by the email service
-    
-    res.json(result.rows[0]);
     
   } catch (error) {
     console.error('Send invoice error:', error);

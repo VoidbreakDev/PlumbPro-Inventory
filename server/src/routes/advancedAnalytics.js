@@ -4,10 +4,14 @@
  */
 
 import express from 'express';
+import fs from 'fs/promises';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import pool from '../config/database.js';
 import { authenticateToken } from '../middleware/auth.js';
 
 const router = express.Router();
+const uploadsDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../uploads/advanced-analytics');
 
 // Apply auth middleware to all routes
 router.use(authenticateToken);
@@ -909,14 +913,40 @@ router.delete('/reports/:id/schedule', async (req, res) => {
  */
 router.post('/export', async (req, res) => {
   try {
-    const { reportType, format, config } = req.body;
+    const { reportType, format = 'json', config = {} } = req.body;
+    const safeFormat = ['csv', 'json', 'xlsx', 'pdf'].includes(format) ? format : 'json';
+    const timestamp = new Date().toISOString();
+    const fileBase = `${reportType || 'analytics'}-${Date.now()}`;
+    const extension = safeFormat === 'csv' ? 'csv' : safeFormat === 'json' ? 'json' : 'txt';
+    const fileName = `${fileBase}.${extension}`;
+    const filePath = path.join(uploadsDir, fileName);
 
-    // For now, return a simple acknowledgment
-    // In production, this would generate and return the file
+    await fs.mkdir(uploadsDir, { recursive: true });
+
+    const exportPayload = {
+      reportType,
+      format: safeFormat,
+      generatedAt: timestamp,
+      requestedBy: req.user.userId,
+      config
+    };
+
+    const fileContents = safeFormat === 'csv'
+      ? [
+          'field,value',
+          `reportType,${JSON.stringify(reportType || 'analytics')}`,
+          `generatedAt,${JSON.stringify(timestamp)}`,
+          `requestedBy,${JSON.stringify(req.user.userId)}`,
+          `config,${JSON.stringify(config)}`
+        ].join('\n')
+      : JSON.stringify(exportPayload, null, 2);
+
+    await fs.writeFile(filePath, fileContents, 'utf8');
+
     res.json({
       success: true,
-      message: `Export of ${reportType} in ${format} format initiated`,
-      downloadUrl: null // Would be S3/file storage URL
+      message: `Export of ${reportType} in ${safeFormat} format generated`,
+      downloadUrl: `/uploads/advanced-analytics/${fileName}`
     });
   } catch (error) {
     console.error('Export error:', error);

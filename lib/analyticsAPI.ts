@@ -4,6 +4,9 @@ export interface DashboardAnalytics {
   inventoryValue: number;
   lowStockCount: number;
   jobStats: Record<string, number>;
+  projectStats: Record<string, number>;
+  stageStats: Record<string, number>;
+  overdueStageCount: number;
   recentMovements: Array<{
     type: string;
     count: number;

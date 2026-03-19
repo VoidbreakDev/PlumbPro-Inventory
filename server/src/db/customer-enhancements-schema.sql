@@ -218,6 +218,18 @@ CREATE TRIGGER update_service_agreements_timestamp
   BEFORE UPDATE ON service_agreements
   FOR EACH ROW EXECUTE FUNCTION update_contacts_updated_at();
 
+-- Add customer_id to jobs if not exists (for linking jobs to customers)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'jobs' AND column_name = 'customer_id'
+  ) THEN
+    ALTER TABLE jobs ADD COLUMN customer_id UUID REFERENCES contacts(id) ON DELETE SET NULL;
+    CREATE INDEX idx_jobs_customer ON jobs(customer_id);
+  END IF;
+END $$;
+
 -- View to get customer summary statistics
 CREATE OR REPLACE VIEW customer_summary AS
 SELECT
@@ -247,15 +259,3 @@ SELECT
   (SELECT MAX(created_at) FROM invoices i WHERE i.customer_id = c.id) as last_invoice_date
 FROM contacts c
 WHERE c.type = 'Customer';
-
--- Add customer_id to jobs if not exists (for linking jobs to customers)
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_name = 'jobs' AND column_name = 'customer_id'
-  ) THEN
-    ALTER TABLE jobs ADD COLUMN customer_id UUID REFERENCES contacts(id) ON DELETE SET NULL;
-    CREATE INDEX idx_jobs_customer ON jobs(customer_id);
-  END IF;
-END $$;

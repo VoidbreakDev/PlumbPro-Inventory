@@ -1,6 +1,7 @@
 // PlumbPro Inventory - Service Worker for Offline-First PWA
-const CACHE_NAME = 'plumbpro-v1';
+const CACHE_NAME = 'plumbpro-v2';
 const RUNTIME_CACHE = 'plumbpro-runtime';
+const IS_LOCAL_DEV = ['localhost', '127.0.0.1'].includes(self.location.hostname);
 
 // Assets to cache on install
 const PRECACHE_ASSETS = [
@@ -12,6 +13,11 @@ const PRECACHE_ASSETS = [
 // Install event - cache core assets
 self.addEventListener('install', (event) => {
   console.log('[Service Worker] Installing...');
+
+  if (IS_LOCAL_DEV) {
+    event.waitUntil(self.skipWaiting());
+    return;
+  }
 
   event.waitUntil(
     caches.open(CACHE_NAME)
@@ -26,6 +32,22 @@ self.addEventListener('install', (event) => {
 // Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
   console.log('[Service Worker] Activating...');
+
+  if (IS_LOCAL_DEV) {
+    event.waitUntil((async () => {
+      const cacheNames = await caches.keys();
+      await Promise.all(
+        cacheNames
+          .filter((cacheName) => cacheName.startsWith('plumbpro-'))
+          .map((cacheName) => caches.delete(cacheName))
+      );
+      await self.registration.unregister();
+
+      const clients = await self.clients.matchAll({ type: 'window' });
+      clients.forEach((client) => client.navigate(client.url));
+    })());
+    return;
+  }
 
   event.waitUntil(
     caches.keys().then((cacheNames) => {
@@ -43,6 +65,10 @@ self.addEventListener('activate', (event) => {
 
 // Fetch event - network first, fallback to cache
 self.addEventListener('fetch', (event) => {
+  if (IS_LOCAL_DEV) {
+    return;
+  }
+
   const { request } = event;
   const url = new URL(request.url);
 

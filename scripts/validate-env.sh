@@ -133,10 +133,12 @@ echo "-------------------------------------"
 if [ -f "$PROJECT_DIR/server/.env" ]; then
     check_env_var "$PROJECT_DIR/server/.env" "DB_HOST" required
     check_env_var "$PROJECT_DIR/server/.env" "DB_PORT" optional
+    check_env_var "$PROJECT_DIR/server/.env" "PORT" optional
     check_env_var "$PROJECT_DIR/server/.env" "DB_NAME" required
     check_env_var "$PROJECT_DIR/server/.env" "DB_USER" required
     check_env_var "$PROJECT_DIR/server/.env" "DB_PASSWORD" required 8
     check_env_var "$PROJECT_DIR/server/.env" "JWT_SECRET" required 32
+    check_env_var "$PROJECT_DIR/server/.env" "AI_KEYS_ENCRYPTION_SECRET" required 32
     check_env_var "$PROJECT_DIR/server/.env" "JWT_EXPIRES_IN" optional
     check_env_var "$PROJECT_DIR/server/.env" "CORS_ORIGIN" required
     check_env_var "$PROJECT_DIR/server/.env" "NODE_ENV" optional
@@ -145,12 +147,31 @@ else
     echo -e "${RED}✗ server/.env not found${NC}"
     ((ERRORS++))
 fi
+
+if [ -f "$PROJECT_DIR/server/.env" ]; then
+    SERVER_PORT_VALUE=$(grep '^PORT=' "$PROJECT_DIR/server/.env" 2>/dev/null | head -1 | cut -d'=' -f2 | tr -d '"' | tr -d "'")
+    if [ "$SERVER_PORT_VALUE" = "5000" ]; then
+        echo -e "${YELLOW}⚠${NC} server/.env still uses PORT=5000; the app now defaults to 5001."
+        ((WARNINGS++))
+    fi
+
+    SERVER_CORS_VALUE=$(grep '^CORS_ORIGIN=' "$PROJECT_DIR/server/.env" 2>/dev/null | head -1 | cut -d'=' -f2- | tr -d '"' | tr -d "'")
+    if echo "$SERVER_CORS_VALUE" | grep -q 'localhost:3000\|127.0.0.1:3000'; then
+        echo -e "${YELLOW}⚠${NC} server/.env still references port 3000 in CORS_ORIGIN; the local frontend dev server uses 5173."
+        ((WARNINGS++))
+    fi
+fi
 echo ""
 
 echo -e "${BLUE}🌐 Frontend Environment (.env)${NC}"
 echo "-------------------------------"
 if [ -f "$PROJECT_DIR/.env" ]; then
     check_env_var "$PROJECT_DIR/.env" "VITE_API_URL" required
+    FRONTEND_API_VALUE=$(grep '^VITE_API_URL=' "$PROJECT_DIR/.env" 2>/dev/null | head -1 | cut -d'=' -f2- | tr -d '"' | tr -d "'")
+    if echo "$FRONTEND_API_VALUE" | grep -q ':5000/'; then
+        echo -e "${YELLOW}⚠${NC} .env still points at port 5000; the backend now defaults to 5001."
+        ((WARNINGS++))
+    fi
 else
     echo -e "${YELLOW}⚠ .env not found (will use defaults)${NC}"
 fi

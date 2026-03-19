@@ -404,6 +404,9 @@ function shouldTriggerWorkflow(workflow, triggerData) {
     case 'job_status':
       return checkJobStatusTrigger(config, triggerData);
 
+    case 'project_stage':
+      return checkProjectStageTrigger(config, triggerData);
+
     case 'manual':
       return true; // Always trigger when called manually
 
@@ -435,6 +438,20 @@ function checkStockLevelTrigger(config, data) {
 function checkJobStatusTrigger(config, data) {
   const { targetStatus } = config;
   return data.status === targetStatus;
+}
+
+function checkProjectStageTrigger(config, data) {
+  const { targetStatus, stageType } = config;
+
+  if (targetStatus && data.status !== targetStatus) {
+    return false;
+  }
+
+  if (stageType && data.stageType !== stageType) {
+    return false;
+  }
+
+  return true;
 }
 
 /**

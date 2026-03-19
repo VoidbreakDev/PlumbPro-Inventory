@@ -11,7 +11,7 @@ export interface Workflow {
   user_id: string;
   name: string;
   description?: string;
-  trigger_type: 'stock_level' | 'job_status' | 'time_schedule' | 'manual' | 'webhook';
+  trigger_type: 'stock_level' | 'job_status' | 'project_stage' | 'time_schedule' | 'manual' | 'webhook';
   trigger_config: Record<string, any>;
   is_active: boolean;
   priority: number;

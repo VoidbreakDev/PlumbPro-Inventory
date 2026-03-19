@@ -54,7 +54,7 @@ Edit `.env` and update with your configuration:
 
 ```env
 # Server Configuration
-PORT=5000
+PORT=5001
 NODE_ENV=development
 
 # Database Configuration
@@ -72,7 +72,7 @@ JWT_EXPIRES_IN=7d
 GEMINI_API_KEY=your_gemini_api_key_here
 
 # CORS
-CORS_ORIGIN=http://localhost:3000
+CORS_ORIGIN=http://localhost:5173
 ```
 
 ### 4. Run Database Migration
@@ -106,7 +106,7 @@ This creates:
 npm run dev
 ```
 
-Server will start on http://localhost:5000 with auto-restart on file changes.
+Server will start on http://localhost:5001 with auto-restart on file changes.
 
 ### Production Mode
 
@@ -119,7 +119,7 @@ npm start
 ### Base URL
 
 ```
-http://localhost:5000/api
+http://localhost:5001/api
 ```
 
 ### Authentication
@@ -186,7 +186,7 @@ Authorization: Bearer YOUR_JWT_TOKEN
 #### Login
 
 ```bash
-curl -X POST http://localhost:5000/api/auth/login \
+curl -X POST http://localhost:5001/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"demo@plumbpro.com","password":"demo123"}'
 ```
@@ -194,14 +194,14 @@ curl -X POST http://localhost:5000/api/auth/login \
 #### Get Inventory (with auth)
 
 ```bash
-curl http://localhost:5000/api/inventory \
+curl http://localhost:5001/api/inventory \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
 
 #### Create Inventory Item
 
 ```bash
-curl -X POST http://localhost:5000/api/inventory \
+curl -X POST http://localhost:5001/api/inventory \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{

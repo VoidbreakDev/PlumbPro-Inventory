@@ -36,6 +36,32 @@ router.get('/dashboard', async (req, res) => {
       GROUP BY status
     `, [userId]);
 
+    const projectStats = await client.query(`
+      SELECT
+        overall_status,
+        COUNT(*) as count
+      FROM development_projects
+      WHERE user_id = $1
+      GROUP BY overall_status
+    `, [userId]);
+
+    const stageStats = await client.query(`
+      SELECT
+        status,
+        COUNT(*) as count
+      FROM development_stages
+      WHERE user_id = $1
+      GROUP BY status
+    `, [userId]);
+
+    const overdueStages = await client.query(`
+      SELECT COUNT(*) as count
+      FROM development_stages
+      WHERE user_id = $1
+        AND planned_date < CURRENT_DATE
+        AND status IN ('scheduled', 'in_progress')
+    `, [userId]);
+
     // Recent stock movements (last 30 days)
     const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
     const recentMovements = await client.query(`
@@ -72,6 +98,15 @@ router.get('/dashboard', async (req, res) => {
         acc[row.status] = parseInt(row.count);
         return acc;
       }, {}),
+      projectStats: projectStats.rows.reduce((acc, row) => {
+        acc[row.overall_status] = parseInt(row.count);
+        return acc;
+      }, {}),
+      stageStats: stageStats.rows.reduce((acc, row) => {
+        acc[row.status] = parseInt(row.count);
+        return acc;
+      }, {}),
+      overdueStageCount: parseInt(overdueStages.rows[0].count),
       recentMovements: recentMovements.rows.map(row => ({
         type: row.type,
         count: parseInt(row.count),

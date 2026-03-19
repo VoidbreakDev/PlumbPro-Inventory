@@ -1,5 +1,5 @@
 
-export type ContactType = 'Supplier' | 'Plumber' | 'Customer';
+export type ContactType = 'Supplier' | 'Plumber' | 'Customer' | 'Subcontractor';
 export type CustomerType = 'residential' | 'commercial' | 'builder' | 'developer' | 'government' | 'other';
 export type ContactStatus = 'active' | 'inactive' | 'blacklisted';
 export type PreferredContactMethod = 'email' | 'phone' | 'sms' | 'any';
@@ -259,21 +259,157 @@ export interface InventoryItem {
 
 export type JobStatus = 'Scheduled' | 'In Progress' | 'Completed' | 'Cancelled';
 
+export type DevelopmentProjectStatus = 'Planning' | 'Active' | 'Completed' | 'On Hold' | 'Cancelled';
+
+export type DevelopmentStageType =
+  | 'Drain Underfloor'
+  | 'Stormwater'
+  | 'First Fix'
+  | 'Chrome Off/Final Fix'
+  | 'Bath Installs'
+  | 'Hot Water Service Installs'
+  | 'Rainwater Tanks'
+  | 'Sump Tanks + Accessories';
+
+export type DevelopmentStageStatus =
+  | 'pending'
+  | 'scheduled'
+  | 'in_progress'
+  | 'completed'
+  | 'skipped'
+  | 'blocked';
+
+export type KitchenConfig = 'standard' | 'large' | 'galley' | 'custom';
+
+export interface DevelopmentHouseProfile {
+  storeys: number;
+  bathroomCount: number;
+  kitchenConfig: KitchenConfig;
+  hasButlersPantry: boolean;
+  customOptions: string[];
+}
+
+export interface StageModifierContribution {
+  key: string;
+  label: string;
+  amount: number;
+}
+
+export interface StageStockModifierSnapshot {
+  quantityMultiplier: number;
+  variationMultiplier: number;
+  finalMultiplier: number;
+  contributions: StageModifierContribution[];
+  generatedAt: string;
+  houseProfile: DevelopmentHouseProfile;
+}
+
+export interface DevelopmentStageManualItemAdjustment {
+  itemId: string;
+  itemName?: string;
+  quantity: number;
+}
+
 export interface Job {
   id: string;
   title: string;
   builder?: string;
+  customerId?: string;
   jobType: string;
   assignedWorkerIds: string[]; // Updated to multiple workers
   status: JobStatus;
   date: string;
+  jobAddress?: string;
+  developmentProjectId?: string;
+  developmentStageId?: string;
+  developmentStageType?: DevelopmentStageType;
   allocatedItems: AllocatedItem[];
   isPicked: boolean; // Tracking if stock has been removed from inventory
 }
 
 export interface AllocatedItem {
   itemId: string;
+  itemName?: string;
   quantity: number;
+}
+
+export interface DevelopmentStage {
+  id: string;
+  projectId: string;
+  stageType: DevelopmentStageType;
+  sortOrder: number;
+  status: DevelopmentStageStatus;
+  plannedDate?: string;
+  assignedWorkerIds: string[];
+  linkedJobId?: string;
+  linkedJobStatus?: JobStatus;
+  baseKitId?: string;
+  baseKitName?: string;
+  variationId?: string;
+  variationName?: string;
+  modifierSnapshot?: StageStockModifierSnapshot;
+  resolvedAllocatedItems: AllocatedItem[];
+  manualItemAdjustments?: DevelopmentStageManualItemAdjustment[];
+  isApplicable: boolean;
+  notes?: string;
+  completedAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface DevelopmentProject {
+  id: string;
+  title: string;
+  builder?: string;
+  customerId?: string;
+  siteAddress?: string;
+  targetStartDate?: string;
+  targetCompletionDate?: string;
+  notes?: string;
+  houseProfile: DevelopmentHouseProfile;
+  overallStatus: DevelopmentProjectStatus;
+  stages: DevelopmentStage[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CreateDevelopmentProjectInput {
+  title: string;
+  builder?: string;
+  customerId?: string;
+  siteAddress?: string;
+  targetStartDate?: string;
+  targetCompletionDate?: string;
+  notes?: string;
+  houseProfile: DevelopmentHouseProfile;
+  skippedStageTypes?: DevelopmentStageType[];
+}
+
+export interface UpdateDevelopmentProjectInput {
+  title?: string;
+  builder?: string;
+  customerId?: string;
+  siteAddress?: string;
+  targetStartDate?: string;
+  targetCompletionDate?: string;
+  notes?: string;
+  houseProfile?: DevelopmentHouseProfile;
+  overallStatus?: DevelopmentProjectStatus;
+}
+
+export interface UpdateDevelopmentStageInput {
+  status?: DevelopmentStageStatus;
+  plannedDate?: string;
+  assignedWorkerIds?: string[];
+  baseKitId?: string;
+  baseKitName?: string;
+  variationId?: string;
+  variationName?: string;
+  modifierSnapshot?: StageStockModifierSnapshot;
+  resolvedAllocatedItems?: AllocatedItem[];
+  manualItemAdjustments?: DevelopmentStageManualItemAdjustment[];
+  isApplicable?: boolean;
+  notes?: string;
 }
 
 export interface JobTemplate {
@@ -1565,7 +1701,7 @@ export interface KitFilterOptions {
 // Voice Notes & Speech-to-Text Types
 // ====================================
 
-export type VoiceNoteStatus = 'recording' | 'processing' | 'transcribed' | 'error';
+export type VoiceNoteStatus = 'recording' | 'processing' | 'pending' | 'transcribed' | 'error';
 
 export interface VoiceNote {
   id: string;
@@ -1612,6 +1748,7 @@ export interface CreateVoiceNoteInput {
   audioBlob: Blob;
   audioDuration: number;
   language?: string;
+  transcription?: string;
 }
 
 export interface VoiceNoteFilterOptions {

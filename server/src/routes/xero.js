@@ -14,6 +14,8 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const router = express.Router();
+const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
+const oauthStateStore = new Map();
 
 // Xero API endpoints
 const XERO_IDENTITY_URL = 'https://identity.xero.com';
@@ -35,6 +37,39 @@ const getXeroConfig = () => ({
   ]
 });
 
+const createOAuthState = (userId) => {
+  const state = crypto.randomBytes(32).toString('base64url');
+  oauthStateStore.set(state, {
+    userId,
+    expiresAt: Date.now() + OAUTH_STATE_TTL_MS
+  });
+  return state;
+};
+
+const consumeOAuthState = (state) => {
+  const stateRecord = oauthStateStore.get(state);
+  oauthStateStore.delete(state);
+
+  if (!stateRecord) {
+    return null;
+  }
+
+  if (stateRecord.expiresAt < Date.now()) {
+    return null;
+  }
+
+  return stateRecord;
+};
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [state, record] of oauthStateStore.entries()) {
+    if (record.expiresAt < now) {
+      oauthStateStore.delete(state);
+    }
+  }
+}, OAUTH_STATE_TTL_MS).unref();
+
 // ==========================================
 // OAUTH FLOW
 // ==========================================
@@ -54,27 +89,20 @@ router.get('/auth-url', authenticateToken, async (req, res) => {
       });
     }
 
-    // Generate state parameter for CSRF protection
-    const state = crypto.randomBytes(32).toString('hex');
-
-    // Store state in session (in production, use Redis or similar)
-    // For now, we'll encode the user ID in the state
-    const stateData = Buffer.from(JSON.stringify({
-      userId: req.user.userId,
-      random: state
-    })).toString('base64');
+    // Store an opaque state server-side and validate it on callback.
+    const state = createOAuthState(req.user.userId);
 
     const params = new URLSearchParams({
       response_type: 'code',
       client_id: config.clientId,
       redirect_uri: config.redirectUri,
       scope: config.scopes.join(' '),
-      state: stateData
+      state
     });
 
     const authUrl = `${XERO_IDENTITY_URL}/connect/authorize?${params.toString()}`;
 
-    res.json({ authUrl, state: stateData });
+    res.json({ authUrl });
   } catch (error) {
     console.error('Generate auth URL error:', error);
     res.status(500).json({ error: 'Failed to generate authorization URL' });
@@ -99,15 +127,12 @@ router.get('/callback', async (req, res) => {
       return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/settings?xero_error=missing_params`);
     }
 
-    // Decode state to get user ID
-    let stateData;
-    try {
-      stateData = JSON.parse(Buffer.from(state, 'base64').toString());
-    } catch {
+    const stateRecord = consumeOAuthState(String(state));
+    if (!stateRecord) {
       return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/settings?xero_error=invalid_state`);
     }
 
-    const userId = stateData.userId;
+    const userId = stateRecord.userId;
     const config = getXeroConfig();
 
     // Exchange code for tokens

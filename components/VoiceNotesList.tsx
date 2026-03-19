@@ -77,6 +77,7 @@ export function VoiceNotesList({ jobId, contactId, readOnly = false }: VoiceNote
         jobId,
         contactId,
         language: 'en-AU',
+        transcription: data.transcription,
       });
       
       // Reload notes
@@ -238,10 +239,10 @@ export function VoiceNotesList({ jobId, contactId, readOnly = false }: VoiceNote
               </div>
 
               {/* Transcription Status */}
-              {note.transcriptionStatus === 'processing' && (
+              {(note.transcriptionStatus === 'processing' || note.transcriptionStatus === 'pending' || note.transcriptionStatus === 'recording') && (
                 <div className="flex items-center gap-1 text-amber-600 text-sm">
-                  <RotateCcw className="w-4 h-4 animate-spin" />
-                  <span>Transcribing...</span>
+                  <RotateCcw className={`w-4 h-4 ${note.transcriptionStatus === 'processing' ? 'animate-spin' : ''}`} />
+                  <span>{note.transcriptionStatus === 'processing' ? 'Transcribing...' : 'Audio only'}</span>
                 </div>
               )}
               {note.transcriptionStatus === 'error' && (

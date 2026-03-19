@@ -5,9 +5,9 @@ const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 12;
 
 const getEncryptionKey = () => {
-  const secret = process.env.AI_KEYS_ENCRYPTION_SECRET || process.env.JWT_SECRET;
-  if (!secret) {
-    throw new Error('AI_KEYS_ENCRYPTION_SECRET is not configured');
+  const secret = process.env.AI_KEYS_ENCRYPTION_SECRET;
+  if (!secret || secret.length < 32) {
+    throw new Error('AI_KEYS_ENCRYPTION_SECRET must be configured and at least 32 characters long');
   }
   return crypto.createHash('sha256').update(secret).digest();
 };

@@ -36,9 +36,11 @@ import {
   Eye
 } from 'lucide-react';
 import { StatCard } from '../components/Shared';
+import { useToast } from '../components/ToastNotification';
 import api from '../lib/api';
 import { getErrorMessage } from '../lib/errors';
 import { advancedAnalyticsAPI, AnalyticsDashboard, JobProfitability, InventoryAnalytics, CustomerAnalytics, SavedReport } from '../lib/advancedAnalyticsAPI';
+import { exportToCSV, exportToPDF } from '../lib/exportUtils';
 
 interface ReportData {
   inventoryValue: number;
@@ -82,6 +84,7 @@ interface FinancialReport {
 type ReportType = 'overview' | 'inventory' | 'jobs' | 'financial' | 'supplier' | 'customers' | 'saved';
 
 export function ReportingView() {
+  const toast = useToast();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeReport, setActiveReport] = useState<ReportType>('overview');
@@ -98,6 +101,12 @@ export function ReportingView() {
   const [customerAnalytics, setCustomerAnalytics] = useState<CustomerAnalytics | null>(null);
   const [savedReports, setSavedReports] = useState<SavedReport[]>([]);
   const [showCreateReport, setShowCreateReport] = useState(false);
+  const [reportToDelete, setReportToDelete] = useState<SavedReport | null>(null);
+  const [newReport, setNewReport] = useState({
+    name: '',
+    reportType: 'job_profitability',
+    description: ''
+  });
 
   useEffect(() => {
     loadReports();
@@ -186,19 +195,172 @@ export function ReportingView() {
     }
   };
 
-  const deleteReport = async (reportId: string) => {
-    if (!confirm('Are you sure you want to delete this report?')) return;
+  const deleteReport = async () => {
+    if (!reportToDelete) return;
     try {
-      await advancedAnalyticsAPI.deleteReport(reportId);
-      setSavedReports(reports => reports.filter(r => r.id !== reportId));
+      await advancedAnalyticsAPI.deleteReport(reportToDelete.id);
+      setSavedReports(reports => reports.filter(r => r.id !== reportToDelete.id));
+      toast.success(`Deleted report "${reportToDelete.name}"`);
+      setReportToDelete(null);
     } catch (err) {
       setError(getErrorMessage(err, 'Failed to delete report'));
+      toast.error('Failed to delete report');
     }
   };
 
-  const handleExport = (format: 'csv' | 'pdf') => {
-    // Placeholder for export functionality
-    alert(`Export to ${format.toUpperCase()} coming soon!`);
+  const getExportPayload = () => {
+    const timestamp = new Date().toISOString().split('T')[0];
+
+    switch (activeReport) {
+      case 'overview':
+        return {
+          title: 'Overview Report',
+          filename: `plumbpro-overview-${timestamp}`,
+          rows: reportData ? [{
+            inventoryValue: reportData.inventoryValue,
+            lowStockCount: reportData.lowStockCount,
+            totalJobs: totalReportJobs,
+            recentMovements: recentMovementCount
+          }] : []
+        };
+      case 'inventory':
+        return {
+          title: 'Inventory Report',
+          filename: `plumbpro-inventory-${timestamp}`,
+          rows:
+            inventoryAnalytics?.byCategory.map((category) => ({
+              category: category.category,
+              itemCount: category.itemCount,
+              currentStock: category.currentStock,
+              stockValue: category.stockValue,
+              unitsSold: category.unitsSold,
+              turnoverRate: category.turnoverRate
+            })) ||
+            inventoryReport?.categoryBreakdown.map((category) => ({
+              category: category.category,
+              itemCount: category.count,
+              stockValue: category.value
+            })) ||
+            []
+        };
+      case 'jobs':
+        return {
+          title: 'Jobs Report',
+          filename: `plumbpro-jobs-${timestamp}`,
+          rows:
+            jobProfitability?.jobs.map((job) => ({
+              title: job.title,
+              jobType: job.jobType,
+              customerName: job.customerName,
+              revenue: job.revenue,
+              profit: job.profit,
+              marginPercent: job.marginPercent,
+              completedAt: job.completedAt
+            })) ||
+            jobReport?.jobsByMonth.map((month) => ({
+              month: month.month,
+              count: month.count,
+              value: month.value
+            })) ||
+            []
+        };
+      case 'financial':
+        return {
+          title: 'Financial Report',
+          filename: `plumbpro-financial-${timestamp}`,
+          rows: financialReport ? [{
+            totalRevenue: financialReport.totalRevenue,
+            totalQuoted: financialReport.totalQuoted,
+            totalInvoiced: financialReport.totalInvoiced,
+            totalPaid: financialReport.totalPaid,
+            outstanding: financialReport.outstanding,
+            averageQuoteValue: financialReport.averageQuoteValue,
+            averageInvoiceValue: financialReport.averageInvoiceValue
+          }] : []
+        };
+      case 'customers':
+        return {
+          title: 'Customer Report',
+          filename: `plumbpro-customers-${timestamp}`,
+          rows: customerAnalytics?.topCustomers.map((customer) => ({
+            name: customer.name,
+            type: customer.type,
+            customerType: customer.customerType,
+            totalJobs: customer.totalJobs,
+            lifetimeValue: customer.lifetimeValue,
+            lastJobDate: customer.lastJobDate,
+            averageJobValue: customer.avgJobValue
+          })) || []
+        };
+      case 'saved':
+        return {
+          title: 'Saved Reports',
+          filename: `plumbpro-saved-reports-${timestamp}`,
+          rows: savedReports.map((report) => ({
+            name: report.name,
+            reportType: report.reportType,
+            favorite: report.isFavorite ? 'Yes' : 'No',
+            shared: report.isShared ? 'Yes' : 'No',
+            lastRunAt: report.lastRunAt || 'Never'
+          }))
+        };
+      default:
+        return {
+          title: 'Report',
+          filename: `plumbpro-report-${timestamp}`,
+          rows: []
+        };
+    }
+  };
+
+  const handleExport = async (format: 'csv' | 'pdf') => {
+    const payload = getExportPayload();
+
+    if (payload.rows.length === 0) {
+      toast.warning('No data available to export for this report');
+      return;
+    }
+
+    try {
+      if (format === 'csv') {
+        exportToCSV(payload.rows, `${payload.filename}.csv`);
+      } else {
+        await exportToPDF(payload.title, payload.rows, `${payload.filename}.pdf`);
+      }
+      toast.success(`${format.toUpperCase()} export started`);
+    } catch (err) {
+      setError(getErrorMessage(err, 'Failed to export report'));
+      toast.error('Failed to export report');
+    }
+  };
+
+  const handleCreateReport = async () => {
+    if (!newReport.name.trim()) {
+      toast.warning('Report name is required');
+      return;
+    }
+
+    try {
+      const created = await advancedAnalyticsAPI.createReport({
+        name: newReport.name.trim(),
+        description: newReport.description.trim() || undefined,
+        reportType: newReport.reportType,
+        config: { dateRange },
+        chartType: 'table'
+      });
+
+      setSavedReports((reports) => [created, ...reports]);
+      setShowCreateReport(false);
+      setNewReport({
+        name: '',
+        reportType: 'job_profitability',
+        description: ''
+      });
+      toast.success('Report created successfully');
+    } catch (err) {
+      setError(getErrorMessage(err, 'Failed to create report'));
+      toast.error('Failed to create report');
+    }
   };
 
   const formatCurrency = (value: number) => {
@@ -217,6 +379,11 @@ export function ReportingView() {
     { id: 'supplier', label: 'Supplier', icon: Truck },
     { id: 'saved', label: 'Saved Reports', icon: FileText }
   ];
+  const reportJobStats = reportData?.jobStats ?? {};
+  const reportJobCounts = Object.values(reportJobStats) as number[];
+  const reportJobEntries = Object.entries(reportJobStats) as Array<[string, number]>;
+  const totalReportJobs = reportJobCounts.reduce((sum, count) => sum + count, 0);
+  const recentMovementCount = (reportData?.recentMovements ?? []).reduce((sum, movement) => sum + movement.count, 0);
 
   return (
     <div className="space-y-6 p-6">
@@ -310,26 +477,26 @@ export function ReportingView() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard
               icon={Package}
-              label="Inventory Value"
+              title="Inventory Value"
               value={formatCurrency(reportData.inventoryValue)}
               color="blue"
             />
             <StatCard
               icon={AlertCircle}
-              label="Low Stock Items"
+              title="Low Stock Items"
               value={reportData.lowStockCount.toString()}
               color={reportData.lowStockCount > 5 ? 'red' : 'yellow'}
             />
             <StatCard
               icon={Briefcase}
-              label="Active Jobs"
+              title="Active Jobs"
               value={(reportData.jobStats?.['In Progress'] || 0).toString()}
               color="green"
             />
             <StatCard
               icon={Activity}
-              label="Recent Movements"
-              value={reportData.recentMovements?.reduce((acc, m) => acc + m.count, 0).toString() || '0'}
+              title="Recent Movements"
+              value={recentMovementCount.toString()}
               color="purple"
             />
           </div>
@@ -340,7 +507,7 @@ export function ReportingView() {
             <div className="bg-white rounded-lg shadow p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Job Status Overview</h3>
               <div className="space-y-3">
-                {Object.entries(reportData.jobStats || {}).map(([status, count]) => (
+                {reportJobEntries.map(([status, count]) => (
                   <div key={status} className="flex items-center justify-between">
                     <span className="text-gray-600">{status}</span>
                     <div className="flex items-center gap-3">
@@ -353,7 +520,7 @@ export function ReportingView() {
                             'bg-gray-400'
                           }`}
                           style={{
-                            width: `${(count / Object.values(reportData.jobStats).reduce((a, b) => a + b, 1)) * 100}%`
+                            width: `${(count / Math.max(totalReportJobs, 1)) * 100}%`
                           }}
                         />
                       </div>
@@ -447,25 +614,25 @@ export function ReportingView() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard
               icon={Package}
-              label="Total Items"
+              title="Total Items"
               value={inventoryReport?.totalItems?.toString() || '0'}
               color="blue"
             />
             <StatCard
               icon={DollarSign}
-              label="Total Value"
+              title="Total Value"
               value={formatCurrency(inventoryReport?.totalValue || 0)}
               color="green"
             />
             <StatCard
               icon={AlertCircle}
-              label="Low Stock"
+              title="Low Stock"
               value={inventoryReport?.lowStockItems?.toString() || '0'}
               color="yellow"
             />
             <StatCard
               icon={X}
-              label="Out of Stock"
+              title="Out of Stock"
               value={inventoryReport?.outOfStockItems?.toString() || '0'}
               color="red"
             />
@@ -540,25 +707,25 @@ export function ReportingView() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard
               icon={Briefcase}
-              label="Total Jobs"
-              value={jobReport?.totalJobs?.toString() || (reportData?.jobStats ? Object.values(reportData.jobStats).reduce((a, b) => a + b, 0).toString() : '0')}
+              title="Total Jobs"
+              value={jobReport?.totalJobs?.toString() || totalReportJobs.toString()}
               color="blue"
             />
             <StatCard
               icon={Clock}
-              label="In Progress"
+              title="In Progress"
               value={jobReport?.inProgressJobs?.toString() || reportData?.jobStats?.['In Progress']?.toString() || '0'}
               color="yellow"
             />
             <StatCard
               icon={Calendar}
-              label="Scheduled"
+              title="Scheduled"
               value={jobReport?.scheduledJobs?.toString() || reportData?.jobStats?.['Scheduled']?.toString() || '0'}
               color="purple"
             />
             <StatCard
               icon={TrendingUp}
-              label="Completed"
+              title="Completed"
               value={jobReport?.completedJobs?.toString() || reportData?.jobStats?.['Completed']?.toString() || '0'}
               color="green"
             />
@@ -609,25 +776,25 @@ export function ReportingView() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard
               icon={FileText}
-              label="Total Quoted"
+              title="Total Quoted"
               value={formatCurrency(financialReport?.totalQuoted || 0)}
               color="blue"
             />
             <StatCard
               icon={DollarSign}
-              label="Total Invoiced"
+              title="Total Invoiced"
               value={formatCurrency(financialReport?.totalInvoiced || 0)}
               color="green"
             />
             <StatCard
               icon={TrendingUp}
-              label="Total Paid"
+              title="Total Paid"
               value={formatCurrency(financialReport?.totalPaid || 0)}
               color="purple"
             />
             <StatCard
               icon={AlertCircle}
-              label="Outstanding"
+              title="Outstanding"
               value={formatCurrency(financialReport?.outstanding || 0)}
               color={financialReport?.outstanding && financialReport.outstanding > 0 ? 'red' : 'green'}
             />
@@ -749,25 +916,25 @@ export function ReportingView() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard
               icon={Users}
-              label="Total Customers"
+              title="Total Customers"
               value={customerAnalytics?.summary?.totalCustomers?.toString() || '0'}
               color="blue"
             />
             <StatCard
               icon={TrendingUp}
-              label="New (30 Days)"
+              title="New (30 Days)"
               value={customerAnalytics?.summary?.newLast30Days?.toString() || '0'}
               color="green"
             />
             <StatCard
               icon={Activity}
-              label="Active (90 Days)"
+              title="Active (90 Days)"
               value={customerAnalytics?.summary?.activeLast90Days?.toString() || '0'}
               color="purple"
             />
             <StatCard
               icon={DollarSign}
-              label="Avg Lifetime Value"
+              title="Avg Lifetime Value"
               value={formatCurrency(customerAnalytics?.summary?.avgLifetimeValue || 0)}
               color="yellow"
             />
@@ -942,7 +1109,7 @@ export function ReportingView() {
                       View
                     </button>
                     <button
-                      onClick={() => deleteReport(report.id)}
+                      onClick={() => setReportToDelete(report)}
                       className="px-3 py-1.5 text-sm font-medium text-red-600 bg-red-50 rounded hover:bg-red-100"
                     >
                       <Trash2 className="w-3 h-3" />
@@ -980,7 +1147,7 @@ export function ReportingView() {
                 <button
                   key={template.type}
                   onClick={() => {
-                    // Would open create dialog with template pre-selected
+                    setNewReport((current) => ({ ...current, reportType: template.type }));
                     setShowCreateReport(true);
                   }}
                   className={`p-4 rounded-lg border-2 border-dashed border-${template.color}-200 hover:border-${template.color}-400 hover:bg-${template.color}-50 transition-colors text-left`}
@@ -1011,6 +1178,8 @@ export function ReportingView() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Report Name</label>
                 <input
                   type="text"
+                  value={newReport.name}
+                  onChange={(e) => setNewReport((current) => ({ ...current, name: e.target.value }))}
                   placeholder="e.g., Monthly Job Summary"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
@@ -1018,7 +1187,11 @@ export function ReportingView() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Report Type</label>
-                <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                <select
+                  value={newReport.reportType}
+                  onChange={(e) => setNewReport((current) => ({ ...current, reportType: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
                   <option value="job_profitability">Job Profitability</option>
                   <option value="inventory_turnover">Inventory Turnover</option>
                   <option value="customer_lifetime_value">Customer Lifetime Value</option>
@@ -1031,6 +1204,8 @@ export function ReportingView() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Description (optional)</label>
                 <textarea
+                  value={newReport.description}
+                  onChange={(e) => setNewReport((current) => ({ ...current, description: e.target.value }))}
                   placeholder="Brief description of this report..."
                   rows={2}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -1045,16 +1220,37 @@ export function ReportingView() {
                   Cancel
                 </button>
                 <button
-                  onClick={() => {
-                    // Would call API to create report
-                    alert('Report creation coming soon!');
-                    setShowCreateReport(false);
-                  }}
+                  onClick={handleCreateReport}
                   className="flex-1 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700"
                 >
                   Create Report
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {reportToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+            <h3 className="text-lg font-semibold text-gray-900">Delete report?</h3>
+            <p className="mt-2 text-sm text-gray-600">
+              This will permanently remove <strong>{reportToDelete.name}</strong>.
+            </p>
+            <div className="mt-6 flex items-center justify-end gap-3">
+              <button
+                onClick={() => setReportToDelete(null)}
+                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={deleteReport}
+                className="px-4 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700"
+              >
+                Delete Report
+              </button>
             </div>
           </div>
         </div>

@@ -2,10 +2,13 @@ import localforage from 'localforage';
 import type {
   InventoryItem,
   Contact,
+  DevelopmentProject,
   Job,
   JobTemplate,
+  Kit,
   StockMovement,
-  AppSettings
+  AppSettings,
+  Location
 } from '../types';
 
 // Configure localforage
@@ -20,8 +23,12 @@ const KEYS = {
   INVENTORY: 'inventory_items',
   CONTACTS: 'contacts',
   JOBS: 'jobs',
+  DEVELOPMENT_PROJECTS: 'development_projects',
   TEMPLATES: 'job_templates',
+  KITS: 'kits_bom',
   MOVEMENTS: 'stock_movements',
+  LOCATIONS: 'locations',
+  SYNC_QUEUE: 'sync_queue',
   LAST_SYNC: 'last_sync_timestamp',
   SETTINGS: 'app_settings',
   RECENT_SEARCHES: 'recent_searches'
@@ -56,6 +63,15 @@ export const storage = {
     await localforage.setItem(KEYS.JOBS, jobs);
   },
 
+  // Development projects
+  async getDevelopmentProjects(): Promise<DevelopmentProject[]> {
+    return (await localforage.getItem(KEYS.DEVELOPMENT_PROJECTS)) || [];
+  },
+
+  async setDevelopmentProjects(projects: DevelopmentProject[]): Promise<void> {
+    await localforage.setItem(KEYS.DEVELOPMENT_PROJECTS, projects);
+  },
+
   // Templates
   async getTemplates(): Promise<JobTemplate[]> {
     return (await localforage.getItem(KEYS.TEMPLATES)) || [];
@@ -65,6 +81,15 @@ export const storage = {
     await localforage.setItem(KEYS.TEMPLATES, templates);
   },
 
+  // Kits
+  async getKits(): Promise<Kit[]> {
+    return (await localforage.getItem(KEYS.KITS)) || [];
+  },
+
+  async setKits(kits: Kit[]): Promise<void> {
+    await localforage.setItem(KEYS.KITS, kits);
+  },
+
   // Movements
   async getMovements(): Promise<StockMovement[]> {
     return (await localforage.getItem(KEYS.MOVEMENTS)) || [];
@@ -72,6 +97,24 @@ export const storage = {
 
   async setMovements(movements: StockMovement[]): Promise<void> {
     await localforage.setItem(KEYS.MOVEMENTS, movements);
+  },
+
+  // Locations
+  async getLocations(): Promise<Location[]> {
+    return (await localforage.getItem(KEYS.LOCATIONS)) || [];
+  },
+
+  async setLocations(locations: Location[]): Promise<void> {
+    await localforage.setItem(KEYS.LOCATIONS, locations);
+  },
+
+  // Sync queue
+  async getSyncQueue<T = unknown[]>(): Promise<T> {
+    return ((await localforage.getItem(KEYS.SYNC_QUEUE)) as T) || ([] as unknown as T);
+  },
+
+  async setSyncQueue<T>(queue: T): Promise<void> {
+    await localforage.setItem(KEYS.SYNC_QUEUE, queue);
   },
 
   // Last sync

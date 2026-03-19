@@ -5,6 +5,7 @@
 
 import axios from 'axios';
 import { API_ROOT_URL } from './api';
+import { clearAuthSession, getAuthToken } from './authSession';
 
 const api = axios.create({
   baseURL: `${API_ROOT_URL}/invoices`,
@@ -15,12 +16,23 @@ const api = axios.create({
 
 // Add auth token to requests
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('auth_token');
+  const token = getAuthToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      clearAuthSession();
+      window.dispatchEvent(new CustomEvent('auth-error'));
+    }
+    return Promise.reject(error);
+  }
+);
 
 export interface InvoiceItem {
   id?: string;

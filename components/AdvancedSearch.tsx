@@ -12,7 +12,7 @@ import { loadRecentSearches, saveRecentSearches } from '../lib/recentSearches';
 
 export interface SearchResult {
   id: string;
-  type: 'inventory' | 'job' | 'contact' | 'workflow';
+  type: 'inventory' | 'job' | 'contact' | 'workflow' | 'project';
   title: string;
   subtitle?: string;
   description?: string;
@@ -115,13 +115,28 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({
         const jobResults: SearchResult[] = jobsResponse.data.map((job: any) => ({
           id: job.id,
           type: 'job' as const,
-          title: job.name,
+          title: job.title || job.name,
           subtitle: job.status,
-          description: job.scheduledDate ? `Scheduled: ${new Date(job.scheduledDate).toLocaleDateString()}` : '',
+          description: job.date ? `Scheduled: ${new Date(job.date).toLocaleDateString()}` : '',
           metadata: job,
           icon: '🔧'
         }));
         results.push(...jobResults);
+      }
+
+      // Search development projects
+      if (includeAll || filters.includes('job')) {
+        const projectsResponse = await api.get(`/development-projects?search=${searchQuery}&limit=5`);
+        const projectResults: SearchResult[] = projectsResponse.data.map((project: any) => ({
+          id: project.id,
+          type: 'project' as const,
+          title: project.title,
+          subtitle: project.overallStatus,
+          description: project.siteAddress || project.builder || '',
+          metadata: project,
+          icon: '🏗️'
+        }));
+        results.push(...projectResults);
       }
 
       // Search contacts
@@ -189,6 +204,12 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({
           break;
         case 'workflow':
           navigate(`/workflows/${result.id}`);
+          break;
+        case 'project':
+          window.dispatchEvent(new CustomEvent('navigate', { detail: 'project-stages' }));
+          window.dispatchEvent(new CustomEvent('open-development-project', {
+            detail: { projectId: result.id }
+          }));
           break;
       }
     }

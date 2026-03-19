@@ -5,20 +5,14 @@ import {
   FileSignature,
   Clock,
   CheckCircle,
-  AlertCircle,
   Mic,
   StickyNote,
   Navigation,
   QrCode,
-  Package,
-  Play,
-  Square,
-  Upload,
   CheckSquare,
-  XCircle,
   Route,
-  Wifi,
-  Bell
+  Bell,
+  X
 } from 'lucide-react';
 import { mobileAPI, type CheckIn, type Location } from '../lib/mobileAPI';
 import { useStore } from '../store/useStore';
@@ -29,8 +23,13 @@ import { VoiceNotesList } from '../components/VoiceNotesList';
 import { PushNotificationManager } from '../components/PushNotificationManager';
 import { GPSBreadcrumbMap } from '../components/GPSBreadcrumbMap';
 import { OfflineSyncStatus } from '../components/OfflineSyncStatus';
+import { useToast } from '../components/ToastNotification';
+
+const PHOTO_TYPES = ['before', 'during', 'after', 'issue', 'completion'] as const;
+type PhotoType = (typeof PHOTO_TYPES)[number];
 
 export function MobileFieldView() {
+  const toast = useToast();
   const [activeCheckIn, setActiveCheckIn] = useState<CheckIn | null>(null);
   const [currentLocation, setCurrentLocation] = useState<Location | null>(null);
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
@@ -40,20 +39,35 @@ export function MobileFieldView() {
   // State for various features
   const [photos, setPhotos] = useState<any[]>([]);
   const [notes, setNotes] = useState<any[]>([]);
-  const [signatureCanvas, setSignatureCanvas] = useState<string | null>(null);
-  const [isRecording, setIsRecording] = useState(false);
   const [completionCheck, setCompletionCheck] = useState<any>(null);
-  const [barcodeScanMode, setBarcodeScanMode] = useState(false);
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
   const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
   const [showPushSettings, setShowPushSettings] = useState(false);
   const [showGPSMap, setShowGPSMap] = useState(false);
-  const [showGPSRoute, setShowGPSRoute] = useState(false);
   const [gpsBreadcrumbs, setGpsBreadcrumbs] = useState<any[]>([]);
+  const [showCheckInModal, setShowCheckInModal] = useState(false);
+  const [checkInJobId, setCheckInJobId] = useState('');
+  const [showCheckOutModal, setShowCheckOutModal] = useState(false);
+  const [checkOutNotes, setCheckOutNotes] = useState('');
+  const [showPhotoDetailsModal, setShowPhotoDetailsModal] = useState(false);
+  const [pendingPhotoFile, setPendingPhotoFile] = useState<File | null>(null);
+  const [photoForm, setPhotoForm] = useState<{ photoType: PhotoType; caption: string }>({
+    photoType: 'during',
+    caption: ''
+  });
+  const [showSignatureModal, setShowSignatureModal] = useState(false);
+  const [signatureForm, setSignatureForm] = useState({
+    signerName: '',
+    signerPhone: ''
+  });
+  const [showNoteModal, setShowNoteModal] = useState(false);
+  const [noteForm, setNoteForm] = useState({
+    content: '',
+    isImportant: false
+  });
   const setError = useStore((state) => state.setError);
 
   const signaturePadRef = useRef<HTMLCanvasElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
   const breadcrumbTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -93,58 +107,77 @@ export function MobileFieldView() {
     try {
       const location = await mobileAPI.getCurrentLocation();
       setCurrentLocation(location);
+      return location;
     } catch (error) {
-      setError(getErrorMessage(error, 'Failed to get location'));
-      alert('Please enable location services');
+      const message = getErrorMessage(error, 'Failed to get location');
+      setError(message);
+      toast.warning('Please enable location services');
+      return null;
     } finally {
       setIsLoadingLocation(false);
     }
   };
 
   const handleCheckIn = async (jobId: string) => {
-    if (!currentLocation) {
-      await getCurrentLocationData();
-      if (!currentLocation) {
-        alert('Location required for check-in');
-        return;
+    let resolvedLocation = currentLocation;
+    if (!resolvedLocation) {
+      resolvedLocation = await getCurrentLocationData();
+      if (!resolvedLocation) {
+        toast.warning('Location required for check-in');
+        return false;
       }
     }
 
     try {
-      const checkIn = await mobileAPI.checkIn(jobId, currentLocation);
+      const checkIn = await mobileAPI.checkIn(jobId, resolvedLocation);
       setActiveCheckIn(checkIn);
       setIsCheckedIn(true);
-      alert('Checked in successfully!');
+      toast.success('Checked in successfully');
+      return true;
     } catch (error) {
       const message = getErrorMessage(error, 'Failed to check in');
       setError(message);
-      alert(message);
+      toast.error(message);
+      return false;
     }
   };
 
-  const handleCheckOut = async () => {
-    if (!activeCheckIn || !currentLocation) return;
+  const handleCheckOut = async (checkoutNotes?: string) => {
+    if (!activeCheckIn) return false;
 
-    const notes = prompt('Add any checkout notes:');
+    let resolvedLocation = currentLocation;
+    if (!resolvedLocation) {
+      resolvedLocation = await getCurrentLocationData();
+      if (!resolvedLocation) {
+        toast.warning('Location required for check-out');
+        return false;
+      }
+    }
 
     try {
-      const checkOut = await mobileAPI.checkOut(activeCheckIn.id, currentLocation, notes || undefined);
-      alert(`Checked out! Duration: ${checkOut.duration_minutes} minutes`);
+      const checkOut = await mobileAPI.checkOut(
+        activeCheckIn.id,
+        resolvedLocation,
+        checkoutNotes || undefined
+      );
+      toast.success(`Checked out successfully (${checkOut.duration_minutes} minutes)`);
       setActiveCheckIn(null);
       setIsCheckedIn(false);
+      setPhotos([]);
+      setNotes([]);
+      setCompletionCheck(null);
+      setGpsBreadcrumbs([]);
+      return true;
     } catch (error) {
       const message = getErrorMessage(error, 'Failed to check out');
       setError(message);
-      alert(message);
+      toast.error(message);
+      return false;
     }
   };
 
-  const handlePhotoCapture = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (!event.target.files || !activeCheckIn) return;
-
-    const file = event.target.files[0];
-    const photoType = prompt('Photo type (before/during/after/issue):') || 'during';
-    const caption = prompt('Add a caption (optional):');
+  const handlePhotoUpload = async (file: File, photoType: PhotoType, caption?: string) => {
+    if (!activeCheckIn) return false;
 
     try {
       const photo = await mobileAPI.uploadPhoto(
@@ -155,25 +188,35 @@ export function MobileFieldView() {
         currentLocation || undefined,
         activeCheckIn.id
       );
-      setPhotos([photo, ...photos]);
-      alert('Photo uploaded!');
+      setPhotos((previousPhotos) => [photo, ...previousPhotos]);
+      toast.success('Photo uploaded');
+      return true;
     } catch (error) {
       const message = getErrorMessage(error, 'Failed to upload photo');
       setError(message);
-      alert(message);
+      toast.error(message);
+      return false;
     }
   };
 
-  const handleSignature = async () => {
-    if (!signaturePadRef.current || !activeCheckIn) return;
+  const handlePhotoSelection = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file || !activeCheckIn) return;
+
+    setPendingPhotoFile(file);
+    setPhotoForm({
+      photoType: 'during',
+      caption: ''
+    });
+    setShowPhotoDetailsModal(true);
+  };
+
+  const handleSignatureSave = async (signerName: string, signerPhone?: string) => {
+    if (!signaturePadRef.current || !activeCheckIn) return false;
 
     const canvas = signaturePadRef.current;
     const signatureDataUrl = canvas.toDataURL('image/png');
-
-    const signerName = prompt('Customer name:');
-    if (!signerName) return;
-
-    const signerPhone = prompt('Customer phone (optional):');
 
     try {
       await mobileAPI.saveSignature(activeCheckIn.job_id, {
@@ -183,22 +226,20 @@ export function MobileFieldView() {
         signerPhone: signerPhone || undefined,
         checkInId: activeCheckIn.id
       });
-      alert('Signature saved! Job marked as completed.');
-      setSignatureCanvas(null);
+      toast.success('Signature saved and job marked as completed');
+      clearSignature();
+      await loadJobData(activeCheckIn.job_id);
+      return true;
     } catch (error) {
       const message = getErrorMessage(error, 'Failed to save signature');
       setError(message);
-      alert(message);
+      toast.error(message);
+      return false;
     }
   };
 
-  const handleAddNote = async () => {
-    if (!activeCheckIn) return;
-
-    const content = prompt('Enter note:');
-    if (!content) return;
-
-    const isImportant = confirm('Mark as important?');
+  const handleAddNote = async (content: string, isImportant: boolean) => {
+    if (!activeCheckIn) return false;
 
     try {
       const note = await mobileAPI.addFieldNote(activeCheckIn.job_id, {
@@ -208,12 +249,14 @@ export function MobileFieldView() {
         location: currentLocation || undefined,
         checkInId: activeCheckIn.id
       });
-      setNotes([note, ...notes]);
-      alert('Note added!');
+      setNotes((previousNotes) => [note, ...previousNotes]);
+      toast.success('Note added');
+      return true;
     } catch (error) {
       const message = getErrorMessage(error, 'Failed to add note');
       setError(message);
-      alert(message);
+      toast.error(message);
+      return false;
     }
   };
 
@@ -226,12 +269,12 @@ export function MobileFieldView() {
     } catch (error) {
       const message = getErrorMessage(error, 'Failed to check completion');
       setError(message);
-      alert(message);
+      toast.error(message);
     }
   };
 
   const handleBarcodeScan = () => {
-    setBarcodeScanMode(true);
+    setShowBarcodeScanner(true);
   };
 
   const handleBarcodeDetected = async (barcode: string, format: string) => {
@@ -245,43 +288,42 @@ export function MobileFieldView() {
       });
 
       if (result.found) {
-        alert(`✅ Found: ${result.item.name}\nQuantity: ${result.item.quantity}\nPrice: £${result.item.price}`);
+        toast.success(`Found ${result.item.name} (${result.item.quantity} in stock, $${result.item.price})`);
       } else {
-        alert('❌ Item not found in inventory');
+        toast.warning('Item not found in inventory');
       }
     } catch (error) {
       const message = getErrorMessage(error, 'Scan failed');
       setError(message);
-      alert(message);
+      toast.error(message);
     }
-    setBarcodeScanMode(false);
+    setShowBarcodeScanner(false);
   };
 
   const handleVoiceMemoSave = async (audioBlob: Blob, duration: number) => {
     if (!activeCheckIn) return;
 
     try {
-      const formData = new FormData();
-      formData.append('audio', audioBlob, `voice-memo-${Date.now()}.webm`);
-      formData.append('jobId', activeCheckIn.job_id);
-      formData.append('noteType', 'voice');
-      formData.append('content', `Voice memo (${Math.round(duration)}s)`);
-      formData.append('audioDuration', duration.toString());
-      if (currentLocation) {
-        formData.append('latitude', currentLocation.latitude.toString());
-        formData.append('longitude', currentLocation.longitude.toString());
-      }
-      formData.append('checkInId', activeCheckIn.id);
+      const audioFile = new File(
+        [audioBlob],
+        `voice-memo-${Date.now()}.webm`,
+        { type: audioBlob.type || 'audio/webm' }
+      );
 
-      // TODO: Add API endpoint for voice upload
-      // await mobileAPI.uploadVoiceMemo(formData);
-      
-      alert(`✅ Voice memo saved (${Math.round(duration)} seconds)`);
+      await mobileAPI.addFieldNote(activeCheckIn.job_id, {
+        noteType: 'voice',
+        content: `Voice memo (${Math.round(duration)}s)`,
+        location: currentLocation || undefined,
+        checkInId: activeCheckIn.id,
+        audio: audioFile
+      });
+
+      toast.success(`Voice memo saved (${Math.round(duration)} seconds)`);
       loadJobData(activeCheckIn.job_id);
     } catch (error) {
       const message = getErrorMessage(error, 'Failed to save voice memo');
       setError(message);
-      alert(message);
+      toast.error(message);
     }
   };
 
@@ -384,6 +426,152 @@ export function MobileFieldView() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
   };
 
+  const isSignatureEmpty = () => {
+    if (!signaturePadRef.current) return true;
+    const canvas = signaturePadRef.current;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    if (!ctx) return true;
+
+    const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+    for (let index = 3; index < pixels.length; index += 4) {
+      if (pixels[index] !== 0) {
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  const openCheckInModal = () => {
+    setCheckInJobId(activeCheckIn?.job_id ?? '');
+    setShowCheckInModal(true);
+  };
+
+  const closeCheckInModal = () => {
+    setShowCheckInModal(false);
+    setCheckInJobId('');
+  };
+
+  const submitCheckIn = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const jobId = checkInJobId.trim();
+
+    if (!jobId) {
+      toast.warning('Job ID is required');
+      return;
+    }
+
+    const wasSuccessful = await handleCheckIn(jobId);
+    if (wasSuccessful) {
+      closeCheckInModal();
+    }
+  };
+
+  const openCheckOutModal = () => {
+    setCheckOutNotes('');
+    setShowCheckOutModal(true);
+  };
+
+  const submitCheckOut = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const wasSuccessful = await handleCheckOut(checkOutNotes.trim() || undefined);
+
+    if (wasSuccessful) {
+      setShowCheckOutModal(false);
+      setCheckOutNotes('');
+    }
+  };
+
+  const closePhotoDetailsModal = () => {
+    setShowPhotoDetailsModal(false);
+    setPendingPhotoFile(null);
+    setPhotoForm({
+      photoType: 'during',
+      caption: ''
+    });
+  };
+
+  const submitPhotoDetails = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!pendingPhotoFile) {
+      toast.warning('Please choose a photo to upload');
+      return;
+    }
+
+    const wasSuccessful = await handlePhotoUpload(
+      pendingPhotoFile,
+      photoForm.photoType,
+      photoForm.caption.trim() || undefined
+    );
+
+    if (wasSuccessful) {
+      closePhotoDetailsModal();
+    }
+  };
+
+  const openSignatureModal = () => {
+    if (isSignatureEmpty()) {
+      toast.warning('Add a signature before saving');
+      return;
+    }
+
+    setSignatureForm({
+      signerName: '',
+      signerPhone: ''
+    });
+    setShowSignatureModal(true);
+  };
+
+  const submitSignature = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const signerName = signatureForm.signerName.trim();
+
+    if (!signerName) {
+      toast.warning('Customer name is required');
+      return;
+    }
+
+    const wasSuccessful = await handleSignatureSave(
+      signerName,
+      signatureForm.signerPhone.trim() || undefined
+    );
+
+    if (wasSuccessful) {
+      setShowSignatureModal(false);
+      setSignatureForm({
+        signerName: '',
+        signerPhone: ''
+      });
+    }
+  };
+
+  const openNoteModal = () => {
+    setNoteForm({
+      content: '',
+      isImportant: false
+    });
+    setShowNoteModal(true);
+  };
+
+  const submitNote = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const content = noteForm.content.trim();
+
+    if (!content) {
+      toast.warning('Note content is required');
+      return;
+    }
+
+    const wasSuccessful = await handleAddNote(content, noteForm.isImportant);
+    if (wasSuccessful) {
+      setShowNoteModal(false);
+      setNoteForm({
+        content: '',
+        isImportant: false
+      });
+    }
+  };
+
   return (
     <div className="max-w-md mx-auto bg-white min-h-screen">
       {/* Mobile Header */}
@@ -413,17 +601,14 @@ export function MobileFieldView() {
 
           {isCheckedIn ? (
             <button
-              onClick={handleCheckOut}
+              onClick={openCheckOutModal}
               className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium"
             >
               Check Out
             </button>
           ) : (
             <button
-              onClick={() => {
-                const jobId = prompt('Enter Job ID to check in:');
-                if (jobId) handleCheckIn(jobId);
-              }}
+              onClick={openCheckInModal}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium"
             >
               Check In
@@ -470,12 +655,12 @@ export function MobileFieldView() {
             type="file"
             accept="image/*"
             capture="environment"
-            onChange={handlePhotoCapture}
+            onChange={handlePhotoSelection}
             className="hidden"
           />
 
           <button
-            onClick={handleAddNote}
+            onClick={openNoteModal}
             className="flex flex-col items-center p-4 bg-green-50 rounded-lg border border-green-200 hover:bg-green-100 transition-colors"
           >
             <StickyNote className="w-6 h-6 text-green-600 mb-2" />
@@ -655,7 +840,7 @@ export function MobileFieldView() {
                     Text Notes
                   </h3>
                   <button
-                    onClick={handleAddNote}
+                    onClick={openNoteModal}
                     className="px-3 py-1.5 bg-green-600 text-white text-sm rounded-lg flex items-center gap-1"
                   >
                     <StickyNote className="w-4 h-4" />
@@ -723,7 +908,7 @@ export function MobileFieldView() {
                     Clear
                   </button>
                   <button
-                    onClick={handleSignature}
+                    onClick={openSignatureModal}
                     className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg flex items-center justify-center gap-2"
                   >
                     <FileSignature className="w-4 h-4" />
@@ -761,10 +946,7 @@ export function MobileFieldView() {
             Check in to a job to access mobile field features
           </p>
           <button
-            onClick={() => {
-              const jobId = prompt('Enter Job ID to check in:');
-              if (jobId) handleCheckIn(jobId);
-            }}
+            onClick={openCheckInModal}
             className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium"
           >
             Check In to Job
@@ -787,12 +969,271 @@ export function MobileFieldView() {
         onSave={handleVoiceMemoSave}
       />
 
+      <PushNotificationManager
+        isOpen={showPushSettings}
+        onClose={() => setShowPushSettings(false)}
+      />
+
       {/* GPS Route Viewer */}
       <GPSBreadcrumbMap
         isOpen={showGPSMap}
         onClose={() => setShowGPSMap(false)}
         breadcrumbs={gpsBreadcrumbs}
       />
+
+      <FieldActionModal
+        isOpen={showCheckInModal}
+        title="Check In to Job"
+        description="Enter the job ID to start your on-site session."
+        onClose={closeCheckInModal}
+      >
+        <form onSubmit={submitCheckIn} className="space-y-4">
+          <div>
+            <label htmlFor="check-in-job-id" className="mb-1 block text-sm font-medium text-gray-700">
+              Job ID
+            </label>
+            <input
+              id="check-in-job-id"
+              type="text"
+              value={checkInJobId}
+              onChange={(event) => setCheckInJobId(event.target.value)}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+              placeholder="e.g. JOB-1024"
+              autoFocus
+            />
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={closeCheckInModal}
+              className="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="flex-1 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white"
+            >
+              Check In
+            </button>
+          </div>
+        </form>
+      </FieldActionModal>
+
+      <FieldActionModal
+        isOpen={showCheckOutModal}
+        title="Check Out"
+        description="Add any handover or completion notes before ending this visit."
+        onClose={() => setShowCheckOutModal(false)}
+      >
+        <form onSubmit={submitCheckOut} className="space-y-4">
+          <div>
+            <label htmlFor="check-out-notes" className="mb-1 block text-sm font-medium text-gray-700">
+              Checkout Notes
+            </label>
+            <textarea
+              id="check-out-notes"
+              value={checkOutNotes}
+              onChange={(event) => setCheckOutNotes(event.target.value)}
+              className="min-h-28 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+              placeholder="Work completed, site condition, follow-ups..."
+            />
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => setShowCheckOutModal(false)}
+              className="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="flex-1 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white"
+            >
+              Confirm Check Out
+            </button>
+          </div>
+        </form>
+      </FieldActionModal>
+
+      <FieldActionModal
+        isOpen={showPhotoDetailsModal}
+        title="Photo Details"
+        description={pendingPhotoFile ? `Preparing ${pendingPhotoFile.name}` : 'Add the photo context before uploading.'}
+        onClose={closePhotoDetailsModal}
+      >
+        <form onSubmit={submitPhotoDetails} className="space-y-4">
+          <div>
+            <label htmlFor="photo-type" className="mb-1 block text-sm font-medium text-gray-700">
+              Photo Type
+            </label>
+            <select
+              id="photo-type"
+              value={photoForm.photoType}
+              onChange={(event) => setPhotoForm((current) => ({
+                ...current,
+                photoType: event.target.value as PhotoType
+              }))}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+            >
+              {PHOTO_TYPES.map((photoType) => (
+                <option key={photoType} value={photoType}>
+                  {photoType.charAt(0).toUpperCase() + photoType.slice(1)}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label htmlFor="photo-caption" className="mb-1 block text-sm font-medium text-gray-700">
+              Caption
+            </label>
+            <textarea
+              id="photo-caption"
+              value={photoForm.caption}
+              onChange={(event) => setPhotoForm((current) => ({
+                ...current,
+                caption: event.target.value
+              }))}
+              className="min-h-24 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+              placeholder="Add optional details for the office or customer record"
+            />
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={closePhotoDetailsModal}
+              className="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="flex-1 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white"
+            >
+              Upload Photo
+            </button>
+          </div>
+        </form>
+      </FieldActionModal>
+
+      <FieldActionModal
+        isOpen={showNoteModal}
+        title="Add Field Note"
+        description="Capture key job details while you’re on site."
+        onClose={() => setShowNoteModal(false)}
+      >
+        <form onSubmit={submitNote} className="space-y-4">
+          <div>
+            <label htmlFor="field-note-content" className="mb-1 block text-sm font-medium text-gray-700">
+              Note
+            </label>
+            <textarea
+              id="field-note-content"
+              value={noteForm.content}
+              onChange={(event) => setNoteForm((current) => ({
+                ...current,
+                content: event.target.value
+              }))}
+              className="min-h-28 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+              placeholder="Describe the work completed, issue found, or next action needed"
+            />
+          </div>
+
+          <label className="flex items-center gap-3 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700">
+            <input
+              type="checkbox"
+              checked={noteForm.isImportant}
+              onChange={(event) => setNoteForm((current) => ({
+                ...current,
+                isImportant: event.target.checked
+              }))}
+              className="h-4 w-4 rounded border-gray-300 text-orange-600 focus:ring-orange-500"
+            />
+            Mark this note as important
+          </label>
+
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => setShowNoteModal(false)}
+              className="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="flex-1 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white"
+            >
+              Save Note
+            </button>
+          </div>
+        </form>
+      </FieldActionModal>
+
+      <FieldActionModal
+        isOpen={showSignatureModal}
+        title="Save Customer Signature"
+        description="Record who approved the completed work before saving."
+        onClose={() => setShowSignatureModal(false)}
+      >
+        <form onSubmit={submitSignature} className="space-y-4">
+          <div>
+            <label htmlFor="signature-name" className="mb-1 block text-sm font-medium text-gray-700">
+              Customer Name
+            </label>
+            <input
+              id="signature-name"
+              type="text"
+              value={signatureForm.signerName}
+              onChange={(event) => setSignatureForm((current) => ({
+                ...current,
+                signerName: event.target.value
+              }))}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+              placeholder="Customer or site contact"
+              autoFocus
+            />
+          </div>
+
+          <div>
+            <label htmlFor="signature-phone" className="mb-1 block text-sm font-medium text-gray-700">
+              Customer Phone
+            </label>
+            <input
+              id="signature-phone"
+              type="tel"
+              value={signatureForm.signerPhone}
+              onChange={(event) => setSignatureForm((current) => ({
+                ...current,
+                signerPhone: event.target.value
+              }))}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+              placeholder="Optional contact number"
+            />
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => setShowSignatureModal(false)}
+              className="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="flex-1 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white"
+            >
+              Save Signature
+            </button>
+          </div>
+        </form>
+      </FieldActionModal>
     </div>
   );
 }
@@ -810,6 +1251,45 @@ function ChecklistItem({ label, completed }: { label: string; completed: boolean
       <span className={`text-sm ${completed ? 'text-green-900 line-through' : 'text-gray-900'}`}>
         {label}
       </span>
+    </div>
+  );
+}
+
+interface FieldActionModalProps {
+  isOpen: boolean;
+  title: string;
+  description?: string;
+  onClose: () => void;
+  children: React.ReactNode;
+}
+
+function FieldActionModal({ isOpen, title, description, onClose, children }: FieldActionModalProps) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 sm:items-center">
+      <div className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl">
+        <div className="flex items-start justify-between border-b border-gray-200 px-4 py-4">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+            {description && (
+              <p className="mt-1 text-sm text-gray-600">{description}</p>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+            aria-label={`Close ${title}`}
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="max-h-[70vh] overflow-y-auto p-4">
+          {children}
+        </div>
+      </div>
     </div>
   );
 }

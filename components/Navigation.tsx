@@ -3,19 +3,12 @@ import {
   TrendingUp,
   Package,
   Users,
-  Calendar,
   ClipboardList,
-  ShoppingCart,
   FileText,
-  RotateCcw,
-  ArrowRightLeft,
   BarChart3,
-  Sparkles,
   Zap,
   Settings,
-  CheckCircle,
   ChevronDown,
-  ChevronRight,
   LucideIcon
 } from 'lucide-react';
 
@@ -24,16 +17,19 @@ import {
 // ============================================================================
 
 export type NavTab = 
-  | 'dashboard' | 'inventory' | 'calendar' | 'job-planning' | 'contacts' 
+  | 'dashboard' | 'inventory' | 'calendar' | 'job-planning' | 'project-stages' | 'contacts' 
   | 'ordering' | 'history' | 'approvals' | 'purchase-orders' | 'stock-returns' 
   | 'supplier-dashboard' | 'quotes' | 'invoices' | 'reports' | 'team' 
   | 'settings' | 'analytics' | 'ai-forecast' | 'workflows' | 'kits' | 'assets' 
-  | 'performance' | 'leads' | 'subcontractors';
+  | 'performance' | 'leads' | 'subcontractors' | 'van-stock' | 'sync-dashboard'
+  | 'developer';
 
 export interface NavChildItem {
   id: NavTab;
   label: string;
   badge?: number;
+  tag?: string;
+  roles?: string[];
 }
 
 export interface NavGroupItem {
@@ -49,6 +45,8 @@ export interface NavSingleItem {
   label: string;
   icon: LucideIcon;
   badge?: number;
+  tag?: string;
+  roles?: string[];
   tourId?: string;
 }
 
@@ -89,6 +87,7 @@ export const NAVIGATION_CONFIG: NavigationItem[] = [
     children: [
       { id: 'calendar', label: 'Calendar' },
       { id: 'job-planning', label: 'Job Planning' },
+      { id: 'project-stages', label: 'Project Stages' },
       { id: 'workflows', label: 'Workflows' },
     ]
   },
@@ -141,6 +140,18 @@ export const NAVIGATION_CONFIG: NavigationItem[] = [
       { id: 'approvals', label: 'Approvals' },
     ]
   },
+
+  // Advanced modules that are production-usable but not core for every team
+  {
+    id: 'advanced-group',
+    label: 'Advanced',
+    icon: Zap,
+    children: [
+      { id: 'van-stock', label: 'Van Stock', tag: 'Beta' },
+      { id: 'sync-dashboard', label: 'Sync Dashboard' },
+      { id: 'developer', label: 'Developer', tag: 'Beta', roles: ['admin', 'owner'] },
+    ]
+  },
   
   // System
   { 
@@ -171,6 +182,72 @@ export const isGroupActive = (children: NavChildItem[], activeTab: NavTab): bool
   return children.some(child => child.id === activeTab);
 };
 
+const normalizeRole = (role?: string | null) => role?.trim().toLowerCase() ?? null;
+
+const canAccessItem = (userRole: string | null | undefined, roles?: string[]) => {
+  if (!roles || roles.length === 0) {
+    return true;
+  }
+
+  const normalizedRole = normalizeRole(userRole);
+  if (!normalizedRole) {
+    return false;
+  }
+
+  return roles.some((role) => normalizeRole(role) === normalizedRole);
+};
+
+export const getVisibleNavigationConfig = (userRole?: string | null): NavigationItem[] => {
+  return NAVIGATION_CONFIG.reduce<NavigationItem[]>((visibleItems, item) => {
+    if ('children' in item) {
+      const children = item.children.filter((child) => canAccessItem(userRole, child.roles));
+      if (children.length === 0) {
+        return visibleItems;
+      }
+
+      visibleItems.push({ ...item, children });
+      return visibleItems;
+    }
+
+    if (canAccessItem(userRole, item.roles)) {
+      visibleItems.push(item);
+    }
+
+    return visibleItems;
+  }, []);
+};
+
+export const isTabVisible = (tab: NavTab, userRole?: string | null): boolean => {
+  return getVisibleNavigationConfig(userRole).some((item) => {
+    if ('children' in item) {
+      return item.children.some((child) => child.id === tab);
+    }
+
+    return item.id === tab;
+  });
+};
+
+export const getNavigationLabel = (tab: NavTab): string => {
+  for (const item of NAVIGATION_CONFIG) {
+    if ('children' in item) {
+      const child = item.children.find((entry) => entry.id === tab);
+      if (child) {
+        return child.label;
+      }
+      continue;
+    }
+
+    if (item.id === tab) {
+      return item.label;
+    }
+  }
+
+  return tab
+    .split('-')
+    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+    .join(' ');
+};
+
 // ============================================================================
 // Components
 // ============================================================================
@@ -182,6 +259,7 @@ interface NavItemProps {
   onClick: () => void;
   collapsed: boolean;
   badge?: number;
+  tag?: string;
   tourId?: string;
 }
 
@@ -196,6 +274,7 @@ export const NavItem: React.FC<NavItemProps> = ({
   onClick, 
   collapsed, 
   badge,
+  tag,
   tourId
 }) => {
   const content = (
@@ -237,8 +316,13 @@ export const NavItem: React.FC<NavItemProps> = ({
       
       {/* Label and badge (only when expanded) */}
       {!collapsed && (
-        <span className="ml-3 text-sm font-medium flex items-center flex-1 min-w-0">
+        <span className="ml-3 text-sm font-medium flex items-center flex-1 min-w-0 gap-2">
           <span className="truncate">{label}</span>
+          {tag && (
+            <span className="rounded-full border border-slate-700 bg-slate-800 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-300 shrink-0">
+              {tag}
+            </span>
+          )}
           {badge !== undefined && badge > 0 && (
             <span 
               className="ml-auto bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-4 flex items-center justify-center px-1.5 shrink-0"
@@ -421,6 +505,12 @@ export const NavItemGroup: React.FC<NavItemGroupProps> = ({
                 )}
                 
                 <span className="flex-1 text-left truncate">{child.label}</span>
+
+                {child.tag && (
+                  <span className="mr-2 rounded-full border border-slate-700 bg-slate-800 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-slate-300 shrink-0">
+                    {child.tag}
+                  </span>
+                )}
                 
                 {childBadge > 0 && (
                   <span 
@@ -454,6 +544,7 @@ interface NavigationProps {
   onNavigate: (tab: NavTab) => void;
   collapsed: boolean;
   getBadgeForTab: (tab: NavTab) => number;
+  userRole?: string | null;
   className?: string;
 }
 
@@ -466,15 +557,18 @@ export const Navigation: React.FC<NavigationProps> = ({
   onNavigate, 
   collapsed, 
   getBadgeForTab,
+  userRole,
   className = ''
 }) => {
+  const visibleItems = useMemo(() => getVisibleNavigationConfig(userRole), [userRole]);
+
   return (
     <nav 
       className={`flex-1 overflow-y-auto ${className}`}
       data-tour="navigation"
       aria-label="Main navigation"
     >
-      {NAVIGATION_CONFIG.map((item) => {
+      {visibleItems.map((item) => {
         // Single item
         if ('children' in item) {
           // Group item
@@ -502,6 +596,7 @@ export const Navigation: React.FC<NavigationProps> = ({
               onClick={() => onNavigate(item.id)}
               collapsed={collapsed}
               badge={getBadgeForTab(item.id) > 0 ? getBadgeForTab(item.id) : undefined}
+              tag={item.tag}
             />
           );
         }

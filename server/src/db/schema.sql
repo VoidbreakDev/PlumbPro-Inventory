@@ -4,6 +4,8 @@ DROP TABLE IF EXISTS stock_movements CASCADE;
 DROP TABLE IF EXISTS job_allocated_items CASCADE;
 DROP TABLE IF EXISTS job_workers CASCADE;
 DROP TABLE IF EXISTS template_items CASCADE;
+DROP TABLE IF EXISTS development_stages CASCADE;
+DROP TABLE IF EXISTS development_projects CASCADE;
 DROP TABLE IF EXISTS jobs CASCADE;
 DROP TABLE IF EXISTS job_templates CASCADE;
 DROP TABLE IF EXISTS inventory_items CASCADE;
@@ -101,16 +103,73 @@ CREATE TABLE template_items (
 CREATE INDEX idx_template_items_template ON template_items(template_id);
 CREATE INDEX idx_template_items_item ON template_items(item_id);
 
+-- Development projects table
+CREATE TABLE development_projects (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  title VARCHAR(255) NOT NULL,
+  builder VARCHAR(255),
+  customer_id UUID REFERENCES contacts(id) ON DELETE SET NULL,
+  site_address TEXT,
+  target_start_date DATE,
+  target_completion_date DATE,
+  notes TEXT,
+  house_profile JSONB NOT NULL DEFAULT '{}'::jsonb,
+  overall_status VARCHAR(50) NOT NULL DEFAULT 'Planning'
+    CHECK (overall_status IN ('Planning', 'Active', 'Completed', 'On Hold', 'Cancelled')),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_development_projects_user_id ON development_projects(user_id);
+CREATE INDEX idx_development_projects_customer_id ON development_projects(customer_id);
+CREATE INDEX idx_development_projects_status ON development_projects(overall_status);
+
+-- Development stages table
+CREATE TABLE development_stages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  project_id UUID NOT NULL REFERENCES development_projects(id) ON DELETE CASCADE,
+  stage_type VARCHAR(100) NOT NULL,
+  sort_order INTEGER NOT NULL,
+  status VARCHAR(50) NOT NULL DEFAULT 'pending'
+    CHECK (status IN ('pending', 'scheduled', 'in_progress', 'completed', 'skipped', 'blocked')),
+  planned_date DATE,
+  assigned_worker_ids JSONB NOT NULL DEFAULT '[]'::jsonb,
+  base_kit_id VARCHAR(255),
+  base_kit_name VARCHAR(255),
+  variation_id VARCHAR(255),
+  variation_name VARCHAR(255),
+  modifier_snapshot JSONB NOT NULL DEFAULT '{}'::jsonb,
+  resolved_allocated_items JSONB NOT NULL DEFAULT '[]'::jsonb,
+  manual_item_adjustments JSONB NOT NULL DEFAULT '[]'::jsonb,
+  is_applicable BOOLEAN NOT NULL DEFAULT true,
+  notes TEXT,
+  completed_at TIMESTAMP,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(project_id, stage_type)
+);
+
+CREATE INDEX idx_development_stages_user_id ON development_stages(user_id);
+CREATE INDEX idx_development_stages_project_id ON development_stages(project_id);
+CREATE INDEX idx_development_stages_status ON development_stages(status);
+CREATE INDEX idx_development_stages_planned_date ON development_stages(planned_date);
+
 -- Jobs table
 CREATE TABLE jobs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   title VARCHAR(255) NOT NULL,
   builder VARCHAR(255),
+  customer_id UUID REFERENCES contacts(id) ON DELETE SET NULL,
   job_type VARCHAR(100) NOT NULL,
   status VARCHAR(50) NOT NULL DEFAULT 'Scheduled' CHECK (status IN ('Scheduled', 'In Progress', 'Completed', 'Cancelled')),
   date DATE NOT NULL,
   is_picked BOOLEAN DEFAULT false,
+  job_address TEXT,
+  development_project_id UUID REFERENCES development_projects(id) ON DELETE SET NULL,
+  development_stage_id UUID UNIQUE REFERENCES development_stages(id) ON DELETE SET NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -118,6 +177,8 @@ CREATE TABLE jobs (
 CREATE INDEX idx_jobs_user_id ON jobs(user_id);
 CREATE INDEX idx_jobs_status ON jobs(status);
 CREATE INDEX idx_jobs_date ON jobs(date);
+CREATE INDEX idx_jobs_customer_id ON jobs(customer_id);
+CREATE INDEX idx_jobs_development_project_id ON jobs(development_project_id);
 
 -- Job workers (many-to-many relationship)
 CREATE TABLE job_workers (

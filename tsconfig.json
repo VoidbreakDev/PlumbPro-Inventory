@@ -27,5 +27,11 @@
     "allowImportingTsExtensions": true,
     "noEmit": true
   },
-  "exclude": ["desktop/**/*", "dist/**/*", "node_modules/**/*"]
+  "exclude": [
+    "desktop/**/*",
+    "dist/**/*",
+    "node_modules/**/*",
+    "vitest.config.ts",
+    "vitest.config.ts.timestamp-*"
+  ]
 }

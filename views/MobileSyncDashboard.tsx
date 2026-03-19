@@ -17,6 +17,8 @@ import {
 import { mobileAPI, type SyncQueueItem } from '../lib/mobileAPI';
 import { useStore } from '../store/useStore';
 import { getErrorMessage } from '../lib/errors';
+import { useToast } from '../components/ToastNotification';
+import { ConfirmationModal } from '../components/ConfirmationModal';
 
 interface SyncStats {
   total: number;
@@ -27,10 +29,12 @@ interface SyncStats {
 }
 
 export function MobileSyncDashboard() {
+  const toast = useToast();
   const [queue, setQueue] = useState<SyncQueueItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [showClearQueueModal, setShowClearQueueModal] = useState(false);
   const [stats, setStats] = useState<SyncStats>({
     total: 0,
     pending: 0,
@@ -61,16 +65,29 @@ export function MobileSyncDashboard() {
     };
   }, []);
 
-  const loadQueue = async () => {
+  const loadQueue = async (options?: { notify?: boolean }) => {
+    setIsLoading(true);
+
     try {
       const data = await mobileAPI.getSyncQueue();
       setQueue(data);
       calculateStats(data);
+      if (options?.notify) {
+        toast.success('Sync queue refreshed');
+      }
     } catch (error) {
-      // Use local queue if API fails
-      const localQueue = await mobileAPI.getLocalSyncQueue();
-      setQueue(localQueue);
-      calculateStats(localQueue);
+      try {
+        const localQueue = await mobileAPI.getLocalSyncQueue();
+        setQueue(localQueue);
+        calculateStats(localQueue);
+        if (options?.notify) {
+          toast.info('Loaded locally cached sync data');
+        }
+      } catch (localError) {
+        const message = getErrorMessage(localError, 'Failed to load sync queue');
+        setError(message);
+        toast.error(message);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -86,7 +103,7 @@ export function MobileSyncDashboard() {
       total: items.length,
       pending: items.filter(i => i.status === 'pending').length,
       synced: items.filter(i => i.status === 'synced').length,
-      failed: items.filter(i => i.status === 'failed').length,
+      failed: items.filter(i => i.status === 'failed' || i.status === 'error').length,
       byType
     });
   };
@@ -108,6 +125,7 @@ export function MobileSyncDashboard() {
   const handleSyncAll = async () => {
     if (!isOnline) {
       setError('Cannot sync while offline');
+      toast.warning('Reconnect to sync queued items');
       return;
     }
 
@@ -115,22 +133,34 @@ export function MobileSyncDashboard() {
     try {
       await mobileAPI.processSyncQueue();
       await loadQueue();
+      toast.success('Sync queue processed');
     } catch (error) {
-      setError(getErrorMessage(error, 'Sync failed'));
+      const message = getErrorMessage(error, 'Sync failed');
+      setError(message);
+      toast.error(message);
     } finally {
       setIsSyncing(false);
     }
   };
 
   const handleClearQueue = async () => {
-    if (!confirm('Clear all pending items? This cannot be undone.')) return;
-
     try {
       await mobileAPI.clearSyncQueue();
       await loadQueue();
+      setShowClearQueueModal(false);
+      toast.success('Sync queue cleared');
     } catch (error) {
-      setError(getErrorMessage(error, 'Failed to clear queue'));
+      const message = getErrorMessage(error, 'Failed to clear queue');
+      setError(message);
+      toast.error(message);
     }
+  };
+
+  const handleRefresh = async () => {
+    await Promise.all([
+      loadQueue({ notify: true }),
+      calculateStorageUsage()
+    ]);
   };
 
   const formatFileSize = (bytes: number): string => {
@@ -153,10 +183,13 @@ export function MobileSyncDashboard() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'synced': return <CheckCircle className="w-4 h-4 text-green-600" />;
+      case 'error':
       case 'failed': return <AlertCircle className="w-4 h-4 text-red-600" />;
       default: return <Clock className="w-4 h-4 text-yellow-600" />;
     }
   };
+
+  const actionableItemsCount = queue.filter((item) => item.status !== 'synced').length;
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
@@ -227,25 +260,26 @@ export function MobileSyncDashboard() {
         <div className="flex gap-3">
           <button
             onClick={handleSyncAll}
-            disabled={!isOnline || isSyncing || stats.pending === 0}
+            disabled={!isOnline || isSyncing || actionableItemsCount === 0}
             className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <RefreshCw className={`w-5 h-5 ${isSyncing ? 'animate-spin' : ''}`} />
             {isSyncing ? 'Syncing...' : 'Sync All'}
           </button>
           <button
-            onClick={handleClearQueue}
-            disabled={stats.pending === 0}
+            onClick={() => setShowClearQueueModal(true)}
+            disabled={actionableItemsCount === 0}
             className="flex items-center justify-center gap-2 px-4 py-3 bg-red-600 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Trash2 className="w-5 h-5" />
             Clear
           </button>
           <button
-            onClick={() => window.location.reload()}
+            onClick={handleRefresh}
+            disabled={isLoading}
             className="flex items-center justify-center gap-2 px-4 py-3 bg-gray-600 text-white rounded-lg font-medium"
           >
-            <Download className="w-5 h-5" />
+            <Download className={`w-5 h-5 ${isLoading ? 'animate-pulse' : ''}`} />
             Refresh
           </button>
         </div>
@@ -319,6 +353,16 @@ export function MobileSyncDashboard() {
           </div>
         )}
       </div>
+
+      <ConfirmationModal
+        isOpen={showClearQueueModal}
+        title="Clear Sync Queue"
+        description="This will remove all unsynced items from the local queue. This action cannot be undone."
+        confirmLabel="Clear Queue"
+        variant="danger"
+        onConfirm={handleClearQueue}
+        onClose={() => setShowClearQueueModal(false)}
+      />
     </div>
   );
 }

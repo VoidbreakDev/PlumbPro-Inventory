@@ -1,13 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Wifi, WifiOff, Cloud, CloudOff, CheckCircle, AlertCircle, RefreshCw, Database } from 'lucide-react';
-
-interface SyncQueueItem {
-  id: string;
-  type: string;
-  status: 'pending' | 'syncing' | 'synced' | 'error';
-  timestamp: number;
-  retryCount: number;
-}
+import { mobileAPI, type SyncQueueItem } from '../lib/mobileAPI';
 
 interface OfflineSyncStatusProps {
   variant?: 'compact' | 'full';
@@ -46,7 +39,7 @@ export function OfflineSyncStatus({ variant = 'compact' }: OfflineSyncStatusProp
         }
       }
       if (event.data.type === 'QUEUE_UPDATED') {
-        setQueueItems(event.data.queue);
+        loadQueueFromStorage();
       }
     };
 
@@ -65,37 +58,12 @@ export function OfflineSyncStatus({ variant = 'compact' }: OfflineSyncStatusProp
 
   const loadQueueFromStorage = async () => {
     try {
-      // Check IndexedDB for offline queue
-      const db = await openDB();
-      const queue = await getQueueFromDB(db);
+      const queue = await mobileAPI.getLocalSyncQueue();
       setQueueItems(queue);
     } catch (err) {
       console.error('Error loading queue:', err);
+      setQueueItems([]);
     }
-  };
-
-  const openDB = (): Promise<IDBDatabase> => {
-    return new Promise((resolve, reject) => {
-      const request = indexedDB.open('PlumbProDB', 1);
-      request.onerror = () => reject(request.error);
-      request.onsuccess = () => resolve(request.result);
-      request.onupgradeneeded = (event) => {
-        const db = (event.target as IDBOpenDBRequest).result;
-        if (!db.objectStoreNames.contains('offlineQueue')) {
-          db.createObjectStore('offlineQueue', { keyPath: 'id', autoIncrement: true });
-        }
-      };
-    });
-  };
-
-  const getQueueFromDB = (db: IDBDatabase): Promise<SyncQueueItem[]> => {
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction(['offlineQueue'], 'readonly');
-      const store = transaction.objectStore('offlineQueue');
-      const request = store.getAll();
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
   };
 
   const triggerSync = async () => {
@@ -112,6 +80,9 @@ export function OfflineSyncStatus({ variant = 'compact' }: OfflineSyncStatusProp
       }
     } catch (err) {
       console.error('Sync registration failed:', err);
+    } finally {
+      setIsSyncing(false);
+      loadQueueFromStorage();
     }
   };
 
@@ -132,12 +103,12 @@ export function OfflineSyncStatus({ variant = 'compact' }: OfflineSyncStatusProp
   const getStatusText = () => {
     if (!isOnline) return 'Offline';
     if (isSyncing) return 'Syncing...';
-    if (queueItems.length > 0) return `${queueItems.length} pending`;
+    if (queueItems.length > 0) return `${queueItems.length} unsynced`;
     return 'Synced';
   };
 
   const pendingCount = queueItems.filter(i => i.status === 'pending').length;
-  const errorCount = queueItems.filter(i => i.status === 'error').length;
+  const errorCount = queueItems.filter(i => i.status === 'error' || i.status === 'failed').length;
 
   if (variant === 'compact') {
     return (
@@ -245,11 +216,11 @@ export function OfflineSyncStatus({ variant = 'compact' }: OfflineSyncStatusProp
                   {item.status === 'pending' && <Cloud className="w-4 h-4 text-yellow-500" />}
                   {item.status === 'syncing' && <RefreshCw className="w-4 h-4 text-blue-500 animate-spin" />}
                   {item.status === 'synced' && <CheckCircle className="w-4 h-4 text-green-500" />}
-                  {item.status === 'error' && <AlertCircle className="w-4 h-4 text-red-500" />}
-                  <span className="capitalize text-gray-700">{item.type}</span>
+                  {(item.status === 'error' || item.status === 'failed') && <AlertCircle className="w-4 h-4 text-red-500" />}
+                  <span className="capitalize text-gray-700">{item.entity_type.replace(/_/g, ' ')}</span>
                 </div>
                 <span className="text-xs text-gray-400">
-                  {new Date(item.timestamp).toLocaleTimeString()}
+                  {new Date(item.created_at).toLocaleTimeString()}
                 </span>
               </div>
             ))}

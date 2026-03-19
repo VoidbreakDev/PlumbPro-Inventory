@@ -415,10 +415,16 @@ interface CreateStockReturnModalProps {
   setError: (error: string | null) => void;
 }
 
+type ReturnItemState = {
+  returned: number;
+  condition: string;
+  notes: string;
+};
+
 function CreateStockReturnModal({ onClose, onSuccess, pickedJobs, setError }: CreateStockReturnModalProps) {
   const [selectedJobId, setSelectedJobId] = useState<string>('');
   const [allocatedItems, setAllocatedItems] = useState<AllocatedItem[]>([]);
-  const [returnItems, setReturnItems] = useState<Map<string, { returned: number; condition: string; notes: string }>>(new Map());
+  const [returnItems, setReturnItems] = useState<Map<string, ReturnItemState>>(new Map<string, ReturnItemState>());
   const [notes, setNotes] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [loadingJob, setLoadingJob] = useState(false);
@@ -431,7 +437,7 @@ function CreateStockReturnModal({ onClose, onSuccess, pickedJobs, setError }: Cr
       setAllocatedItems(data.allocated_items);
 
       // Initialize return items with remaining quantities
-      const initialReturns = new Map();
+      const initialReturns = new Map<string, ReturnItemState>();
       data.allocated_items.forEach(item => {
         initialReturns.set(item.item_id, {
           returned: item.quantity_remaining,
@@ -448,9 +454,15 @@ function CreateStockReturnModal({ onClose, onSuccess, pickedJobs, setError }: Cr
   };
 
   const updateReturnItem = (itemId: string, field: 'returned' | 'condition' | 'notes', value: any) => {
-    const updated = new Map(returnItems);
-    const current = updated.get(itemId) || { returned: 0, condition: 'good', notes: '' };
-    updated.set(itemId, { ...current, [field]: value });
+    const updated = new Map<string, ReturnItemState>(returnItems);
+    const current: ReturnItemState = updated.get(itemId) ?? { returned: 0, condition: 'good', notes: '' };
+    if (field === 'returned') {
+      updated.set(itemId, { ...current, returned: value });
+    } else if (field === 'condition') {
+      updated.set(itemId, { ...current, condition: value });
+    } else {
+      updated.set(itemId, { ...current, notes: value });
+    }
     setReturnItems(updated);
   };
 

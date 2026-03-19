@@ -50,6 +50,7 @@ class VoiceNotesAPI {
     if (input.jobId) formData.append('jobId', input.jobId);
     if (input.contactId) formData.append('contactId', input.contactId);
     if (input.language) formData.append('language', input.language);
+    if (input.transcription) formData.append('transcription', input.transcription);
 
     const response = await api.post(this.baseUrl, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
@@ -124,11 +125,3 @@ class VoiceNotesAPI {
 
 export const voiceNotesAPI = new VoiceNotesAPI();
 export default voiceNotesAPI;
-
-// Extend Window interface for Speech Recognition
-declare global {
-  interface Window {
-    SpeechRecognition?: any;
-    webkitSpeechRecognition?: any;
-  }
-}

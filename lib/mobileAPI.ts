@@ -1,4 +1,9 @@
 import api from './api';
+import {
+  clearOfflineQueueItems,
+  getOfflineQueueItems,
+  replaceOfflineQueueItems
+} from './offlineQueue';
 
 export interface Location {
   latitude: number;
@@ -95,16 +100,87 @@ export interface JobCompletionCheck {
 
 export interface SyncQueueItem {
   id: string;
-  entity_type: 'photo' | 'voice_memo' | 'note' | 'check_in' | 'barcode_scan' | 'gps_breadcrumb';
-  entity_id: string;
-  action: 'create' | 'update' | 'delete';
+  localId?: string | number;
+  entity_type: string;
+  entity_id?: string;
+  action: string;
   data: any;
-  status: 'pending' | 'syncing' | 'synced' | 'failed';
+  status: 'pending' | 'syncing' | 'synced' | 'failed' | 'error';
   error?: string;
   retry_count: number;
   created_at: string;
   updated_at: string;
 }
+
+const createOfflineSyncId = () => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+
+  return `offline-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+};
+
+const normalizeSyncStatus = (status?: string): SyncQueueItem['status'] => {
+  if (status === 'syncing' || status === 'synced' || status === 'failed' || status === 'error') {
+    return status;
+  }
+
+  return 'pending';
+};
+
+const normalizeSyncQueueItem = (item: Record<string, any>): SyncQueueItem => {
+  const localId = item.localId ?? item.id ?? createOfflineSyncId();
+  const createdAt = item.created_at
+    ?? (item.timestamp ? new Date(item.timestamp).toISOString() : new Date().toISOString());
+
+  return {
+    id: String(item.id ?? localId),
+    localId,
+    entity_type: item.entity_type ?? item.entityType ?? item.type ?? 'unknown',
+    entity_id: item.entity_id ?? item.entityId ?? item.data?.id,
+    action: item.action ?? 'create',
+    data: item.data ?? {},
+    status: normalizeSyncStatus(item.status ?? item.sync_status),
+    error: item.error ?? item.error_message,
+    retry_count: Number(item.retry_count ?? item.retryCount ?? 0),
+    created_at: createdAt,
+    updated_at: item.updated_at ?? createdAt
+  };
+};
+
+const buildSyncPayload = (item: SyncQueueItem) => ({
+  localId: item.localId ?? item.id,
+  entityType: item.entity_type,
+  action: item.action,
+  data: item.data
+});
+
+const reconcileSyncQueue = (queue: SyncQueueItem[], results: Array<Record<string, any>>) => {
+  const resultsById = new Map(
+    results.map((result) => [String(result.localId), result])
+  );
+
+  return queue.flatMap((item) => {
+    const localId = String(item.localId ?? item.id);
+    const result = resultsById.get(localId);
+
+    if (!result) {
+      return [item];
+    }
+
+    if (result.success) {
+      return [];
+    }
+
+    return [{
+      ...item,
+      status: 'failed' as const,
+      error: result.error ?? 'Sync failed',
+      retry_count: item.retry_count + 1,
+      updated_at: new Date().toISOString()
+    }];
+  });
+};
 
 export const mobileAPI = {
   /**
@@ -431,32 +507,41 @@ export const mobileAPI = {
    * Get sync queue from server
    */
   getSyncQueue: async (): Promise<SyncQueueItem[]> => {
-    const response = await api.get('/mobile/sync-queue');
-    return response.data;
+    const queue = await getOfflineQueueItems();
+    return queue.map((item) => normalizeSyncQueueItem(item));
   },
 
   /**
    * Get local sync queue (from IndexedDB)
    */
   getLocalSyncQueue: async (): Promise<SyncQueueItem[]> => {
-    // Import dynamically to avoid circular dependency
-    const { getSyncQueue } = await import('./storage');
-    return getSyncQueue();
+    const queue = await getOfflineQueueItems();
+    return queue.map((item) => normalizeSyncQueueItem(item));
   },
 
   /**
    * Process sync queue
    */
   processSyncQueue: async (): Promise<void> => {
-    const response = await api.post('/mobile/process-sync-queue');
-    return response.data;
+    const queue = await mobileAPI.getLocalSyncQueue();
+    const pendingQueue = queue.filter((item) => item.status !== 'synced');
+
+    if (pendingQueue.length === 0) {
+      return;
+    }
+
+    const response = await api.post('/mobile/sync-offline', {
+      queueItems: pendingQueue.map((item) => buildSyncPayload(item))
+    });
+
+    const reconciledQueue = reconcileSyncQueue(queue, response.data.results || []);
+    await replaceOfflineQueueItems(reconciledQueue);
   },
 
   /**
    * Clear sync queue
    */
   clearSyncQueue: async (): Promise<void> => {
-    const response = await api.delete('/mobile/sync-queue');
-    return response.data;
+    await clearOfflineQueueItems();
   }
 };

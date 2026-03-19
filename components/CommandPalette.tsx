@@ -4,6 +4,8 @@
  */
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { isTabVisible } from './Navigation';
+import { useStore } from '../store/useStore';
 
 export interface Command {
   id: string;
@@ -25,6 +27,7 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ commands: customCommand
   const [search, setSearch] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const userRole = useStore((state) => state.user?.role);
 
   // Default commands
   const defaultCommands: Command[] = useMemo(() => [
@@ -72,6 +75,17 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ commands: customCommand
         window.dispatchEvent(new CustomEvent('navigate', { detail: 'job-planning' }));
       },
       keywords: ['work', 'tasks', 'planning', 'create job']
+    },
+    {
+      id: 'nav-project-stages',
+      label: 'Go to Project Stages',
+      description: 'Track house builds and plumbing stage progress',
+      icon: '🏗️',
+      category: 'Navigation',
+      action: () => {
+        window.dispatchEvent(new CustomEvent('navigate', { detail: 'project-stages' }));
+      },
+      keywords: ['project', 'stages', 'development', 'new build', 'house']
     },
     {
       id: 'nav-contacts',
@@ -128,6 +142,41 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ commands: customCommand
       },
       keywords: ['preferences', 'config', 'options']
     },
+    {
+      id: 'nav-van-stock',
+      label: 'Go to Van Stock',
+      description: 'Manage service van inventory and replenishment',
+      icon: '🚚',
+      category: 'Navigation',
+      action: () => {
+        window.dispatchEvent(new CustomEvent('navigate', { detail: 'van-stock' }));
+      },
+      keywords: ['van', 'vehicle', 'truck', 'field stock']
+    },
+    {
+      id: 'nav-sync-dashboard',
+      label: 'Go to Sync Dashboard',
+      description: 'Inspect offline queue health and sync status',
+      icon: '🔄',
+      category: 'Navigation',
+      action: () => {
+        window.dispatchEvent(new CustomEvent('navigate', { detail: 'sync-dashboard' }));
+      },
+      keywords: ['offline', 'queue', 'sync', 'mobile']
+    },
+    ...(isTabVisible('developer', userRole)
+      ? [{
+          id: 'nav-developer',
+          label: 'Go to Developer',
+          description: 'Manage API keys, webhooks, and developer docs',
+          icon: '🧰',
+          category: 'Navigation',
+          action: () => {
+            window.dispatchEvent(new CustomEvent('navigate', { detail: 'developer' }));
+          },
+          keywords: ['api', 'webhooks', 'developer', 'integrations']
+        }]
+      : []),
 
     // Actions
     {
@@ -213,7 +262,7 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ commands: customCommand
       },
       keywords: ['account', 'user', 'preferences']
     }
-  ], []);
+  ], [userRole]);
 
   const allCommands = useMemo(() => {
     return [...defaultCommands, ...(customCommands || [])];

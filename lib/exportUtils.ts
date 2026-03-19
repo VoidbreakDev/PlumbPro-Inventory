@@ -145,34 +145,36 @@ export const exportToPDF = async (
   }
 };
 
-// Excel Export (requires xlsx library)
+// Excel Export (uses exceljs, already included in the app)
 export const exportToExcel = async (
   data: any[],
   filename: string,
   sheetName: string = 'Sheet1'
 ) => {
   try {
-    // Dynamic import to avoid bundling xlsx if not used
-    const XLSX = await import('xlsx');
+    const { Workbook } = await import('exceljs');
+    const workbook = new Workbook();
+    const worksheet = workbook.addWorksheet(sheetName);
+    const headers = Object.keys(data[0]);
 
-    const worksheet = XLSX.utils.json_to_sheet(data);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
-
-    // Auto-size columns
-    const maxWidth = 50;
-    const wscols = Object.keys(data[0]).map(key => ({
-      wch: Math.min(
+    worksheet.columns = headers.map((key) => ({
+      header: key,
+      key,
+      width: Math.min(
         Math.max(
           key.length,
-          ...data.map(row => String(row[key] || '').length)
-        ),
-        maxWidth
+          ...data.map((row) => String(row[key] || '').length)
+        ) + 2,
+        50
       )
     }));
-    worksheet['!cols'] = wscols;
 
-    XLSX.writeFile(workbook, filename);
+    data.forEach((row) => {
+      worksheet.addRow(row);
+    });
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    downloadBinaryFile(buffer, filename, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   } catch (error) {
     console.error('Excel export error:', error);
     alert('Excel export requires additional libraries. Falling back to CSV export.');
@@ -183,6 +185,15 @@ export const exportToExcel = async (
 // Helper function to download file
 const downloadFile = (content: string, filename: string, mimeType: string) => {
   const blob = new Blob([content], { type: mimeType });
+  downloadBlob(blob, filename);
+};
+
+const downloadBinaryFile = (content: ArrayBuffer | Uint8Array, filename: string, mimeType: string) => {
+  const blob = new Blob([content], { type: mimeType });
+  downloadBlob(blob, filename);
+};
+
+const downloadBlob = (blob: Blob, filename: string) => {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;

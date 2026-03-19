@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import './lib/i18n';
 import {
   Package,
@@ -41,41 +41,14 @@ import {
   Job,
   StockMovement,
   JobTemplate,
-  AllocatedItem
+  AllocatedItem,
+  Kit
 } from './types';
 import { useStore } from './store/useStore';
 
 import { getStockStatus, StockMeter, Badge } from './components/Shared';
-import { Navigation, NavTab } from './components/Navigation';
-import { DashboardView } from './views/DashboardView';
-import { InventoryView } from './views/InventoryView';
-import { JobsView } from './views/JobsView';
-import { CalendarView } from './views/CalendarView';
-import { JobPlanningView } from './views/JobPlanningView';
-import { OrderingView } from './views/OrderingView';
-import { HistoryView } from './views/HistoryView';
-import { ContactsView } from './views/ContactsView';
-import { ApprovalsView } from './views/ApprovalsView';
-import { SettingsView } from './views/SettingsView';
-import { MobileStockCountView } from './views/MobileStockCountView';
-import { LoginView } from './components/LoginView';
-import { PurchaseOrdersView } from './views/PurchaseOrdersView';
-import { StockReturnsView } from './views/StockReturnsView';
-import { SupplierDashboardView } from './views/SupplierDashboardView';
-import { QuotesView } from './views/QuotesView';
-import InvoicesView from './views/InvoicesView';
-import { ReportingView } from './views/ReportingView';
-import { TeamManagementView } from './views/TeamManagementView';
-import { AnalyticsView } from './views/AnalyticsView';
-import { AIForecastView } from './views/AIForecastView';
-import { KitManagementView } from './views/KitManagementView';
-import { AssetManagementView } from './views/AssetManagementView';
-import { TechnicianPerformanceView } from './views/TechnicianPerformanceView';
-import { SubcontractorManagementView } from './views/SubcontractorManagementView';
-import { LeadPipelineView } from './views/LeadPipelineView';
-import { AIAssistant } from './components/AIAssistant';
-import WorkflowAutomationView from './views/WorkflowAutomationView';
-import CustomerPortalView from './views/CustomerPortalView';
+import { Navigation, NavTab, getNavigationLabel, isTabVisible } from './components/Navigation';
+import { DeferredContentFallback } from './components/DeferredContentFallback';
 import { TitleBar } from './components/TitleBar';
 
 // UX Components
@@ -83,23 +56,29 @@ import { ToastProvider, useToast } from './components/ToastNotification';
 import CommandPalette from './components/CommandPalette';
 import LanguageSwitcher from './components/LanguageSwitcher';
 import { MobileBottomNav } from './components/MobileBottomNav';
-import { StockTransferModal } from './components/StockTransferModal';
-import { onboardingService, tours } from './lib/onboardingService';
-import { addSkipLink } from './lib/accessibility';
+import { AppViewRouter } from './app/AppViewRouter';
+import {
+  AIAssistant,
+  LoginView,
+  MobileStockCountView,
+  StockTransferModal
+} from './app/lazyViews';
 import { API_ROOT_URL, DEFAULT_BACKEND_PORT, hasExplicitApiUrl, smartOrderingAPI } from './lib/api';
 import { useAutoLogout } from './hooks/useAutoLogout';
+import { useAppBootstrap } from './hooks/useAppBootstrap';
+import { useBackendHealthCheck } from './hooks/useBackendHealthCheck';
+import { useResponsiveShell } from './hooks/useResponsiveShell';
+import { useThemeInitialization } from './hooks/useThemeInitialization';
 import { logger } from './lib/logging';
-import { loadSettings } from './lib/settings';
 
 function AppContent() {
   const toast = useToast();
   const [activeTab, setActiveTab] = useState<NavTab>('dashboard');
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [theme, setTheme] = useState<'light' | 'dark' | 'auto'>('light');
   const [isMobileStockCountOpen, setIsMobileStockCountOpen] = useState(false);
   const [showAIAssistant, setShowAIAssistant] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
   const [reorderAlertCount, setReorderAlertCount] = useState(0);
+  const { isMobile, isSidebarOpen, setIsSidebarOpen } = useResponsiveShell();
+  useThemeInitialization();
   const user = useStore((state) => state.user);
   const logout = useStore((state) => state.logout);
   const inventory = useStore((state) => state.inventory);
@@ -107,6 +86,7 @@ function AppContent() {
   const jobs = useStore((state) => state.jobs);
   const movements = useStore((state) => state.movements);
   const templates = useStore((state) => state.templates);
+  const kits = useStore((state) => state.kits);
   const locations = useStore((state) => state.locations);
   const createStockTransfer = useStore((state) => state.createStockTransfer);
   const error = useStore((state) => state.error);
@@ -127,16 +107,12 @@ function AppContent() {
   const setInventoryState = useStore((state) => state.setInventoryState);
   const setJobsState = useStore((state) => state.setJobsState);
   const setMovementsState = useStore((state) => state.setMovementsState);
-
-  // Detect mobile device
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+  const syncWithServer = useStore((state) => state.syncWithServer);
+  const resolvedActiveTab = useMemo(
+    () => (isTabVisible(activeTab, user?.role) ? activeTab : 'dashboard'),
+    [activeTab, user?.role]
+  );
+  const activeTabLabel = useMemo(() => getNavigationLabel(resolvedActiveTab), [resolvedActiveTab]);
 
   // Auto-logout after 30 minutes of inactivity
   useAutoLogout({
@@ -145,6 +121,13 @@ function AppContent() {
       logout();
       toast.error('You have been logged out due to inactivity');
     }
+  });
+
+  useBackendHealthCheck({
+    apiRootUrl: API_ROOT_URL,
+    defaultBackendPort: DEFAULT_BACKEND_PORT,
+    hasExplicitApiUrl,
+    toast
   });
 
   // Listen for auto-logout warning
@@ -165,40 +148,6 @@ function AppContent() {
       window.removeEventListener('auto-logout-warning-clear', handleWarningClear);
     };
   }, [toast]);
-
-  // Initialize theme from persisted settings
-  useEffect(() => {
-    let isMounted = true;
-    const fetchSettings = async () => {
-      try {
-        const settings = await loadSettings();
-        if (isMounted && settings.appearance?.theme) {
-          setTheme(settings.appearance.theme);
-        }
-      } catch (error) {
-        console.error('Failed to load theme settings:', error);
-      }
-    };
-
-    void fetchSettings();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  // Load all data on mount with error handling
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        await useStore.getState().syncWithServer();
-      } catch (error) {
-        logger.error('Failed to sync data on mount:', error);
-        // Error is already handled by the store, but we ensure it's logged
-      }
-    };
-    loadData();
-  }, []);
 
   // Fetch reorder alert count periodically
   useEffect(() => {
@@ -221,119 +170,10 @@ function AppContent() {
   }, []);
 
   useEffect(() => {
-    if (!hasExplicitApiUrl && window.location.port !== `${DEFAULT_BACKEND_PORT}`) {
-      toast.warning(
-        `VITE_API_URL is not set. The app is using the default API at ${API_ROOT_URL}. Set VITE_API_URL in your .env file if your backend runs elsewhere.`,
-        'API configuration'
-      );
+    if (resolvedActiveTab !== activeTab) {
+      setActiveTab(resolvedActiveTab);
     }
-  }, [toast]);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    const checkHealth = async () => {
-      try {
-        const response = await fetch(`${API_ROOT_URL}/health`, { signal: controller.signal });
-        if (!response.ok) {
-          throw new Error(`Health check failed with status ${response.status}`);
-        }
-      } catch (error) {
-        if ((error as Error).name === 'AbortError') {
-          return;
-        }
-        toast.warning(
-          `Backend health check failed for ${API_ROOT_URL}. Confirm the server is running and VITE_API_URL is correct.`,
-          'Backend connection'
-        );
-      }
-    };
-
-    void checkHealth();
-    return () => {
-      controller.abort();
-    };
-  }, [toast]);
-
-  // Apply theme to document
-  useEffect(() => {
-    const root = document.documentElement;
-
-    if (theme === 'dark') {
-      root.classList.add('dark');
-    } else if (theme === 'light') {
-      root.classList.remove('dark');
-    } else if (theme === 'auto') {
-      // Auto mode: use system preference
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      if (prefersDark) {
-        root.classList.add('dark');
-      } else {
-        root.classList.remove('dark');
-      }
-    }
-  }, [theme]);
-
-  // Listen for settings changes
-  useEffect(() => {
-    const handleSettingsChange = (e: Event) => {
-      const customEvent = e as CustomEvent;
-      if (customEvent.detail?.appearance?.theme) {
-        setTheme(customEvent.detail.appearance.theme);
-      }
-    };
-
-    window.addEventListener('settings-changed', handleSettingsChange);
-    return () => {
-      window.removeEventListener('settings-changed', handleSettingsChange);
-    };
-  }, []);
-
-  // Initialize UX features on mount
-  useEffect(() => {
-    // Add skip link for accessibility
-    addSkipLink('main-content', 'Skip to main content');
-
-    // Show welcome tour for new users (after 1 second delay)
-    if (!onboardingService.hasCompletedTour('welcome')) {
-      setTimeout(() => {
-        onboardingService.startTour(tours.welcome);
-      }, 1000);
-    }
-
-    // Custom event listeners for command palette actions
-    const handleNavigate = (e: Event) => {
-      const customEvent = e as CustomEvent;
-      const tab = customEvent.detail as 'dashboard' | 'inventory' | 'calendar' | 'job-planning' | 'contacts' | 'ordering' | 'history' | 'approvals' | 'settings';
-      setActiveTab(tab);
-    };
-
-    const handleCreateNewItem = () => {
-      setActiveTab('inventory');
-    };
-    const handleCreateNewJob = () => {
-      setIsNewJobModalOpen(true);
-    };
-    const handleCreateNewContact = () => {
-      setActiveTab('contacts');
-    };
-    const handleTransferStock = () => {
-      setIsStockTransferModalOpen(true);
-    };
-
-    window.addEventListener('navigate', handleNavigate);
-    window.addEventListener('create-new-item', handleCreateNewItem);
-    window.addEventListener('create-new-job', handleCreateNewJob);
-    window.addEventListener('create-new-contact', handleCreateNewContact);
-    window.addEventListener('transfer-stock', handleTransferStock);
-
-    return () => {
-      window.removeEventListener('navigate', handleNavigate);
-      window.removeEventListener('create-new-item', handleCreateNewItem);
-      window.removeEventListener('create-new-job', handleCreateNewJob);
-      window.removeEventListener('create-new-contact', handleCreateNewContact);
-      window.removeEventListener('transfer-stock', handleTransferStock);
-    };
-  }, []);
+  }, [activeTab, resolvedActiveTab]);
   
   // Inventory Filtering & Sorting
   const [inventorySearch, setInventorySearch] = useState('');
@@ -363,7 +203,7 @@ function AppContent() {
 
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
   const [templateJob, setTemplateJob] = useState<Job | null>(null);
-  const [selectedTemplate, setSelectedTemplate] = useState<JobTemplate | null>(null);
+  const [selectedStockSourceName, setSelectedStockSourceName] = useState('');
   const [templateItems, setTemplateItems] = useState<AllocatedItem[]>([]);
 
   // New Job Modal State
@@ -376,14 +216,25 @@ function AppContent() {
     templateId: '',
   });
 
+  useAppBootstrap({
+    syncWithServer,
+    enableDataSyncOnMount: true,
+    enableUiBootstrap: true,
+    onNavigate: setActiveTab,
+    onOpenNewJobModal: setIsNewJobModalOpen,
+    onOpenStockTransferModal: setIsStockTransferModalOpen
+  });
+
   // Memoized Reserved Stock Calculation
   const reservedStock = useMemo(() => {
     const reserved: Record<string, number> = {};
-    jobs.filter(j => !j.isPicked).forEach(job => {
+    jobs
+      .filter((job) => !job.isPicked && ['Scheduled', 'In Progress'].includes(job.status))
+      .forEach(job => {
       job.allocatedItems.forEach(item => {
         reserved[item.itemId] = (reserved[item.itemId] || 0) + item.quantity;
       });
-    });
+      });
     return reserved;
   }, [jobs]);
 
@@ -414,6 +265,69 @@ function AppContent() {
     return items;
   }, [inventory, inventorySearch, inventorySortConfig]);
 
+  const resolveKitInventoryItemId = (kitItem: Kit['items'][number]): string | null => {
+    if (kitItem.itemType !== 'inventory') {
+      return null;
+    }
+
+    if (kitItem.inventoryItemId && inventory.some((item) => item.id === kitItem.inventoryItemId)) {
+      return kitItem.inventoryItemId;
+    }
+
+    const normalizedItemName = kitItem.itemName.trim().toLowerCase();
+    const normalizedItemCode = kitItem.itemCode?.trim().toLowerCase();
+    const matchedInventoryItem = inventory.find((item) => {
+      const matchesName = item.name.trim().toLowerCase() === normalizedItemName;
+      const matchesCode = normalizedItemCode
+        ? item.supplierCode.trim().toLowerCase() === normalizedItemCode
+        : false;
+      return matchesName || matchesCode;
+    });
+
+    return matchedInventoryItem?.id ?? null;
+  };
+
+  const buildAllocatedItemsFromKit = (kit: Kit): AllocatedItem[] => {
+    const aggregatedItems = new Map<string, number>();
+
+    kit.items.forEach((kitItem) => {
+      const inventoryItemId = resolveKitInventoryItemId(kitItem);
+      if (!inventoryItemId) {
+        return;
+      }
+
+      aggregatedItems.set(
+        inventoryItemId,
+        (aggregatedItems.get(inventoryItemId) || 0) + kitItem.quantity
+      );
+    });
+
+    return Array.from(aggregatedItems.entries()).map(([itemId, quantity]) => ({ itemId, quantity }));
+  };
+
+  const getStockSourceName = (selection: string): string => {
+    if (selection.startsWith('kit:')) {
+      return kits.find((kit) => kit.id === selection.replace('kit:', ''))?.name || 'Selected kit';
+    }
+
+    return templates.find((template) => template.id === selection.replace('template:', ''))?.name || 'Selected template';
+  };
+
+  const getAllocatedItemsFromSelection = (selection: string): AllocatedItem[] => {
+    if (!selection) {
+      return [];
+    }
+
+    if (selection.startsWith('kit:')) {
+      const kit = kits.find((entry) => entry.id === selection.replace('kit:', ''));
+      return kit ? buildAllocatedItemsFromKit(kit) : [];
+    }
+
+    const templateId = selection.replace('template:', '');
+    const template = templates.find((entry) => entry.id === templateId);
+    return template ? template.items.map((item) => ({ ...item })) : [];
+  };
+
   // Handlers
   const handleInventorySort = (key: keyof InventoryItem) => {
     let direction: 'asc' | 'desc' = 'asc';
@@ -433,9 +347,10 @@ function AppContent() {
     try {
       let allocatedItems: AllocatedItem[] = [];
       if (templateId) {
-        const template = templates.find(t => t.id === templateId);
-        if (template) {
-          allocatedItems = template.items.map(i => ({ ...i }));
+        allocatedItems = getAllocatedItemsFromSelection(templateId);
+        if (allocatedItems.length === 0) {
+          toast.warning(`${getStockSourceName(templateId)} does not contain any stock-linked inventory items yet.`);
+          return;
         }
       }
 
@@ -862,6 +777,7 @@ function AppContent() {
       setInventoryState(updatedInventory);
     }
     setIsTemplateModalOpen(false);
+    setSelectedStockSourceName('');
   };
 
   const handleManualAllocate = () => {
@@ -953,10 +869,11 @@ function AppContent() {
           </div>
           <nav className="flex-1 mt-4 overflow-y-auto" data-tour="navigation">
             <Navigation 
-              activeTab={activeTab}
+              activeTab={resolvedActiveTab}
               onNavigate={setActiveTab}
               collapsed={!isSidebarOpen}
               getBadgeForTab={(tab) => tab === 'ordering' ? reorderAlertCount : 0}
+              userRole={user?.role}
             />
           </nav>
           <div className="p-4 border-t border-slate-800 space-y-2">
@@ -990,7 +907,7 @@ function AppContent() {
         <main id="main-content" className={`flex-1 overflow-auto ${isSidebarOpen ? 'md:ml-64' : 'md:ml-20'} transition-all duration-300 p-4 md:p-8 pb-20 md:pb-8`} style={{ marginTop: '2.25rem' }}>
           <header className="mb-8 flex justify-between items-center">
             <div>
-              <h1 className="text-3xl font-extrabold text-slate-800 dark:text-slate-100 capitalize">{activeTab.replace('-', ' ')}</h1>
+              <h1 className="text-3xl font-extrabold text-slate-800 dark:text-slate-100">{activeTabLabel}</h1>
               <p className="text-slate-500 dark:text-slate-400 mt-1">Manage your plumbing warehouse efficiently.</p>
             </div>
             <div className="flex items-center gap-3">
@@ -1008,92 +925,64 @@ function AppContent() {
             </div>
           </header>
 
-        {activeTab === 'dashboard' && <DashboardView inventory={inventory} jobs={jobs} contacts={contacts} onNavigate={setActiveTab} />}
-        {activeTab === 'inventory' && (
-          <InventoryView
-            inventory={filteredInventory}
+          <AppViewRouter
+            activeTab={resolvedActiveTab}
+            inventory={inventory}
+            filteredInventory={filteredInventory}
             contacts={contacts}
-            search={inventorySearch}
-            onSearchChange={setInventorySearch}
-            sortConfig={inventorySortConfig}
-            onSort={handleInventorySort}
+            jobs={jobs}
+            movements={movements}
+            templates={templates}
+            kits={kits}
+            inventorySearch={inventorySearch}
+            inventorySortConfig={inventorySortConfig}
+            onNavigate={setActiveTab}
+            onInventorySearchChange={setInventorySearch}
+            onInventorySort={handleInventorySort}
             onImportCSV={handleImportCSV}
-            onViewDetails={(item) => { setItemToShow(item); setIsDetailModalOpen(true); }}
-            onAdjustStock={(item) => { setItemToAdjust(item); setAdjustmentValue(0); setIsAdjustModalOpen(true); }}
+            onViewItemDetails={(item) => { setItemToShow(item); setIsDetailModalOpen(true); }}
+            onOpenAdjustItem={(item) => { setItemToAdjust(item); setAdjustmentValue(0); setIsAdjustModalOpen(true); }}
             onEditItem={handleEditItem}
             onAddItem={handleAddItem}
             onDeleteItem={handleDeleteItem}
-            onDeleteAll={handleDeleteAllItems}
-            onTransferStock={() => setIsStockTransferModalOpen(true)}
-          />
-        )}
-        {activeTab === 'calendar' && (
-          <CalendarView
-            jobs={jobs}
-            contacts={contacts}
-            onJobClick={(job) => {
-              // Switch to job planning view when clicking a job
-              setActiveTab('job-planning');
-            }}
-          />
-        )}
-        {activeTab === 'job-planning' && (
-          <JobPlanningView
-            jobs={jobs}
-            contacts={contacts}
-            inventory={inventory}
-            templates={templates}
+            onDeleteAllItems={handleDeleteAllItems}
+            onOpenStockTransfer={() => setIsStockTransferModalOpen(true)}
             onOpenNewJobModal={() => setIsNewJobModalOpen(true)}
             onConfirmPick={handleConfirmPick}
-            onOpenAllocateModal={(job) => { setJobToAllocate(job); setAllocSearch(''); setAllocItemId(''); setIsAllocateModalOpen(true); }}
+            onOpenAllocateModal={(job) => {
+              setJobToAllocate(job);
+              setAllocSearch('');
+              setAllocItemId('');
+              setIsAllocateModalOpen(true);
+            }}
             onOpenTemplateModal={(jobId, templateId) => {
               const job = jobs.find(j => j.id === jobId);
-              const template = templates.find(t => t.id === templateId);
-              if (job && template) {
+              const allocatedItems = getAllocatedItemsFromSelection(templateId);
+
+              if (job && allocatedItems.length > 0) {
                 setTemplateJob(job);
-                setSelectedTemplate(template);
-                setTemplateItems(template.items.map(item => ({ ...item })));
+                setSelectedStockSourceName(getStockSourceName(templateId));
+                setTemplateItems(allocatedItems);
                 setIsTemplateModalOpen(true);
+              } else if (job) {
+                toast.warning(`${getStockSourceName(templateId)} does not contain any stock-linked inventory items yet.`);
               }
             }}
-            onNavigate={setActiveTab}
             onAddTemplate={handleAddTemplate}
             onUpdateTemplate={handleUpdateTemplate}
             onDeleteTemplate={handleDeleteTemplate}
-          />
-        )}
-        {activeTab === 'kits' && <KitManagementView />}
-        {activeTab === 'ordering' && <OrderingView inventory={inventory} jobs={jobs} />}
-        {activeTab === 'history' && <HistoryView movements={movements} inventory={inventory} />}
-        {activeTab === 'contacts' && (
-          <ContactsView
-            contacts={contacts}
             onAddContact={handleAddContact}
             onEditContact={handleEditContact}
             onDeleteContact={handleDeleteContact}
+            onSettingsSaved={() => toast.success('Settings saved successfully!')}
           />
-        )}
-        {activeTab === 'subcontractors' && <SubcontractorManagementView />}
-        {activeTab === 'approvals' && <ApprovalsView />}
-        {activeTab === 'purchase-orders' && <PurchaseOrdersView />}
-        {activeTab === 'leads' && <LeadPipelineView />}
-        {activeTab === 'quotes' && <QuotesView />}
-        {activeTab === 'invoices' && <InvoicesView />}
-        {activeTab === 'stock-returns' && <StockReturnsView />}
-        {activeTab === 'supplier-dashboard' && <SupplierDashboardView contacts={contacts} />}
-        {activeTab === 'reports' && <ReportingView />}
-        {activeTab === 'team' && <TeamManagementView />}
-        {activeTab === 'assets' && <AssetManagementView />}
-        {activeTab === 'settings' && <SettingsView onSave={(settings) => toast.success('Settings saved successfully!')} />}
-        {activeTab === 'analytics' && <AnalyticsView />}
-        {activeTab === 'performance' && <TechnicianPerformanceView />}
-        {activeTab === 'ai-forecast' && <AIForecastView />}
-        {activeTab === 'workflows' && <WorkflowAutomationView />}
       </main>
 
       {/* AI Assistant Panel */}
       {showAIAssistant && (
-        <AIAssistant onClose={() => setShowAIAssistant(false)} />
+        <Suspense fallback={<DeferredContentFallback label="Loading AI assistant..." />}>
+          <AIAssistant onClose={() => setShowAIAssistant(false)} />
+        </Suspense>
       )}
 
       {/* New Job Modal */}
@@ -1146,7 +1035,20 @@ function AppContent() {
                     className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50 font-bold"
                   >
                     <option value="">No Template</option>
-                    {templates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                    {templates.length > 0 && (
+                      <optgroup label="Stock Templates">
+                        {templates.map((template) => (
+                          <option key={template.id} value={`template:${template.id}`}>{template.name}</option>
+                        ))}
+                      </optgroup>
+                    )}
+                    {kits.length > 0 && (
+                      <optgroup label="Kits & BOMs">
+                        {kits.map((kit) => (
+                          <option key={kit.id} value={`kit:${kit.id}`}>{kit.name}</option>
+                        ))}
+                      </optgroup>
+                    )}
                   </select>
                 </div>
               </div>
@@ -1183,9 +1085,9 @@ function AppContent() {
                   </div>
                   <div className="space-y-3">
                     {(() => {
-                      const template = templates.find(t => t.id === newJobData.templateId);
-                      if (!template) return null;
-                      return template.items.map(ti => {
+                      const allocatedItems = getAllocatedItemsFromSelection(newJobData.templateId);
+                      if (!allocatedItems.length) return null;
+                      return allocatedItems.map((ti) => {
                         const item = inventory.find(i => i.id === ti.itemId);
                         if (!item) return null;
                         const projectedQty = item.quantity - (reservedStock[item.id] || 0) - ti.quantity;
@@ -1572,12 +1474,15 @@ function AppContent() {
       )}
 
       {/* Template Allocation Review Modal */}
-      {isTemplateModalOpen && templateJob && selectedTemplate && (
+      {isTemplateModalOpen && templateJob && selectedStockSourceName && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden">
             <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-              <h3 className="text-xl font-bold text-slate-800">Review Template Allocation</h3>
-              <button onClick={() => setIsTemplateModalOpen(false)} className="text-slate-400 hover:text-slate-600"><X className="w-6 h-6" /></button>
+              <div>
+                <h3 className="text-xl font-bold text-slate-800">Review Stock Allocation</h3>
+                <p className="text-sm text-slate-500">{selectedStockSourceName}</p>
+              </div>
+              <button onClick={() => { setIsTemplateModalOpen(false); setSelectedStockSourceName(''); }} className="text-slate-400 hover:text-slate-600"><X className="w-6 h-6" /></button>
             </div>
             <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
               {templateItems.map((ti, index) => {
@@ -1604,7 +1509,7 @@ function AppContent() {
               })}
             </div>
             <div className="p-6 bg-slate-50 border-t border-slate-100 flex space-x-3">
-              <button onClick={() => setIsTemplateModalOpen(false)} className="flex-1 px-4 py-3 bg-white border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-100">Cancel</button>
+              <button onClick={() => { setIsTemplateModalOpen(false); setSelectedStockSourceName(''); }} className="flex-1 px-4 py-3 bg-white border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-100">Cancel</button>
               <button onClick={applyTemplateAllocation} className="flex-1 px-4 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700">Finalize</button>
             </div>
           </div>
@@ -1699,27 +1604,31 @@ function AppContent() {
       )}
 
       {/* Stock Transfer Modal */}
-      <StockTransferModal
-        isOpen={isStockTransferModalOpen}
-        onClose={() => setIsStockTransferModalOpen(false)}
-        inventory={inventory}
-        locations={locations}
-        onTransfer={async (itemId, fromLocationId, toLocationId, quantity, reason) => {
-          try {
-            await createStockTransfer({
-              itemId,
-              fromLocationId,
-              toLocationId,
-              quantity,
-              reason
-            });
-            toast.success('Stock transferred successfully');
-          } catch (error) {
-            toast.error('Failed to transfer stock');
-            throw error;
-          }
-        }}
-      />
+      {isStockTransferModalOpen && (
+        <Suspense fallback={<DeferredContentFallback label="Loading stock transfer..." />}>
+          <StockTransferModal
+            isOpen={isStockTransferModalOpen}
+            onClose={() => setIsStockTransferModalOpen(false)}
+            inventory={inventory}
+            locations={locations}
+            onTransfer={async (itemId, fromLocationId, toLocationId, quantity, reason) => {
+              try {
+                await createStockTransfer({
+                  itemId,
+                  fromLocationId,
+                  toLocationId,
+                  quantity,
+                  reason
+                });
+                toast.success('Stock transferred successfully');
+              } catch (error) {
+                toast.error('Failed to transfer stock');
+                throw error;
+              }
+            }}
+          />
+        </Suspense>
+      )}
 
       {/* Edit Item Modal */}
       {isEditItemModalOpen && itemToEdit && (
@@ -1993,17 +1902,19 @@ function AppContent() {
 
       {/* Mobile Stock Count View */}
       {isMobileStockCountOpen && (
-        <MobileStockCountView
-          inventory={inventory}
-          onUpdateStock={handleMobileStockUpdate}
-          onClose={() => setIsMobileStockCountOpen(false)}
-        />
+        <Suspense fallback={<DeferredContentFallback label="Loading stock count..." />}>
+          <MobileStockCountView
+            inventory={inventory}
+            onUpdateStock={handleMobileStockUpdate}
+            onClose={() => setIsMobileStockCountOpen(false)}
+          />
+        </Suspense>
       )}
 
       {/* Mobile Bottom Navigation */}
       {isMobile && (
         <MobileBottomNav
-          activeTab={activeTab === 'menu' ? 'menu' : activeTab}
+          activeTab={resolvedActiveTab}
           onNavigate={(tab) => {
             if (tab === 'menu') {
               setActiveTab('settings');
@@ -2015,7 +1926,7 @@ function AppContent() {
       )}
 
       {/* Mobile FAB for Stock Count and Transfer */}
-      {isMobile && activeTab === 'inventory' && !isMobileStockCountOpen && (
+      {isMobile && resolvedActiveTab === 'inventory' && !isMobileStockCountOpen && (
         <>
           <button
             onClick={() => setIsStockTransferModalOpen(true)}
@@ -2042,28 +1953,18 @@ export default function App() {
   const isAuthenticated = useStore((state) => state.isAuthenticated);
   const syncWithServer = useStore((state) => state.syncWithServer);
 
-  // Check for existing auth token on mount
-  useEffect(() => {
-    const token = localStorage.getItem('authToken');
-    const userStr = localStorage.getItem('user');
-
-    if (token && userStr) {
-      try {
-        const user = JSON.parse(userStr);
-        useStore.getState().setUser(user, token);
-        // Sync data from server after authentication
-        syncWithServer();
-      } catch (error) {
-        console.error('Failed to restore auth session:', error);
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('user');
-      }
-    }
-  }, [syncWithServer]);
+  useAppBootstrap({
+    syncWithServer,
+    enableAuthBootstrap: true
+  });
 
   // Show login screen if not authenticated
   if (!isAuthenticated) {
-    return <LoginView />;
+    return (
+      <Suspense fallback={<DeferredContentFallback label="Loading login..." />}>
+        <LoginView />
+      </Suspense>
+    );
   }
 
   return (

@@ -1,4 +1,5 @@
 // Xero Integration API Client
+import { getAuthToken } from './authSession';
 import { API_BASE_URL } from './api';
 
 // Types
@@ -71,7 +72,7 @@ async function xeroFetch<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const token = localStorage.getItem('token');
+  const token = getAuthToken();
 
   const response = await fetch(`${API_BASE_URL}/xero${endpoint}`, {
     ...options,

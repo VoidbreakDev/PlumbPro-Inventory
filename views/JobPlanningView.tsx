@@ -1,5 +1,5 @@
 import React from 'react';
-import { Job, Contact, InventoryItem, JobTemplate, AllocatedItem } from '../types';
+import { Job, Contact, InventoryItem, JobTemplate, AllocatedItem, Kit } from '../types';
 import { JobsView } from './JobsView';
 
 interface JobPlanningViewProps {
@@ -7,6 +7,7 @@ interface JobPlanningViewProps {
   contacts: Contact[];
   inventory: InventoryItem[];
   templates: JobTemplate[];
+  kits: Kit[];
   onOpenNewJobModal: () => void;
   onConfirmPick: (jobId: string) => void;
   onOpenAllocateModal: (job: Job) => void;

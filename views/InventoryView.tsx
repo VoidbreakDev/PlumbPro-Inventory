@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Search, FileUp, Plus, Eye, SlidersHorizontal, Edit2, ChevronUp, ChevronDown, ArrowRightLeft, X, Trash2, DollarSign, AlertTriangle, TrendingUp, TrendingDown, Minus, MapPin } from 'lucide-react';
+import { Search, FileUp, Plus, Eye, SlidersHorizontal, Edit2, ChevronUp, ChevronDown, ArrowRightLeft, X, Trash2, DollarSign, AlertTriangle, MapPin } from 'lucide-react';
 import { InventoryItem, Contact } from '../types';
 import { Badge, StockMeter, getStockStatus } from '../components/Shared';
 import { EmptyState } from '../components/LoadingStates';
@@ -94,25 +94,35 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     return `${typeLabel} Price (${gstLabel})`;
   };
 
-  // Helper to get ABC badge color
-  const getABCBadgeVariant = (classification?: 'A' | 'B' | 'C'): 'red' | 'blue' | 'gray' | 'slate' => {
-    if (!classification) return 'slate';
+  const compactBadgeClass = 'px-1.5 py-0.5 text-[11px] leading-none whitespace-nowrap';
+  const desktopActionButtonClass = 'p-1.5 text-slate-400 hover:bg-slate-100 rounded-md transition-colors';
+  const getABCBadgeClass = (classification?: 'A' | 'B' | 'C') => {
     switch (classification) {
-      case 'A': return 'red';
-      case 'B': return 'blue';
-      case 'C': return 'gray';
-      default: return 'slate';
+      case 'A':
+        return 'bg-red-100 text-red-700 ring-red-200';
+      case 'B':
+        return 'bg-blue-100 text-blue-700 ring-blue-200';
+      case 'C':
+        return 'bg-slate-200 text-slate-700 ring-slate-300';
+      default:
+        return 'bg-slate-100 text-slate-500 ring-slate-200';
     }
   };
 
-  // Helper to get ABC icon
-  const getABCIcon = (classification?: 'A' | 'B' | 'C') => {
-    switch (classification) {
-      case 'A': return <TrendingUp className="w-3 h-3" />;
-      case 'B': return <Minus className="w-3 h-3" />;
-      case 'C': return <TrendingDown className="w-3 h-3" />;
-      default: return null;
+  const renderABCBadge = (classification?: 'A' | 'B' | 'C') => {
+    if (!classification) {
+      return <span className="text-[11px] text-slate-400">—</span>;
     }
+
+    return (
+      <span
+        title={`ABC grade ${classification}`}
+        aria-label={`ABC grade ${classification}`}
+        className={`inline-flex h-7 min-w-[1.75rem] items-center justify-center rounded-full px-2 text-[11px] font-bold leading-none ring-1 ring-inset ${getABCBadgeClass(classification)}`}
+      >
+        {classification}
+      </span>
+    );
   };
 
   const InventoryTableHeader = ({ label, column }: { label: string, column?: keyof InventoryItem }) => {
@@ -121,7 +131,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     
     return (
       <th 
-        className={`px-6 py-4 text-xs font-semibold text-slate-500 uppercase ${isSortable ? 'cursor-pointer hover:bg-slate-100 transition-colors select-none' : ''}`}
+        className={`px-4 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wide ${isSortable ? 'cursor-pointer hover:bg-slate-100 transition-colors select-none' : ''}`}
         onClick={() => isSortable && column && onSort(column)}
       >
         <div className="flex items-center space-x-1">
@@ -328,7 +338,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
       {/* Desktop Table View */}
       <div className="hidden md:block overflow-x-auto">
-        <table className="w-full text-left">
+        <table className="w-full text-left text-[13px]">
           <thead className="bg-slate-50 border-b border-slate-100">
             <tr>
               <InventoryTableHeader label="Item Name" column="name" />
@@ -339,13 +349,13 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               <InventoryTableHeader label="Locations" />
               <InventoryTableHeader label="ABC" />
               <InventoryTableHeader label="Status" />
-              <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase">Actions</th>
+              <th className="px-4 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {filteredInventory.length === 0 ? (
               <tr>
-                <td colSpan={9} className="px-6 py-12 text-center">
+                <td colSpan={9} className="px-4 py-12 text-center">
                   <p className="text-slate-500 font-medium">No items found matching "{search}"</p>
                   <button
                     onClick={() => onSearchChange('')}
@@ -360,11 +370,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 const status = getStockStatus(item.quantity, item.reorderLevel);
                 return (
                   <tr key={item.id} className="hover:bg-slate-50 transition-colors group">
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-3 align-top">
                       <div className="flex items-center gap-2">
                         <div className="flex-1">
-                          <p className="font-bold text-slate-800">{item.name}</p>
-                          <p className="text-xs text-slate-400">ID: {item.id}</p>
+                          <p className="text-sm font-semibold leading-tight text-slate-800">{item.name}</p>
+                          <p className="text-[11px] text-slate-400">ID: {item.id}</p>
                         </div>
                         {item.isDeadStock && (
                           <div className="flex-shrink-0" title="Dead stock: 180+ days no movement">
@@ -373,24 +383,24 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-slate-600 text-sm font-medium">{item.category}</td>
-                    <td className="px-6 py-4">
-                      <p className="text-sm font-semibold text-slate-700">{contacts.find(c => c.id === item.supplierId)?.name || 'Unknown'}</p>
-                      <p className="text-xs text-slate-400 font-mono">{item.supplierCode}</p>
+                    <td className="px-4 py-3 align-top text-xs font-medium text-slate-600">{item.category}</td>
+                    <td className="px-4 py-3 align-top">
+                      <p className="text-xs font-semibold text-slate-700">{contacts.find(c => c.id === item.supplierId)?.name || 'Unknown'}</p>
+                      <p className="text-[11px] text-slate-400 font-mono">{item.supplierCode}</p>
                     </td>
-                    <td className="px-6 py-4 font-bold text-slate-700">
-                      {getDisplayPrice(item) !== null ? `$${getDisplayPrice(item)!.toFixed(2)}` : <span className="text-slate-400 text-sm">No price</span>}
+                    <td className="px-4 py-3 align-top font-semibold text-slate-700 whitespace-nowrap">
+                      {getDisplayPrice(item) !== null ? `$${getDisplayPrice(item)!.toFixed(2)}` : <span className="text-xs text-slate-400">No price</span>}
                     </td>
-                    <td className="px-6 py-4">
-                      <p className={`font-bold ${status.variant !== 'green' ? 'text-amber-600' : 'text-slate-800'}`}>{item.quantity}</p>
-                      <p className="text-xs text-slate-400 tracking-tighter">MIN: {item.reorderLevel}</p>
+                    <td className="px-4 py-3 align-top">
+                      <p className={`text-sm font-semibold ${status.variant !== 'green' ? 'text-amber-600' : 'text-slate-800'}`}>{item.quantity}</p>
+                      <p className="text-[11px] text-slate-400 tracking-tight">MIN: {item.reorderLevel}</p>
                       <StockMeter quantity={item.quantity} reorderLevel={item.reorderLevel} />
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-3 align-top">
                       {item.locationStock && item.locationStock.length > 0 ? (
-                        <div className="space-y-1">
+                        <div className="space-y-0.5">
                           {item.locationStock.map((loc) => (
-                            <div key={loc.locationId || loc.locationName} className="flex items-center gap-1.5 text-xs">
+                            <div key={loc.locationId || loc.locationName} className="flex items-center gap-1 text-[11px]">
                               <MapPin className="w-3 h-3 text-slate-400" />
                               <span className="text-slate-600 font-medium">{loc.locationName}:</span>
                               <span className="text-slate-800 font-bold">{loc.quantity}</span>
@@ -398,42 +408,33 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                           ))}
                         </div>
                       ) : (
-                        <span className="text-xs text-slate-400">No locations</span>
+                        <span className="text-[11px] text-slate-400">No locations</span>
                       )}
                     </td>
-                    <td className="px-6 py-4">
-                      {item.abcClassification ? (
-                        <Badge variant={getABCBadgeVariant(item.abcClassification)}>
-                          <div className="flex items-center gap-1">
-                            {getABCIcon(item.abcClassification)}
-                            <span>{item.abcClassification}</span>
-                          </div>
-                        </Badge>
-                      ) : (
-                        <span className="text-xs text-slate-400">—</span>
-                      )}
+                    <td className="px-4 py-3 align-top whitespace-nowrap">
+                      {renderABCBadge(item.abcClassification)}
                     </td>
-                    <td className="px-6 py-4">
-                      <Badge variant={status.variant}>{status.label}</Badge>
+                    <td className="px-4 py-3 align-top whitespace-nowrap">
+                      <Badge variant={status.variant} className={compactBadgeClass}>{status.label}</Badge>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="flex space-x-2">
-                        <button title="View Details" onClick={() => onViewDetails(item)} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-                          <Eye className="w-4 h-4" />
+                    <td className="px-4 py-3 align-top whitespace-nowrap">
+                      <div className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white p-1 shadow-sm">
+                        <button title="View Details" onClick={() => onViewDetails(item)} className={`${desktopActionButtonClass} hover:text-blue-600`}>
+                          <Eye className="w-3.5 h-3.5" />
                         </button>
-                        <button title="Adjust Stock" onClick={() => onAdjustStock(item)} className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors">
-                          <SlidersHorizontal className="w-4 h-4" />
+                        <button title="Adjust Stock" onClick={() => onAdjustStock(item)} className={`${desktopActionButtonClass} hover:text-amber-600`}>
+                          <SlidersHorizontal className="w-3.5 h-3.5" />
                         </button>
                         {onTransferStock && (
-                          <button title="Transfer Stock" onClick={onTransferStock} className="p-2 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors">
-                            <ArrowRightLeft className="w-4 h-4" />
+                          <button title="Transfer Stock" onClick={onTransferStock} className={`${desktopActionButtonClass} hover:text-green-600`}>
+                            <ArrowRightLeft className="w-3.5 h-3.5" />
                           </button>
                         )}
-                        <button title="Edit Item" onClick={() => onEditItem(item)} className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
-                          <Edit2 className="w-4 h-4" />
+                        <button title="Edit Item" onClick={() => onEditItem(item)} className={`${desktopActionButtonClass} hover:text-indigo-600`}>
+                          <Edit2 className="w-3.5 h-3.5" />
                         </button>
-                        <button title="Delete Item" onClick={() => onDeleteItem(item)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
-                          <Trash2 className="w-4 h-4" />
+                        <button title="Delete Item" onClick={() => onDeleteItem(item)} className={`${desktopActionButtonClass} hover:text-red-600`}>
+                          <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </td>
@@ -461,59 +462,52 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           filteredInventory.map(item => {
             const status = getStockStatus(item.quantity, item.reorderLevel);
             return (
-              <div key={item.id} className="p-4 active:bg-slate-50 transition-colors">
+              <div key={item.id} className="p-3.5 active:bg-slate-50 transition-colors">
                 {/* Header Row */}
-                <div className="flex items-start justify-between mb-3">
+                <div className="flex items-start justify-between mb-2.5">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <h4 className="font-bold text-slate-800 truncate">{item.name}</h4>
+                      <h4 className="text-sm font-semibold text-slate-800 truncate">{item.name}</h4>
                       {item.isDeadStock && (
                         <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0" title="Dead stock: 180+ days no movement" />
                       )}
                     </div>
-                    <p className="text-xs text-slate-500">{item.category}</p>
+                    <p className="text-[11px] text-slate-500">{item.category}</p>
                   </div>
                   <div className="flex flex-col gap-1.5 items-end">
-                    <Badge variant={status.variant}>{status.label}</Badge>
-                    {item.abcClassification && (
-                      <Badge variant={getABCBadgeVariant(item.abcClassification)}>
-                        <div className="flex items-center gap-1">
-                          {getABCIcon(item.abcClassification)}
-                          <span>{item.abcClassification}</span>
-                        </div>
-                      </Badge>
-                    )}
+                    <Badge variant={status.variant} className={compactBadgeClass}>{status.label}</Badge>
+                    {item.abcClassification && renderABCBadge(item.abcClassification)}
                   </div>
                 </div>
 
                 {/* Info Grid */}
-                <div className="grid grid-cols-2 gap-3 mb-3 text-sm">
+                <div className="grid grid-cols-2 gap-2.5 mb-2.5 text-xs">
                   <div>
-                    <p className="text-xs text-slate-500 mb-0.5">Stock</p>
-                    <p className={`font-bold ${status.variant !== 'green' ? 'text-amber-600' : 'text-slate-800'}`}>
-                      {item.quantity} <span className="text-xs text-slate-400 font-normal">/ {item.reorderLevel}</span>
+                    <p className="text-[11px] text-slate-500 mb-0.5">Stock</p>
+                    <p className={`text-sm font-semibold ${status.variant !== 'green' ? 'text-amber-600' : 'text-slate-800'}`}>
+                      {item.quantity} <span className="text-[11px] text-slate-400 font-normal">/ {item.reorderLevel}</span>
                     </p>
                     <StockMeter quantity={item.quantity} reorderLevel={item.reorderLevel} />
                   </div>
                   <div>
-                    <p className="text-xs text-slate-500 mb-0.5">{getPriceLabel()}</p>
-                    <p className="font-bold text-slate-700">
-                      {getDisplayPrice(item) !== null ? `$${getDisplayPrice(item)!.toFixed(2)}` : <span className="text-slate-400 text-sm">No price</span>}
+                    <p className="text-[11px] text-slate-500 mb-0.5">{getPriceLabel()}</p>
+                    <p className="text-sm font-semibold text-slate-700">
+                      {getDisplayPrice(item) !== null ? `$${getDisplayPrice(item)!.toFixed(2)}` : <span className="text-slate-400 text-xs">No price</span>}
                     </p>
                   </div>
                   <div className="col-span-2">
-                    <p className="text-xs text-slate-500 mb-0.5">Supplier</p>
-                    <p className="text-sm font-medium text-slate-700">
+                    <p className="text-[11px] text-slate-500 mb-0.5">Supplier</p>
+                    <p className="text-xs font-medium text-slate-700">
                       {contacts.find(c => c.id === item.supplierId)?.name || 'Unknown'}
                     </p>
-                    <p className="text-xs text-slate-400 font-mono">{item.supplierCode}</p>
+                    <p className="text-[11px] text-slate-400 font-mono">{item.supplierCode}</p>
                   </div>
                   {item.locationStock && item.locationStock.length > 0 && (
                     <div className="col-span-2">
-                      <p className="text-xs text-slate-500 mb-1">Locations</p>
-                      <div className="space-y-1">
+                      <p className="text-[11px] text-slate-500 mb-1">Locations</p>
+                      <div className="space-y-0.5">
                         {item.locationStock.map((loc) => (
-                          <div key={loc.locationId || loc.locationName} className="flex items-center gap-1.5 text-xs">
+                          <div key={loc.locationId || loc.locationName} className="flex items-center gap-1 text-[11px]">
                             <MapPin className="w-3 h-3 text-slate-400" />
                             <span className="text-slate-600 font-medium">{loc.locationName}:</span>
                             <span className="text-slate-800 font-bold">{loc.quantity}</span>
@@ -525,32 +519,32 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex gap-2">
+                <div className="flex gap-1.5">
                   <button
                     onClick={() => onViewDetails(item)}
-                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm font-semibold text-blue-600 bg-blue-50 rounded-lg active:scale-95 transition-transform"
+                    className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-blue-600 bg-blue-50 rounded-lg active:scale-95 transition-transform"
                   >
-                    <Eye className="w-4 h-4" />
+                    <Eye className="w-3.5 h-3.5" />
                     Details
                   </button>
                   <button
                     onClick={() => onAdjustStock(item)}
-                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm font-semibold text-amber-600 bg-amber-50 rounded-lg active:scale-95 transition-transform"
+                    className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-amber-600 bg-amber-50 rounded-lg active:scale-95 transition-transform"
                   >
-                    <SlidersHorizontal className="w-4 h-4" />
+                    <SlidersHorizontal className="w-3.5 h-3.5" />
                     Adjust
                   </button>
                   <button
                     onClick={() => onEditItem(item)}
-                    className="flex items-center justify-center px-3 py-2 text-sm font-semibold text-indigo-600 bg-indigo-50 rounded-lg active:scale-95 transition-transform"
+                    className="flex items-center justify-center px-2.5 py-1.5 text-xs font-semibold text-indigo-600 bg-indigo-50 rounded-lg active:scale-95 transition-transform"
                   >
-                    <Edit2 className="w-4 h-4" />
+                    <Edit2 className="w-3.5 h-3.5" />
                   </button>
                   <button
                     onClick={() => onDeleteItem(item)}
-                    className="flex items-center justify-center px-3 py-2 text-sm font-semibold text-red-600 bg-red-50 rounded-lg active:scale-95 transition-transform"
+                    className="flex items-center justify-center px-2.5 py-1.5 text-xs font-semibold text-red-600 bg-red-50 rounded-lg active:scale-95 transition-transform"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>

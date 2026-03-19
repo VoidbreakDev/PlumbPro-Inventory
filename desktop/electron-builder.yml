@@ -15,15 +15,11 @@ extraResources:
     to: frontend
     filter:
       - "**/*"
-  - from: ../server/dist-prod
+  - from: ../server/dist
     to: server
     filter:
       - "**/*"
       - "!**/.env"
-  - from: ../server/dist-prod/node_modules
-    to: server/node_modules
-    filter:
-      - "**/*"
 
 asar: true
 compression: maximum

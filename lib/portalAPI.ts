@@ -6,6 +6,46 @@
 import axios from 'axios';
 import { API_ROOT_URL } from './api';
 
+const PORTAL_TOKEN_KEY = 'portal_token';
+
+const getPortalToken = (): string | null => {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  const sessionToken = window.sessionStorage.getItem(PORTAL_TOKEN_KEY);
+  if (sessionToken) {
+    return sessionToken;
+  }
+
+  const legacyToken = window.localStorage.getItem(PORTAL_TOKEN_KEY);
+  if (legacyToken) {
+    window.sessionStorage.setItem(PORTAL_TOKEN_KEY, legacyToken);
+    window.localStorage.removeItem(PORTAL_TOKEN_KEY);
+    return legacyToken;
+  }
+
+  return null;
+};
+
+export const setPortalToken = (token: string) => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.sessionStorage.setItem(PORTAL_TOKEN_KEY, token);
+  window.localStorage.removeItem(PORTAL_TOKEN_KEY);
+};
+
+export const clearPortalToken = () => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.sessionStorage.removeItem(PORTAL_TOKEN_KEY);
+  window.localStorage.removeItem(PORTAL_TOKEN_KEY);
+};
+
 const api = axios.create({
   baseURL: `${API_ROOT_URL}/portal`,
   headers: {
@@ -15,7 +55,7 @@ const api = axios.create({
 
 // Add auth token to requests
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('portal_token');
+  const token = getPortalToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -44,13 +84,11 @@ export interface PortalJob {
   quote_status?: string;
   quote_total?: number;
   workers?: Array<{ name: string; type: string }>;
-  items?: Array<{
-    item_name: string;
-    quantity: number;
-  }>;
+  items?: Array<Record<string, unknown>>;
 }
 
 export interface PortalQuoteItem {
+  id?: string;
   description: string;
   quantity: number;
   unit_price: number;
@@ -58,13 +96,23 @@ export interface PortalQuoteItem {
   item_type: string;
 }
 
-export interface PortalQuote extends PortalJob {
+export interface PortalQuote {
+  id: string;
+  title: string;
+  job_type: string;
+  status: string;
+  date: string;
+  is_picked: boolean;
+  quote_status?: string;
+  quote_total?: number;
+  workers?: Array<{ name: string; type: string }>;
   quote_sent_at?: string;
   quote_expires_at?: string;
   items?: PortalQuoteItem[];
 }
 
 export interface PortalInvoiceItem {
+  id?: string;
   description: string;
   quantity: number;
   unit_price: number;
@@ -73,9 +121,11 @@ export interface PortalInvoiceItem {
 }
 
 export interface PortalPayment {
+  id?: string;
   amount: number;
   payment_date: string;
   payment_method: string;
+  reference?: string;
 }
 
 export interface PortalInvoice {

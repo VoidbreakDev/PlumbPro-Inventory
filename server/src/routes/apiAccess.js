@@ -564,7 +564,7 @@ router.post('/webhooks/:id/test', async (req, res) => {
       return res.status(404).json({ error: 'Webhook not found' });
     }
 
-    const { url, timeout_seconds, custom_headers } = webhook.rows[0];
+    const { url, secret_hash, timeout_seconds, custom_headers } = webhook.rows[0];
 
     // Create test payload
     const testPayload = {
@@ -576,12 +576,88 @@ router.post('/webhooks/:id/test', async (req, res) => {
       }
     };
 
-    // Simulate webhook delivery (in production, this would actually send the request)
-    // For now, just return success
-    res.json({
-      success: true,
-      message: 'Test webhook sent',
-      payload: testPayload
+    const deliveryId = crypto.randomUUID();
+    const requestStartedAt = Date.now();
+    const headers = {
+      'Content-Type': 'application/json',
+      'X-PlumbPro-Event': 'test',
+      'X-PlumbPro-Webhook-Id': id,
+      'X-PlumbPro-Signature-Hash': secret_hash,
+      ...(custom_headers || {})
+    };
+
+    const controller = new AbortController();
+    const timeoutMs = Math.max(Number(timeout_seconds || 30), 1) * 1000;
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+    let responseStatusCode = null;
+    let responseBody = null;
+    let status = 'failed';
+    let errorMessage = null;
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(testPayload),
+        signal: controller.signal
+      });
+
+      responseStatusCode = response.status;
+      responseBody = await response.text();
+      status = response.ok ? 'success' : 'failed';
+      errorMessage = response.ok ? null : `Webhook responded with ${response.status}`;
+    } catch (error) {
+      errorMessage = error.name === 'AbortError' ? 'Webhook request timed out' : error.message;
+    } finally {
+      clearTimeout(timeout);
+    }
+
+    const responseTimeMs = Date.now() - requestStartedAt;
+    const deliveredAt = new Date().toISOString();
+
+    await pool.query(`
+      INSERT INTO webhook_deliveries (
+        id, webhook_id, event_type, event_id, payload, status, attempt_count,
+        response_status_code, response_body, response_time_ms, error_message, delivered_at
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, 1, $7, $8, $9, $10, $11)
+    `, [
+      deliveryId,
+      id,
+      'test',
+      deliveryId,
+      JSON.stringify(testPayload),
+      status,
+      responseStatusCode,
+      responseBody,
+      responseTimeMs,
+      errorMessage,
+      deliveredAt
+    ]);
+
+    await pool.query(`
+      UPDATE webhooks
+      SET last_triggered_at = $1,
+          last_success_at = CASE WHEN $2 = 'success' THEN $1 ELSE last_success_at END,
+          last_failure_at = CASE WHEN $2 = 'failed' THEN $1 ELSE last_failure_at END,
+          success_count = success_count + CASE WHEN $2 = 'success' THEN 1 ELSE 0 END,
+          failure_count = failure_count + CASE WHEN $2 = 'failed' THEN 1 ELSE 0 END,
+          updated_at = $1
+      WHERE id = $3 AND user_id = $4
+    `, [deliveredAt, status, id, userId]);
+
+    res.status(status === 'success' ? 200 : 502).json({
+      success: status === 'success',
+      message: status === 'success' ? 'Test webhook delivered' : 'Test webhook failed',
+      payload: testPayload,
+      delivery: {
+        id: deliveryId,
+        status,
+        responseStatusCode,
+        responseTimeMs,
+        errorMessage
+      }
     });
   } catch (error) {
     console.error('Error testing webhook:', error);

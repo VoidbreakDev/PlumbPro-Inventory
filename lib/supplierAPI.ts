@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { API_BASE_URL } from './api';
+import { clearAuthSession, getAuthToken } from './authSession';
 import type {
   ItemSupplier,
   SupplierComparison,
@@ -24,7 +25,7 @@ const supplierAPI = axios.create({
 
 // Add auth token to requests
 supplierAPI.interceptors.request.use((config) => {
-  const token = localStorage.getItem('authToken');
+  const token = getAuthToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -36,8 +37,7 @@ supplierAPI.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401 || error.response?.status === 403) {
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('user');
+      clearAuthSession();
       window.dispatchEvent(new CustomEvent('auth-error'));
     }
     return Promise.reject(error);

@@ -76,7 +76,9 @@ router.post('/register',
     const client = await pool.connect();
 
     try {
-      const { email, password, fullName, companyName } = req.body;
+      await client.query('BEGIN');
+
+      const { email, password, fullName, companyName, inviteToken } = req.body;
 
       // Check if user already exists
       const existingUser = await client.query(
@@ -85,7 +87,32 @@ router.post('/register',
       );
 
       if (existingUser.rows.length > 0) {
+        await client.query('ROLLBACK');
         return res.status(409).json({ error: 'Email already registered' });
+      }
+
+      let invitation = null;
+      if (inviteToken) {
+        const invitationResult = await client.query(`
+          SELECT i.*, t.name AS team_name
+          FROM team_invitations i
+          JOIN teams t ON t.id = i.team_id
+          WHERE i.token = $1
+            AND i.status = 'pending'
+            AND i.expires_at > NOW()
+        `, [inviteToken]);
+
+        if (invitationResult.rows.length === 0) {
+          await client.query('ROLLBACK');
+          return res.status(400).json({ error: 'Invitation is invalid or has expired' });
+        }
+
+        invitation = invitationResult.rows[0];
+
+        if (invitation.email.toLowerCase() !== email.toLowerCase()) {
+          await client.query('ROLLBACK');
+          return res.status(400).json({ error: 'Registration email must match the invited email address' });
+        }
       }
 
       // Hash password with higher cost factor
@@ -93,16 +120,41 @@ router.post('/register',
 
       // Create user
       const result = await client.query(`
-        INSERT INTO users (email, password_hash, full_name, company_name, role)
-        VALUES ($1, $2, $3, $4, $5)
+        INSERT INTO users (
+          email, password_hash, full_name, company_name, role,
+          team_id, team_role, invited_by, invited_at
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         RETURNING id, email, full_name, company_name, role, created_at
-      `, [email, passwordHash, fullName, companyName || null, 'user']);
+      `, [
+        email,
+        passwordHash,
+        fullName,
+        companyName || null,
+        'user',
+        invitation?.team_id || null,
+        invitation?.role || 'member',
+        invitation?.invited_by || null,
+        invitation ? new Date().toISOString() : null
+      ]);
 
       const user = result.rows[0];
+
+      if (invitation) {
+        await client.query(`
+          UPDATE team_invitations
+          SET status = 'accepted', accepted_at = NOW()
+          WHERE id = $1
+        `, [invitation.id]);
+      }
+
+      await client.query('COMMIT');
       const token = generateToken(user);
 
       res.status(201).json({
-        message: 'User registered successfully',
+        message: invitation
+          ? 'Account created and team invitation accepted successfully'
+          : 'User registered successfully',
         token,
         user: {
           id: user.id,
@@ -114,6 +166,7 @@ router.post('/register',
       });
 
     } catch (error) {
+      await client.query('ROLLBACK');
       console.error('Registration error:', error);
       res.status(500).json({ error: 'Registration failed' });
     } finally {

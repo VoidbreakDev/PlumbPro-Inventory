@@ -172,7 +172,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ jobs, contacts, onJo
                                 job.status === 'In Progress' ? 'bg-amber-500 text-white' :
                                 'bg-green-500 text-white'
                               }`}>
-                                {job.title}
+                                {job.developmentStageType || job.title}
                               </div>
                             </div>
                           ))}
@@ -211,7 +211,12 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ jobs, contacts, onJo
                   className="p-4 border-2 border-slate-100 rounded-xl hover:border-blue-200 hover:bg-blue-50/50 transition-all cursor-pointer"
                 >
                   <div className="flex justify-between items-start mb-2">
-                    <h4 className="font-bold text-slate-800 text-sm">{job.title}</h4>
+                    <div className="space-y-2">
+                      <h4 className="font-bold text-slate-800 text-sm">{job.title}</h4>
+                      {job.developmentStageType && (
+                        <Badge variant="slate">{job.developmentStageType}</Badge>
+                      )}
+                    </div>
                     <Badge variant={
                       job.status === 'Scheduled' ? 'blue' :
                       job.status === 'In Progress' ? 'yellow' :
@@ -229,10 +234,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ jobs, contacts, onJo
                         day: 'numeric'
                       })}
                     </div>
-                    {job.builder && (
+                    {(job.jobAddress || job.builder) && (
                       <div className="flex items-center">
                         <MapPin className="w-3 h-3 mr-1" />
-                        {job.builder}
+                        {job.jobAddress || job.builder}
                       </div>
                     )}
                     <div className="flex items-center">

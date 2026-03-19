@@ -29,6 +29,8 @@ import {
   Send
 } from 'lucide-react';
 import { getErrorMessage } from '../lib/errors';
+import { ConfirmationModal } from '../components/ConfirmationModal';
+import { MODULE_CATALOG, MODULE_STATUS_LABELS, MODULE_SURFACE_LABELS } from '../app/moduleCatalog';
 import {
   apiAccessAPI,
   ApiKey,
@@ -39,6 +41,15 @@ import {
 } from '../lib/apiAccessAPI';
 
 type ActiveTab = 'keys' | 'webhooks' | 'docs';
+type ConfirmationState = {
+  title: string;
+  description: string;
+  confirmLabel: string;
+  processingLabel?: string;
+  variant?: 'default' | 'danger';
+  errorMessage: string;
+  action: () => Promise<void>;
+};
 
 export function DeveloperView() {
   const [loading, setLoading] = useState(true);
@@ -57,6 +68,8 @@ export function DeveloperView() {
   const [newWebhookResult, setNewWebhookResult] = useState<{ secret: string; name: string } | null>(null);
   const [selectedWebhook, setSelectedWebhook] = useState<string | null>(null);
   const [webhookDeliveries, setWebhookDeliveries] = useState<WebhookDelivery[]>([]);
+  const [confirmation, setConfirmation] = useState<ConfirmationState | null>(null);
+  const [isConfirmingAction, setIsConfirmingAction] = useState(false);
 
   // Docs state
   const [scopes, setScopes] = useState<ApiScope[]>([]);
@@ -93,26 +106,59 @@ export function DeveloperView() {
     }
   };
 
-  const handleRevokeKey = async (keyId: string) => {
-    if (!confirm('Are you sure you want to revoke this API key? This cannot be undone.')) return;
-    try {
-      await apiAccessAPI.revokeApiKey(keyId);
-      setSuccess('API key revoked');
-      loadData();
-    } catch (err) {
-      setError(getErrorMessage(err, 'Failed to revoke API key'));
+  const closeConfirmation = () => {
+    if (!isConfirmingAction) {
+      setConfirmation(null);
     }
   };
 
-  const handleRegenerateKey = async (keyId: string) => {
-    if (!confirm('Are you sure you want to regenerate this API key? The old key will stop working immediately.')) return;
-    try {
-      const result = await apiAccessAPI.regenerateApiKey(keyId);
-      setNewKeyResult({ key: result.key!, name: result.name });
-      loadData();
-    } catch (err) {
-      setError(getErrorMessage(err, 'Failed to regenerate API key'));
+  const handleConfirmedAction = async () => {
+    if (!confirmation) {
+      return;
     }
+
+    setIsConfirmingAction(true);
+    try {
+      await confirmation.action();
+      setConfirmation(null);
+    } catch (err) {
+      setError(getErrorMessage(err, confirmation.errorMessage));
+    } finally {
+      setIsConfirmingAction(false);
+    }
+  };
+
+  const requestRevokeKey = (key: ApiKey) => {
+    setConfirmation({
+      title: `Revoke ${key.name}?`,
+      description: `This permanently revokes ${key.name}. Integrations using ${key.keyPrefix}... will stop working immediately.`,
+      confirmLabel: 'Revoke Key',
+      processingLabel: 'Revoking...',
+      variant: 'danger',
+      errorMessage: 'Failed to revoke API key',
+      action: async () => {
+        await apiAccessAPI.revokeApiKey(key.id);
+        setSuccess('API key revoked');
+        await loadData();
+      }
+    });
+  };
+
+  const requestRegenerateKey = (key: ApiKey) => {
+    setConfirmation({
+      title: `Regenerate ${key.name}?`,
+      description: `This creates a new secret for ${key.name}. The current key ${key.keyPrefix}... will stop working immediately.`,
+      confirmLabel: 'Regenerate Key',
+      processingLabel: 'Regenerating...',
+      variant: 'default',
+      errorMessage: 'Failed to regenerate API key',
+      action: async () => {
+        const result = await apiAccessAPI.regenerateApiKey(key.id);
+        setNewKeyResult({ key: result.key!, name: result.name });
+        setSuccess('API key regenerated');
+        await loadData();
+      }
+    });
   };
 
   const handleToggleKey = async (key: ApiKey) => {
@@ -125,15 +171,20 @@ export function DeveloperView() {
     }
   };
 
-  const handleDeleteWebhook = async (webhookId: string) => {
-    if (!confirm('Are you sure you want to delete this webhook?')) return;
-    try {
-      await apiAccessAPI.deleteWebhook(webhookId);
-      setSuccess('Webhook deleted');
-      loadData();
-    } catch (err) {
-      setError(getErrorMessage(err, 'Failed to delete webhook'));
-    }
+  const requestDeleteWebhook = (webhook: WebhookType) => {
+    setConfirmation({
+      title: `Delete ${webhook.name}?`,
+      description: `This removes the webhook endpoint ${webhook.url}. PlumbPro will stop sending ${webhook.events.length} subscribed event${webhook.events.length === 1 ? '' : 's'}.`,
+      confirmLabel: 'Delete Webhook',
+      processingLabel: 'Deleting...',
+      variant: 'danger',
+      errorMessage: 'Failed to delete webhook',
+      action: async () => {
+        await apiAccessAPI.deleteWebhook(webhook.id);
+        setSuccess('Webhook deleted');
+        await loadData();
+      }
+    });
   };
 
   const handleToggleWebhook = async (webhook: WebhookType) => {
@@ -350,14 +401,14 @@ export function DeveloperView() {
                           {key.isActive ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                         </button>
                         <button
-                          onClick={() => handleRegenerateKey(key.id)}
+                          onClick={() => requestRegenerateKey(key)}
                           className="text-blue-600 hover:text-blue-800 p-2 rounded-lg hover:bg-blue-50"
                           title="Regenerate"
                         >
                           <RefreshCw className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => handleRevokeKey(key.id)}
+                          onClick={() => requestRevokeKey(key)}
                           className="text-red-600 hover:text-red-800 p-2 rounded-lg hover:bg-red-50"
                           title="Revoke"
                         >
@@ -479,7 +530,7 @@ export function DeveloperView() {
                           {webhook.isActive ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                         </button>
                         <button
-                          onClick={() => handleDeleteWebhook(webhook.id)}
+                          onClick={() => requestDeleteWebhook(webhook)}
                           className="text-red-600 hover:text-red-800 p-2 rounded-lg hover:bg-red-50"
                           title="Delete"
                         >
@@ -565,6 +616,50 @@ export function DeveloperView() {
                   <div>
                     <code className="text-sm font-medium text-gray-900">{scope.name}</code>
                     <p className="text-xs text-gray-500 mt-1">{scope.description}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Module Surface Area */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Module Surface Area</h2>
+            <div className="space-y-3">
+              {MODULE_CATALOG.map((module) => (
+                <div key={module.id} className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="font-medium text-gray-900">{module.label}</h3>
+                        <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
+                          {MODULE_SURFACE_LABELS[module.surface]}
+                        </span>
+                        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                          module.status === 'active'
+                            ? 'bg-green-100 text-green-700'
+                            : module.status === 'beta'
+                              ? 'bg-amber-100 text-amber-700'
+                              : 'bg-gray-200 text-gray-700'
+                        }`}>
+                          {MODULE_STATUS_LABELS[module.status]}
+                        </span>
+                      </div>
+                      <p className="mt-2 text-sm text-gray-600">{module.notes}</p>
+                    </div>
+                    <div className="space-y-1 text-sm text-gray-500 md:text-right">
+                      {module.route && (
+                        <div>
+                          <span className="font-medium text-gray-700">Route:</span>{' '}
+                          <code className="rounded bg-white px-1.5 py-0.5 text-xs">{module.route}</code>
+                        </div>
+                      )}
+                      {module.roles && (
+                        <div>
+                          <span className="font-medium text-gray-700">Roles:</span> {module.roles.join(', ')}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -673,6 +768,18 @@ export function DeveloperView() {
           }}
         />
       )}
+
+      <ConfirmationModal
+        isOpen={confirmation !== null}
+        title={confirmation?.title || ''}
+        description={confirmation?.description || ''}
+        confirmLabel={confirmation?.confirmLabel || 'Confirm'}
+        processingLabel={confirmation?.processingLabel}
+        variant={confirmation?.variant}
+        isProcessing={isConfirmingAction}
+        onConfirm={handleConfirmedAction}
+        onClose={closeConfirmation}
+      />
     </div>
   );
 }

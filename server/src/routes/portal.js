@@ -7,6 +7,7 @@ import express from 'express';
 import pool from '../config/database.js';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
+import { sendPortalMagicLinkEmail } from '../services/emailService.js';
 
 const router = express.Router();
 
@@ -16,6 +17,68 @@ if (!JWT_SECRET) {
   throw new Error('CRITICAL: JWT_SECRET environment variable is required for portal security');
 }
 const PORTAL_TOKEN_EXPIRY = '24h';
+let jobsCustomerIdColumnExists = null;
+
+const shiftSqlParams = (sql, offset) =>
+  sql.replace(/\$(\d+)/g, (_, index) => `$${Number(index) + offset}`);
+
+async function hasJobsCustomerIdColumn() {
+  if (jobsCustomerIdColumnExists !== null) {
+    return jobsCustomerIdColumnExists;
+  }
+
+  const result = await pool.query(
+    `SELECT EXISTS (
+      SELECT 1
+      FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND table_name = 'jobs'
+        AND column_name = 'customer_id'
+    )`
+  );
+
+  jobsCustomerIdColumnExists = result.rows[0]?.exists === true;
+  return jobsCustomerIdColumnExists;
+}
+
+function getLegacyCustomerIdentifiers({ contactId, name, company }) {
+  return Array.from(
+    new Set(
+      [contactId, name, company]
+        .filter((value) => typeof value === 'string')
+        .map((value) => value.trim())
+        .filter(Boolean)
+    )
+  );
+}
+
+async function getPortalJobScope(portalUser, alias = 'j') {
+  const identifiers = getLegacyCustomerIdentifiers(portalUser);
+  const hasCustomerId = await hasJobsCustomerIdColumn();
+
+  if (hasCustomerId) {
+    if (identifiers.length > 0) {
+      return {
+        clause: `${alias}.user_id = $1 AND (${alias}.customer_id = $2 OR (${alias}.customer_id IS NULL AND ${alias}.builder = ANY($3::text[])))`,
+        values: [portalUser.businessId, portalUser.contactId, identifiers]
+      };
+    }
+
+    return {
+      clause: `${alias}.user_id = $1 AND ${alias}.customer_id = $2`,
+      values: [portalUser.businessId, portalUser.contactId]
+    };
+  }
+
+  if (identifiers.length === 0) {
+    throw new Error('Portal user is missing customer identifiers');
+  }
+
+  return {
+    clause: `${alias}.user_id = $1 AND ${alias}.builder = ANY($2::text[])`,
+    values: [portalUser.businessId, identifiers]
+  };
+}
 
 // Generate magic link token
 router.post('/auth/magic-link', async (req, res) => {
@@ -59,8 +122,13 @@ router.post('/auth/magic-link', async (req, res) => {
     // Send magic link via email (production)
     const magicLink = `${process.env.PORTAL_URL || 'http://localhost:5173'}/portal/login?token=${token}`;
 
-    // TODO: Implement email sending service
-    // await emailService.sendMagicLink(contact.email, magicLink);
+    await sendPortalMagicLinkEmail({
+      to: contact.email,
+      toName: contact.name,
+      businessName: contact.company_name,
+      magicLink,
+      expiresAt
+    });
 
     // SECURITY: Never return the token in the response - send only via email
     // In development, check server logs for the magic link
@@ -118,6 +186,7 @@ router.post('/auth/verify', async (req, res) => {
         contactId: data.contact_id,
         email: data.email,
         name: data.name,
+        company: data.company,
         businessId: data.business_user_id,
         businessName: data.business_name,
         type: 'portal'
@@ -171,15 +240,17 @@ router.get('/dashboard', authenticatePortal, async (req, res) => {
   const { contactId, businessId } = req.portalUser;
   
   try {
+    const jobScope = await getPortalJobScope(req.portalUser);
+
     // Get summary statistics
     const statsQuery = await pool.query(
       `SELECT 
-        (SELECT COUNT(*) FROM jobs WHERE user_id = $1 AND builder::uuid = $2) as total_jobs,
-        (SELECT COUNT(*) FROM jobs WHERE user_id = $1 AND builder::uuid = $2 AND status = 'Completed') as completed_jobs,
-        (SELECT COUNT(*) FROM jobs WHERE user_id = $1 AND builder::uuid = $2 AND quote_status = 'sent') as pending_quotes,
-        (SELECT COUNT(*) FROM invoices WHERE user_id = $1 AND contact_id = $2 AND status IN ('sent', 'partial', 'overdue')) as unpaid_invoices,
-        (SELECT COALESCE(SUM(total_amount - amount_paid), 0) FROM invoices WHERE user_id = $1 AND contact_id = $2 AND status IN ('sent', 'partial', 'overdue')) as outstanding_amount`,
-      [businessId, contactId]
+        (SELECT COUNT(*) FROM jobs j WHERE ${jobScope.clause}) as total_jobs,
+        (SELECT COUNT(*) FROM jobs j WHERE ${jobScope.clause} AND j.status = 'Completed') as completed_jobs,
+        (SELECT COUNT(*) FROM jobs j WHERE ${jobScope.clause} AND j.quote_status = 'sent') as pending_quotes,
+        (SELECT COUNT(*) FROM invoices WHERE user_id = $${jobScope.values.length + 1} AND contact_id = $${jobScope.values.length + 2} AND status IN ('sent', 'partial', 'overdue')) as unpaid_invoices,
+        (SELECT COALESCE(SUM(total_amount - amount_paid), 0) FROM invoices WHERE user_id = $${jobScope.values.length + 1} AND contact_id = $${jobScope.values.length + 2} AND status IN ('sent', 'partial', 'overdue')) as outstanding_amount`,
+      [...jobScope.values, businessId, contactId]
     );
     
     // Get recent jobs
@@ -190,10 +261,10 @@ router.get('/dashboard', authenticatePortal, async (req, res) => {
          JOIN contacts c ON jw.worker_id = c.id 
          WHERE jw.job_id = j.id) as workers
        FROM jobs j
-       WHERE j.user_id = $1 AND j.builder::uuid = $2
+       WHERE ${jobScope.clause}
        ORDER BY j.date DESC
        LIMIT 5`,
-      [businessId, contactId]
+      jobScope.values
     );
     
     // Get pending quotes
@@ -208,11 +279,10 @@ router.get('/dashboard', authenticatePortal, async (req, res) => {
          FROM quote_items qi
          WHERE qi.job_id = j.id) as items
        FROM jobs j
-       WHERE j.user_id = $1 
-       AND j.builder::uuid = $2
+       WHERE ${jobScope.clause}
        AND j.quote_status IN ('sent', 'draft')
        ORDER BY j.quote_sent_at DESC NULLS LAST`,
-      [businessId, contactId]
+      jobScope.values
     );
     
     // Get unpaid invoices
@@ -249,13 +319,13 @@ router.get('/dashboard', authenticatePortal, async (req, res) => {
 
 // Get all jobs for customer
 router.get('/jobs', authenticatePortal, async (req, res) => {
-  const { contactId, businessId } = req.portalUser;
   const { status } = req.query;
   // SECURITY: Validate and constrain limit/offset to prevent resource exhaustion
   const limit = Math.min(Math.max(1, parseInt(req.query.limit) || 50), 100);
   const offset = Math.max(0, parseInt(req.query.offset) || 0);
 
   try {
+    const jobScope = await getPortalJobScope(req.portalUser);
     let query = `
       SELECT j.*, 
         (SELECT json_agg(json_build_object('name', c.name, 'type', c.type))
@@ -263,13 +333,13 @@ router.get('/jobs', authenticatePortal, async (req, res) => {
          JOIN contacts c ON jw.worker_id = c.id 
          WHERE jw.job_id = j.id) as workers
       FROM jobs j
-      WHERE j.user_id = $1 AND j.builder::uuid = $2
+      WHERE ${jobScope.clause}
     `;
     
-    const params = [businessId, contactId];
+    const params = [...jobScope.values];
     
     if (status) {
-      query += ` AND j.status = $3`;
+      query += ` AND j.status = $${params.length + 1}`;
       params.push(status);
     }
     
@@ -287,10 +357,10 @@ router.get('/jobs', authenticatePortal, async (req, res) => {
 
 // Get single job with details
 router.get('/jobs/:id', authenticatePortal, async (req, res) => {
-  const { contactId, businessId } = req.portalUser;
   const { id } = req.params;
   
   try {
+    const jobScope = await getPortalJobScope(req.portalUser, 'j');
     const jobResult = await pool.query(
       `SELECT j.*,
         (SELECT json_agg(json_build_object('name', c.name, 'type', c.type, 'phone', c.phone))
@@ -298,8 +368,8 @@ router.get('/jobs/:id', authenticatePortal, async (req, res) => {
          JOIN contacts c ON jw.worker_id = c.id 
          WHERE jw.job_id = j.id) as workers
        FROM jobs j
-       WHERE j.id = $1 AND j.user_id = $2 AND j.builder::uuid = $3`,
-      [id, businessId, contactId]
+       WHERE j.id = $1 AND ${shiftSqlParams(jobScope.clause, 1)}`,
+      [id, ...jobScope.values]
     );
     
     if (jobResult.rows.length === 0) {
@@ -328,9 +398,8 @@ router.get('/jobs/:id', authenticatePortal, async (req, res) => {
 
 // Get all quotes for customer
 router.get('/quotes', authenticatePortal, async (req, res) => {
-  const { contactId, businessId } = req.portalUser;
-  
   try {
+    const jobScope = await getPortalJobScope(req.portalUser);
     const result = await pool.query(
       `SELECT j.*,
         (SELECT json_agg(json_build_object(
@@ -343,11 +412,10 @@ router.get('/quotes', authenticatePortal, async (req, res) => {
          FROM quote_items qi
          WHERE qi.job_id = j.id) as items
        FROM jobs j
-       WHERE j.user_id = $1 
-       AND j.builder::uuid = $2
+       WHERE ${jobScope.clause}
        AND j.quote_status IS NOT NULL
        ORDER BY j.quote_sent_at DESC NULLS LAST`,
-      [businessId, contactId]
+      jobScope.values
     );
     
     res.json(result.rows);
@@ -360,16 +428,17 @@ router.get('/quotes', authenticatePortal, async (req, res) => {
 
 // Approve a quote
 router.post('/quotes/:id/approve', authenticatePortal, async (req, res) => {
-  const { contactId, businessId } = req.portalUser;
   const { id } = req.params;
   const { notes } = req.body;
   
   try {
+    const jobScope = await getPortalJobScope(req.portalUser);
+
     // Verify quote exists and belongs to customer
     const quoteCheck = await pool.query(
       `SELECT * FROM jobs 
-       WHERE id = $1 AND user_id = $2 AND builder::uuid = $3 AND quote_status = 'sent'`,
-      [id, businessId, contactId]
+       WHERE id = $1 AND ${shiftSqlParams(jobScope.clause, 1)} AND quote_status = 'sent'`,
+      [id, ...jobScope.values]
     );
     
     if (quoteCheck.rows.length === 0) {
@@ -382,9 +451,9 @@ router.post('/quotes/:id/approve', authenticatePortal, async (req, res) => {
        SET quote_status = 'approved', 
            quote_approved_at = NOW(),
            status = 'Scheduled',
-           customer_notes = COALESCE(customer_notes || E'\n', '') || $4
-       WHERE id = $1`,
-      [id, notes ? `Quote approved: ${notes}` : 'Quote approved by customer']
+           customer_notes = COALESCE(customer_notes || E'\n', '') || $2
+       WHERE id = $1 AND ${shiftSqlParams(jobScope.clause, 2)}`,
+      [id, notes ? `Quote approved: ${notes}` : 'Quote approved by customer', ...jobScope.values]
     );
     
     res.json({ message: 'Quote approved successfully' });
@@ -397,16 +466,17 @@ router.post('/quotes/:id/approve', authenticatePortal, async (req, res) => {
 
 // Decline a quote
 router.post('/quotes/:id/decline', authenticatePortal, async (req, res) => {
-  const { contactId, businessId } = req.portalUser;
   const { id } = req.params;
   const { reason } = req.body;
   
   try {
+    const jobScope = await getPortalJobScope(req.portalUser);
+
     // Verify quote exists and belongs to customer
     const quoteCheck = await pool.query(
       `SELECT * FROM jobs 
-       WHERE id = $1 AND user_id = $2 AND builder::uuid = $3 AND quote_status = 'sent'`,
-      [id, businessId, contactId]
+       WHERE id = $1 AND ${shiftSqlParams(jobScope.clause, 1)} AND quote_status = 'sent'`,
+      [id, ...jobScope.values]
     );
     
     if (quoteCheck.rows.length === 0) {
@@ -418,9 +488,9 @@ router.post('/quotes/:id/decline', authenticatePortal, async (req, res) => {
       `UPDATE jobs 
        SET quote_status = 'declined', 
            quote_declined_at = NOW(),
-           customer_notes = COALESCE(customer_notes || E'\n', '') || $4
-       WHERE id = $1`,
-      [id, reason ? `Quote declined: ${reason}` : 'Quote declined by customer']
+           customer_notes = COALESCE(customer_notes || E'\n', '') || $2
+       WHERE id = $1 AND ${shiftSqlParams(jobScope.clause, 2)}`,
+      [id, reason ? `Quote declined: ${reason}` : 'Quote declined by customer', ...jobScope.values]
     );
     
     res.json({ message: 'Quote declined' });

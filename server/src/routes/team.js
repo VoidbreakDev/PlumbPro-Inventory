@@ -9,6 +9,7 @@ import crypto from 'crypto';
 import pool from '../config/database.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { validate } from '../middleware/validation.js';
+import { getAppBaseUrl, sendTeamInvitationEmail } from '../services/emailService.js';
 
 const router = express.Router();
 router.use(authenticateToken);
@@ -249,7 +250,7 @@ router.post('/invite', [
 
     // Get user's team and check permission
     const userResult = await client.query(`
-      SELECT u.team_id, u.team_role, t.name as team_name, t.max_users
+      SELECT u.team_id, u.team_role, u.full_name, t.name as team_name, t.max_users
       FROM users u
       JOIN teams t ON u.team_id = t.id
       WHERE u.id = $1
@@ -260,7 +261,7 @@ router.post('/invite', [
       return res.status(404).json({ error: 'No team found' });
     }
 
-    const { team_id, team_role, team_name, max_users } = userResult.rows[0];
+    const { team_id, team_role, team_name, max_users, full_name } = userResult.rows[0];
 
     // Check permission to invite
     if (!['owner', 'admin'].includes(team_role)) {
@@ -316,8 +317,17 @@ router.post('/invite', [
 
     await client.query('COMMIT');
 
-    // TODO: Send invitation email
-    // For now, return the token for testing
+    const inviteLink = `${getAppBaseUrl()}/?inviteToken=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`;
+
+    await sendTeamInvitationEmail({
+      to: email,
+      teamName: team_name,
+      inviterName: full_name,
+      role,
+      inviteLink,
+      message,
+      expiresAt
+    });
 
     res.status(201).json({
       message: 'Invitation sent successfully',
@@ -326,8 +336,7 @@ router.post('/invite', [
         email,
         role,
         expiresAt,
-        // In production, don't expose the token
-        inviteLink: `/join-team?token=${token}`
+        inviteLink
       }
     });
 

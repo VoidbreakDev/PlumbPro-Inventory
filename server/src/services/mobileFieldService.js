@@ -42,10 +42,10 @@ export const checkInToJob = async (userId, jobId, location) => {
       [jobId, userId, location.latitude, location.longitude, location.accuracy]
     );
 
-    // Update job status to 'in_progress' if not already
+    // Update job status to In Progress if not already
     await client.query(
-      `UPDATE jobs SET status = 'in_progress', updated_at = CURRENT_TIMESTAMP
-       WHERE id = $1 AND status = 'pending'`,
+      `UPDATE jobs SET status = 'In Progress', updated_at = CURRENT_TIMESTAMP
+       WHERE id = $1 AND status = 'Scheduled'`,
       [jobId]
     );
 
@@ -117,7 +117,7 @@ export const checkOutFromJob = async (userId, checkInId, location, notes) => {
  */
 export const getActiveCheckIn = async (userId) => {
   const result = await db.query(
-    `SELECT ci.*, j.name as job_name, j.status as job_status, j.job_address
+    `SELECT ci.*, j.title as job_name, j.status as job_status, j.job_address
      FROM job_check_ins ci
      JOIN jobs j ON ci.job_id = j.id
      WHERE ci.user_id = $1 AND ci.check_out_time IS NULL
@@ -216,7 +216,7 @@ export const saveSignature = async (userId, jobId, signatureData) => {
   // If customer signature, mark job as completed
   if (signatureType === 'customer') {
     await db.query(
-      `UPDATE jobs SET status = 'completed', updated_at = CURRENT_TIMESTAMP
+      `UPDATE jobs SET status = 'Completed', updated_at = CURRENT_TIMESTAMP
        WHERE id = $1`,
       [jobId]
     );
@@ -355,7 +355,13 @@ export const getNearbyJobs = async (userId, location, radiusKm = 50) => {
   // Using Haversine formula to find nearby jobs
   const result = await db.query(
     `SELECT
-       j.*,
+       j.id,
+       j.title as name,
+       j.status,
+       j.date as scheduled_date,
+       j.job_address,
+       j.job_latitude,
+       j.job_longitude,
        (
          6371 * acos(
            cos(radians($2)) * cos(radians(j.job_latitude)) *
@@ -369,7 +375,7 @@ export const getNearbyJobs = async (userId, location, radiusKm = 50) => {
      AND j.job_latitude IS NOT NULL
      AND j.job_longitude IS NOT NULL
      AND (jw.worker_id = $1 OR j.user_id = $1)
-     AND j.status IN ('pending', 'in_progress')
+     AND j.status IN ('Scheduled', 'In Progress')
      HAVING distance_km <= $4
      ORDER BY distance_km
      LIMIT 20`,
@@ -474,7 +480,7 @@ export const checkJobCompletion = async (jobId, userId) => {
     const prompt = `You are a job completion verification assistant. Analyze this job and determine if it's ready for completion:
 
 Job Details:
-- Name: ${job.name}
+- Name: ${job.title}
 - Status: ${job.status}
 - Before Photos: ${job.before_photos}
 - After Photos: ${job.after_photos}

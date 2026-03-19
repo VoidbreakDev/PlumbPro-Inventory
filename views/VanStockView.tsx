@@ -14,21 +14,14 @@ import {
   CheckCircle,
   X,
   MapPin,
-  User,
-  Clock,
-  ChevronRight,
-  Settings,
-  Clipboard,
-  Send,
   TrendingDown,
   History,
   Search,
-  Filter,
-  Edit2,
   Trash2,
   Eye
 } from 'lucide-react';
 import { getErrorMessage } from '../lib/errors';
+import { ConfirmationModal } from '../components/ConfirmationModal';
 import {
   vanStockAPI,
   ServiceVan,
@@ -39,6 +32,15 @@ import {
 } from '../lib/vanStockAPI';
 
 type ActiveTab = 'vans' | 'low-stock' | 'restock' | 'movements';
+type ConfirmationState = {
+  title: string;
+  description: string;
+  confirmLabel: string;
+  processingLabel?: string;
+  variant?: 'default' | 'danger';
+  errorMessage: string;
+  action: () => Promise<void>;
+};
 
 export function VanStockView() {
   const [loading, setLoading] = useState(true);
@@ -58,8 +60,8 @@ export function VanStockView() {
 
   // Modal state
   const [showCreateVanModal, setShowCreateVanModal] = useState(false);
-  const [showRestockRequestModal, setShowRestockRequestModal] = useState(false);
-  const [showStockCheckModal, setShowStockCheckModal] = useState(false);
+  const [confirmation, setConfirmation] = useState<ConfirmationState | null>(null);
+  const [isConfirmingAction, setIsConfirmingAction] = useState(false);
 
   // Search/filter
   const [searchTerm, setSearchTerm] = useState('');
@@ -103,19 +105,46 @@ export function VanStockView() {
     }
   };
 
-  const handleDeleteVan = async (vanId: string) => {
-    if (!confirm('Are you sure you want to delete this van? All stock data will be lost.')) return;
-    try {
-      await vanStockAPI.deleteVan(vanId);
-      setSuccess('Van deleted successfully');
-      loadData();
-      if (selectedVan?.id === vanId) {
-        setSelectedVan(null);
-        setVanStock([]);
-      }
-    } catch (err) {
-      setError(getErrorMessage(err, 'Failed to delete van'));
+  const closeConfirmation = () => {
+    if (!isConfirmingAction) {
+      setConfirmation(null);
     }
+  };
+
+  const handleConfirmedAction = async () => {
+    if (!confirmation) {
+      return;
+    }
+
+    setIsConfirmingAction(true);
+    try {
+      await confirmation.action();
+      setConfirmation(null);
+    } catch (err) {
+      setError(getErrorMessage(err, confirmation.errorMessage));
+    } finally {
+      setIsConfirmingAction(false);
+    }
+  };
+
+  const requestDeleteVan = (van: ServiceVan) => {
+    setConfirmation({
+      title: `Delete ${van.name}?`,
+      description: `This removes ${van.name} and its tracked stock records. Use this only when the vehicle has been decommissioned or migrated.`,
+      confirmLabel: 'Delete Van',
+      processingLabel: 'Deleting...',
+      variant: 'danger',
+      errorMessage: 'Failed to delete van',
+      action: async () => {
+        await vanStockAPI.deleteVan(van.id);
+        setSuccess('Van deleted successfully');
+        await loadData();
+        if (selectedVan?.id === van.id) {
+          setSelectedVan(null);
+          setVanStock([]);
+        }
+      }
+    });
   };
 
   const handleUpdateStatus = async (vanId: string, status: ServiceVan['status']) => {
@@ -172,6 +201,39 @@ export function VanStockView() {
       case 'lost': return 'bg-red-100 text-red-700';
       default: return 'bg-gray-100 text-gray-700';
     }
+  };
+
+  const updateRestockRequestStatus = async (
+    request: RestockRequest,
+    status: RestockRequest['status']
+  ) => {
+    await vanStockAPI.updateRestockRequestStatus(request.id, status);
+    setSuccess(
+      status === 'approved'
+        ? `Restock request for ${request.vanName} approved`
+        : `Restock request for ${request.vanName} rejected`
+    );
+    await loadData();
+  };
+
+  const handleApproveRestockRequest = async (request: RestockRequest) => {
+    try {
+      await updateRestockRequestStatus(request, 'approved');
+    } catch (err) {
+      setError(getErrorMessage(err, 'Failed to approve restock request'));
+    }
+  };
+
+  const requestRejectRestockRequest = (request: RestockRequest) => {
+    setConfirmation({
+      title: `Reject request for ${request.vanName}?`,
+      description: `This will cancel the pending restock request from ${request.requestedByName}. The technician will need to submit a new request if stock is still required.`,
+      confirmLabel: 'Reject Request',
+      processingLabel: 'Rejecting...',
+      variant: 'danger',
+      errorMessage: 'Failed to reject restock request',
+      action: () => updateRestockRequestStatus(request, 'cancelled')
+    });
   };
 
   // Clear messages after 5 seconds
@@ -376,23 +438,7 @@ export function VanStockView() {
                   <h2 className="text-lg font-semibold text-gray-900">{selectedVan.name}</h2>
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => setShowStockCheckModal(true)}
-                      className="text-purple-600 hover:text-purple-800 p-2 rounded-lg hover:bg-purple-50"
-                      title="Stock check"
-                    >
-                      <Clipboard className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowRestockRequestModal(true);
-                      }}
-                      className="text-blue-600 hover:text-blue-800 p-2 rounded-lg hover:bg-blue-50"
-                      title="Request restock"
-                    >
-                      <Send className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteVan(selectedVan.id)}
+                      onClick={() => requestDeleteVan(selectedVan)}
                       className="text-red-600 hover:text-red-800 p-2 rounded-lg hover:bg-red-50"
                       title="Delete van"
                     >
@@ -576,13 +622,13 @@ export function VanStockView() {
                       {request.status === 'pending' && (
                         <>
                           <button
-                            onClick={() => vanStockAPI.updateRestockRequestStatus(request.id, 'approved')}
+                            onClick={() => handleApproveRestockRequest(request)}
                             className="px-3 py-1 text-sm font-medium text-white bg-green-600 rounded hover:bg-green-700"
                           >
                             Approve
                           </button>
                           <button
-                            onClick={() => vanStockAPI.updateRestockRequestStatus(request.id, 'cancelled')}
+                            onClick={() => requestRejectRestockRequest(request)}
                             className="px-3 py-1 text-sm font-medium text-red-600 bg-red-50 rounded hover:bg-red-100"
                           >
                             Reject
@@ -660,6 +706,18 @@ export function VanStockView() {
           onError={(msg) => setError(msg)}
         />
       )}
+
+      <ConfirmationModal
+        isOpen={confirmation !== null}
+        title={confirmation?.title || ''}
+        description={confirmation?.description || ''}
+        confirmLabel={confirmation?.confirmLabel || 'Confirm'}
+        processingLabel={confirmation?.processingLabel}
+        variant={confirmation?.variant}
+        isProcessing={isConfirmingAction}
+        onConfirm={handleConfirmedAction}
+        onClose={closeConfirmation}
+      />
     </div>
   );
 }

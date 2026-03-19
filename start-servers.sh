@@ -17,6 +17,28 @@ fi
 # Change to project root
 cd "$SCRIPT_DIR"
 
+load_env_file() {
+    local env_file="$1"
+    if [ -f "$env_file" ]; then
+        set -a
+        # shellcheck disable=SC1090
+        . "$env_file"
+        set +a
+    fi
+}
+
+# Load local environment files if present so we can avoid hard-coded secrets.
+load_env_file ".env"
+load_env_file "server/.env"
+
+BACKEND_PORT="${PORT:-5001}"
+FRONTEND_PORT="5173"
+
+if [ "$BACKEND_PORT" = "5000" ]; then
+    echo "⚠️  Detected deprecated backend port 5000; using the current default of 5001."
+    BACKEND_PORT="5001"
+fi
+
 echo "🚀 Starting PlumbPro servers..."
 echo "📁 Project directory: $SCRIPT_DIR"
 echo ""
@@ -61,25 +83,22 @@ pkill -f "vite" 2>/dev/null || true
 sleep 2
 
 # Check if ports are now free
-if check_port 5001; then
-    echo "⚠️  Warning: Port 5001 is still in use. Trying to free it..."
-    lsof -ti:5001 | xargs kill -9 2>/dev/null || true
+if check_port "$BACKEND_PORT"; then
+    echo "⚠️  Warning: Port $BACKEND_PORT is still in use. Trying to free it..."
+    lsof -ti:"$BACKEND_PORT" | xargs kill -9 2>/dev/null || true
     sleep 1
 fi
 
-if check_port 5173; then
-    echo "⚠️  Warning: Port 5173 is still in use. Trying to free it..."
-    lsof -ti:5173 | xargs kill -9 2>/dev/null || true
+if check_port "$FRONTEND_PORT"; then
+    echo "⚠️  Warning: Port $FRONTEND_PORT is still in use. Trying to free it..."
+    lsof -ti:"$FRONTEND_PORT" | xargs kill -9 2>/dev/null || true
     sleep 1
 fi
 
 echo ""
 echo "🔧 Starting backend server..."
 cd server
-PORT=5001 \
-DB_NAME=plumbpro \
-DB_PASSWORD=5D39gvUSxZAMGusmELAL \
-JWT_SECRET=plumbpro_secret_key_2026 \
+PORT="$BACKEND_PORT" \
 npm run dev > ../backend.log 2>&1 &
 BACKEND_PID=$!
 cd ..
@@ -89,8 +108,8 @@ echo "   Waiting for backend to be ready..."
 
 # Wait for backend to actually start (up to 30 seconds)
 for i in {1..30}; do
-    if check_port 5001; then
-        echo "✅ Backend is ready on port 5001"
+    if check_port "$BACKEND_PORT"; then
+        echo "✅ Backend is ready on port $BACKEND_PORT"
         break
     fi
     sleep 1
@@ -110,8 +129,8 @@ echo "   Waiting for frontend to be ready..."
 
 # Wait for frontend to actually start (up to 30 seconds)
 for i in {1..30}; do
-    if check_port 5173; then
-        echo "✅ Frontend is ready on port 5173"
+    if check_port "$FRONTEND_PORT"; then
+        echo "✅ Frontend is ready on port $FRONTEND_PORT"
         break
     fi
     sleep 1
@@ -126,9 +145,9 @@ echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "🎉 PlumbPro Inventory is running!"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "📱 Frontend:  http://localhost:5173"
-echo "🔌 Backend:   http://localhost:5001/api"
-echo "❤️  Health:    http://localhost:5001/health"
+echo "📱 Frontend:  http://localhost:$FRONTEND_PORT"
+echo "🔌 Backend:   http://localhost:$BACKEND_PORT/api"
+echo "❤️  Health:    http://localhost:$BACKEND_PORT/health"
 echo ""
 echo "View logs:"
 echo "  Backend:  tail -f backend.log"

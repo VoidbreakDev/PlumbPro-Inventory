@@ -1,39 +1,21 @@
-/**
- * Lead Pipeline View
- * Sales pipeline management from inquiry to conversion
- */
-
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
-  Target,
-  Phone,
-  Mail,
-  User,
-  Calendar,
-  DollarSign,
-  TrendingUp,
-  TrendingDown,
-  Plus,
-  Search,
-  Filter,
-  MoreVertical,
-  ChevronRight,
-  CheckCircle,
-  XCircle,
-  Clock,
-  AlertCircle,
-  MessageSquare,
-  Send,
-  Star,
-  ArrowRight,
-  ArrowUpRight,
-  ArrowDownRight,
-  Minus,
   Building2,
-  MapPin,
+  Calendar,
+  Mail,
+  MessageSquare,
+  Phone,
+  Plus,
+  RotateCcw,
+  Save,
+  Search,
   Tag,
+  X,
 } from 'lucide-react';
-import type { Lead, LeadStatus, LeadSource, LeadPriority, LostReason } from '../types';
+import { leadAPI } from '../lib/leadAPI';
+import { getErrorMessage } from '../lib/errors';
+import { useStore } from '../store/useStore';
+import type { Lead, LeadPriority, LeadSource, LeadStatus, LostReason } from '../types';
 import { Badge } from '../components/Shared';
 
 type ViewMode = 'pipeline' | 'list';
@@ -41,258 +23,292 @@ type FilterStatus = 'all' | LeadStatus;
 
 const LEAD_STATUSES: LeadStatus[] = ['new', 'contacted', 'qualified', 'quoted', 'negotiation', 'won', 'lost', 'on_hold'];
 
-const STATUS_CONFIG: Record<LeadStatus, { label: string; color: string; bgColor: string; icon: any }> = {
-  new: { label: 'New', color: 'text-blue-600', bgColor: 'bg-blue-50', icon: Target },
-  contacted: { label: 'Contacted', color: 'text-purple-600', bgColor: 'bg-purple-50', icon: Phone },
-  qualified: { label: 'Qualified', color: 'text-indigo-600', bgColor: 'bg-indigo-50', icon: CheckCircle },
-  quoted: { label: 'Quoted', color: 'text-amber-600', bgColor: 'bg-amber-50', icon: DollarSign },
-  negotiation: { label: 'Negotiation', color: 'text-orange-600', bgColor: 'bg-orange-50', icon: MessageSquare },
-  won: { label: 'Won', color: 'text-green-600', bgColor: 'bg-green-50', icon: CheckCircle },
-  lost: { label: 'Lost', color: 'text-red-600', bgColor: 'bg-red-50', icon: XCircle },
-  on_hold: { label: 'On Hold', color: 'text-slate-600', bgColor: 'bg-slate-50', icon: Clock },
+const STATUS_CONFIG: Record<LeadStatus, { label: string; variant: 'blue' | 'purple' | 'green' | 'yellow' | 'red' | 'gray' }> = {
+  new: { label: 'New', variant: 'blue' },
+  contacted: { label: 'Contacted', variant: 'purple' },
+  qualified: { label: 'Qualified', variant: 'green' },
+  quoted: { label: 'Quoted', variant: 'yellow' },
+  negotiation: { label: 'Negotiation', variant: 'purple' },
+  won: { label: 'Won', variant: 'green' },
+  lost: { label: 'Lost', variant: 'red' },
+  on_hold: { label: 'On Hold', variant: 'gray' },
 };
 
-const SOURCE_ICONS: Record<LeadSource, any> = {
-  website: Target,
-  phone: Phone,
-  referral: User,
-  social_media: Send,
-  email: Mail,
-  walk_in: Building2,
-  advertisement: Tag,
-  other: Tag,
-};
+const PRIORITY_OPTIONS: LeadPriority[] = ['hot', 'warm', 'cold'];
+const SOURCE_OPTIONS: LeadSource[] = ['website', 'phone', 'referral', 'social_media', 'email', 'walk_in', 'advertisement', 'other'];
+const LOST_REASONS: LostReason[] = ['price', 'timing', 'competitor', 'no_response', 'not_qualified', 'other'];
 
-const PRIORITY_CONFIG: Record<LeadPriority, { color: string; bgColor: string; label: string }> = {
-  hot: { color: 'text-red-600', bgColor: 'bg-red-100', label: 'Hot' },
-  warm: { color: 'text-amber-600', bgColor: 'bg-amber-100', label: 'Warm' },
-  cold: { color: 'text-blue-600', bgColor: 'bg-blue-100', label: 'Cold' },
-};
-
-// Mock data
-const MOCK_LEADS: Lead[] = [
-  {
-    id: '1',
-    leadNumber: 'LEAD-2026-001',
-    contactName: 'Sarah Johnson',
-    email: 'sarah.j@email.com',
-    phone: '0412 345 678',
-    address: '123 Main St, Sydney NSW 2000',
-    source: 'website',
-    status: 'new',
-    priority: 'hot',
-    jobType: 'Bathroom Renovation',
-    description: 'Complete bathroom renovation including plumbing, tiling, and fixture installation',
-    estimatedValue: 15000,
-    assignedToName: 'Mike Smith',
-    receivedAt: '2026-02-01T09:00:00Z',
-    nextFollowUpDate: '2026-02-02T10:00:00Z',
-    nextFollowUpType: 'call',
-    communications: [],
-    tags: ['renovation', 'bathroom'],
-    createdAt: '2026-02-01T09:00:00Z',
-    updatedAt: '2026-02-01T09:00:00Z',
-  },
-  {
-    id: '2',
-    leadNumber: 'LEAD-2026-002',
-    contactName: 'David Chen',
-    companyName: 'Chen Property Group',
-    email: 'david@chenproperties.com.au',
-    phone: '0423 456 789',
-    source: 'referral',
-    status: 'quoted',
-    priority: 'warm',
-    jobType: 'Commercial Fit-out',
-    description: 'Plumbing for new office fit-out - 5 bathrooms, kitchen, and staff amenities',
-    estimatedValue: 45000,
-    assignedToName: 'Jane Wilson',
-    receivedAt: '2026-01-25T14:30:00Z',
-    quotedAt: '2026-01-28T11:00:00Z',
-    communications: [],
-    tags: ['commercial', 'fit-out'],
-    createdAt: '2026-01-25T14:30:00Z',
-    updatedAt: '2026-01-28T11:00:00Z',
-  },
-  {
-    id: '3',
-    leadNumber: 'LEAD-2026-003',
-    contactName: 'Emma Thompson',
-    email: 'emma.t@email.com',
-    phone: '0434 567 890',
-    source: 'phone',
-    status: 'contacted',
-    priority: 'hot',
-    jobType: 'Blocked Drain',
-    description: 'Emergency blocked drain at residential property',
-    estimatedValue: 350,
-    assignedToName: 'Mike Smith',
-    receivedAt: '2026-02-01T08:15:00Z',
-    firstContactAt: '2026-02-01T08:30:00Z',
-    communications: [],
-    tags: ['emergency', 'drainage'],
-    createdAt: '2026-02-01T08:15:00Z',
-    updatedAt: '2026-02-01T08:30:00Z',
-  },
-  {
-    id: '4',
-    leadNumber: 'LEAD-2026-004',
-    contactName: 'Robert Brown',
-    email: 'rbrown@email.com',
-    phone: '0445 678 901',
-    source: 'social_media',
-    status: 'negotiation',
-    priority: 'warm',
-    jobType: 'Hot Water System',
-    description: 'Replace existing electric hot water system with gas',
-    estimatedValue: 2800,
-    assignedToName: 'Jane Wilson',
-    receivedAt: '2026-01-20T10:00:00Z',
-    quotedAt: '2026-01-22T15:00:00Z',
-    communications: [],
-    tags: ['hot-water', 'gas'],
-    createdAt: '2026-01-20T10:00:00Z',
-    updatedAt: '2026-01-30T14:00:00Z',
-  },
-  {
-    id: '5',
-    leadNumber: 'LEAD-2026-005',
-    contactName: 'Lisa Anderson',
-    email: 'lisa.a@email.com',
-    phone: '0456 789 012',
-    source: 'website',
-    status: 'won',
-    priority: 'hot',
-    jobType: 'Kitchen Plumbing',
-    description: 'New kitchen plumbing for renovation - sink, dishwasher, fridge connection',
-    estimatedValue: 4200,
-    assignedToName: 'Mike Smith',
-    receivedAt: '2026-01-15T09:00:00Z',
-    convertedAt: '2026-01-25T16:00:00Z',
-    communications: [],
-    tags: ['kitchen', 'renovation'],
-    createdAt: '2026-01-15T09:00:00Z',
-    updatedAt: '2026-01-25T16:00:00Z',
-  },
-  {
-    id: '6',
-    leadNumber: 'LEAD-2026-006',
-    contactName: 'Michael Wilson',
-    email: 'mwilson@email.com',
-    phone: '0467 890 123',
-    source: 'advertisement',
-    status: 'lost',
-    priority: 'cold',
-    jobType: 'Full House Repipe',
-    description: 'Complete repiping of old house',
-    estimatedValue: 12000,
-    assignedToName: 'Jane Wilson',
-    receivedAt: '2026-01-10T11:00:00Z',
-    lostReason: 'price',
-    lostReasonDetail: 'Customer found cheaper quote elsewhere',
-    communications: [],
-    tags: ['repipe', 'quote'],
-    createdAt: '2026-01-10T11:00:00Z',
-    updatedAt: '2026-01-20T10:00:00Z',
-  },
-  {
-    id: '7',
-    leadNumber: 'LEAD-2026-007',
-    contactName: 'Amanda White',
-    email: 'amanda@email.com',
-    phone: '0478 901 234',
-    source: 'walk_in',
-    status: 'qualified',
-    priority: 'warm',
-    jobType: 'Gas Installation',
-    description: 'New gas line for outdoor BBQ and fireplace',
-    estimatedValue: 3500,
-    assignedToName: 'Mike Smith',
-    receivedAt: '2026-01-28T13:00:00Z',
-    communications: [],
-    tags: ['gas', 'outdoor'],
-    createdAt: '2026-01-28T13:00:00Z',
-    updatedAt: '2026-01-29T09:00:00Z',
-  },
-];
-
-const LOST_REASONS: Record<LostReason, string> = {
-  price: 'Price too high',
-  timing: 'Bad timing',
-  competitor: 'Went with competitor',
-  no_response: 'No response',
-  not_qualified: 'Not qualified',
-  other: 'Other',
-};
+const emptyLead = (): Partial<Lead> => ({
+  contactName: '',
+  email: '',
+  phone: '',
+  source: 'website',
+  status: 'new',
+  priority: 'warm',
+  communications: [],
+  tags: [],
+});
 
 export function LeadPipelineView() {
+  const setError = useStore((state) => state.setError);
+
   const [viewMode, setViewMode] = useState<ViewMode>('pipeline');
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [showLeadModal, setShowLeadModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [leadDraft, setLeadDraft] = useState<Partial<Lead>>(emptyLead());
+  const [communicationDraft, setCommunicationDraft] = useState({ method: 'phone', summary: '', notes: '' });
+  const [followUpDraft, setFollowUpDraft] = useState({ date: '', type: 'call', notes: '' });
+  const [lostReason, setLostReason] = useState<LostReason>('price');
+  const [notice, setNotice] = useState<string | null>(null);
 
-  const leads = MOCK_LEADS;
+  const loadData = async (background = false) => {
+    try {
+      if (background) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
 
-  // Filter leads
+      const response = await leadAPI.getLeads({ pageSize: 200 });
+      setLeads(response.leads);
+    } catch (error) {
+      setError(getErrorMessage(error, 'Failed to load leads'));
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadData();
+  }, []);
+
   const filteredLeads = useMemo(() => {
-    return leads.filter(lead => {
-      if (filterStatus !== 'all' && lead.status !== filterStatus) return false;
-      if (searchQuery && 
-          !lead.contactName.toLowerCase().includes(searchQuery.toLowerCase()) &&
-          !lead.email?.toLowerCase().includes(searchQuery.toLowerCase()) &&
-          !lead.leadNumber.toLowerCase().includes(searchQuery.toLowerCase())) {
+    return leads.filter((lead) => {
+      if (filterStatus !== 'all' && lead.status !== filterStatus) {
         return false;
+      }
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const haystack = `${lead.contactName} ${lead.email || ''} ${lead.leadNumber} ${lead.jobType || ''}`.toLowerCase();
+        if (!haystack.includes(query)) {
+          return false;
+        }
       }
       return true;
     });
-  }, [leads, filterStatus, searchQuery]);
+  }, [filterStatus, leads, searchQuery]);
 
-  // Pipeline stats
   const stats = useMemo(() => {
-    const activeLeads = leads.filter(l => !['won', 'lost'].includes(l.status));
+    const activeLeads = leads.filter((lead) => !['won', 'lost'].includes(lead.status));
+    const closedLeads = leads.filter((lead) => ['won', 'lost'].includes(lead.status));
+
     return {
       total: leads.length,
-      new: leads.filter(l => l.status === 'new').length,
       active: activeLeads.length,
-      quoted: leads.filter(l => l.status === 'quoted').length,
-      won: leads.filter(l => l.status === 'won').length,
-      lost: leads.filter(l => l.status === 'lost').length,
-      pipelineValue: activeLeads.reduce((sum, l) => sum + (l.estimatedValue || 0), 0),
-      wonValue: leads.filter(l => l.status === 'won').reduce((sum, l) => sum + (l.estimatedValue || 0), 0),
-      conversionRate: leads.filter(l => l.status === 'won').length / (leads.filter(l => ['won', 'lost'].includes(l.status)).length || 1) * 100,
+      won: leads.filter((lead) => lead.status === 'won').length,
+      wonValue: leads.filter((lead) => lead.status === 'won').reduce((sum, lead) => sum + (lead.estimatedValue || 0), 0),
+      pipelineValue: activeLeads.reduce((sum, lead) => sum + (lead.estimatedValue || 0), 0),
+      conversionRate: closedLeads.length > 0 ? (leads.filter((lead) => lead.status === 'won').length / closedLeads.length) * 100 : 0,
     };
   }, [leads]);
 
-  // Group leads by status for pipeline view
   const leadsByStatus = useMemo(() => {
-    const grouped: Record<string, Lead[]> = {};
-    LEAD_STATUSES.forEach(status => {
-      grouped[status] = filteredLeads.filter(lead => lead.status === status);
-    });
-    return grouped;
+    return LEAD_STATUSES.reduce((accumulator, status) => {
+      accumulator[status] = filteredLeads.filter((lead) => lead.status === status);
+      return accumulator;
+    }, {} as Record<LeadStatus, Lead[]>);
   }, [filteredLeads]);
 
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('en-AU', {
-      day: 'numeric',
-      month: 'short',
-    });
-  };
-
   const formatCurrency = (amount?: number) => {
-    if (!amount) return '$0';
     return new Intl.NumberFormat('en-AU', {
       style: 'currency',
       currency: 'AUD',
       maximumFractionDigits: 0,
-    }).format(amount);
+    }).format(amount || 0);
   };
+
+  const openLead = async (lead: Lead) => {
+    try {
+      const freshLead = await leadAPI.getLead(lead.id);
+      setSelectedLead(freshLead);
+      setCommunicationDraft({ method: 'phone', summary: '', notes: '' });
+      setFollowUpDraft({
+        date: freshLead.nextFollowUpDate?.slice(0, 10) || '',
+        type: freshLead.nextFollowUpType || 'call',
+        notes: freshLead.followUpNotes || '',
+      });
+      setShowLeadModal(true);
+    } catch (error) {
+      setError(getErrorMessage(error, 'Failed to load lead details'));
+    }
+  };
+
+  const refreshSelectedLead = async (leadId: string) => {
+    const freshLead = await leadAPI.getLead(leadId);
+    setSelectedLead(freshLead);
+    await loadData(true);
+    return freshLead;
+  };
+
+  const saveLead = async () => {
+    try {
+      await leadAPI.createLead({
+        ...leadDraft,
+        phone: leadDraft.phone || '',
+        contactName: leadDraft.contactName || '',
+        source: leadDraft.source || 'website',
+        status: leadDraft.status || 'new',
+        priority: leadDraft.priority || 'warm',
+        communications: [],
+        tags: String(leadDraft.tags || '')
+          .split(',')
+          .map((tag) => tag.trim())
+          .filter(Boolean),
+        receivedAt: new Date().toISOString(),
+      } as Omit<Lead, 'id' | 'leadNumber' | 'communications' | 'createdAt' | 'updatedAt'>);
+      setShowCreateModal(false);
+      setLeadDraft(emptyLead());
+      setNotice('Lead created');
+      await loadData(true);
+    } catch (error) {
+      setError(getErrorMessage(error, 'Failed to create lead'));
+    }
+  };
+
+  const updateLeadStatus = async (status: LeadStatus) => {
+    if (!selectedLead) return;
+    try {
+      await leadAPI.updateStatus(selectedLead.id, status);
+      await refreshSelectedLead(selectedLead.id);
+      setNotice(`Lead marked as ${STATUS_CONFIG[status].label.toLowerCase()}`);
+    } catch (error) {
+      setError(getErrorMessage(error, 'Failed to update lead status'));
+    }
+  };
+
+  const addCommunication = async () => {
+    if (!selectedLead || !communicationDraft.summary.trim()) return;
+    try {
+      await leadAPI.addCommunication(selectedLead.id, {
+        type: 'outbound',
+        method: communicationDraft.method as any,
+        timestamp: new Date().toISOString(),
+        summary: communicationDraft.summary.trim(),
+        notes: communicationDraft.notes.trim() || undefined,
+      });
+      setCommunicationDraft({ method: 'phone', summary: '', notes: '' });
+      await refreshSelectedLead(selectedLead.id);
+      setNotice('Communication logged');
+    } catch (error) {
+      setError(getErrorMessage(error, 'Failed to save communication'));
+    }
+  };
+
+  const saveFollowUp = async () => {
+    if (!selectedLead || !followUpDraft.date) return;
+    try {
+      await leadAPI.scheduleFollowUp(selectedLead.id, {
+        date: new Date(followUpDraft.date).toISOString(),
+        type: followUpDraft.type as any,
+        notes: followUpDraft.notes || undefined,
+      });
+      await refreshSelectedLead(selectedLead.id);
+      setNotice('Follow-up scheduled');
+    } catch (error) {
+      setError(getErrorMessage(error, 'Failed to schedule follow-up'));
+    }
+  };
+
+  const convertToQuote = async () => {
+    if (!selectedLead) return;
+    try {
+      const result = await leadAPI.convertToQuote(selectedLead.id, {
+        title: selectedLead.jobType || `Quote for ${selectedLead.contactName}`,
+        description: selectedLead.description,
+        customerName: selectedLead.contactName,
+        customerEmail: selectedLead.email,
+        customerPhone: selectedLead.phone,
+        customerAddress: selectedLead.address,
+        total: selectedLead.estimatedValue || 0,
+      });
+      setSelectedLead(result.lead);
+      await loadData(true);
+      setNotice(`Quote ${result.quote.quoteNumber || result.quote.id} created`);
+    } catch (error) {
+      setError(getErrorMessage(error, 'Failed to convert lead to quote'));
+    }
+  };
+
+  const markWon = async () => {
+    if (!selectedLead) return;
+    try {
+      const next = await leadAPI.markAsWon(selectedLead.id, {});
+      setSelectedLead(next);
+      await loadData(true);
+      setNotice('Lead marked as won');
+    } catch (error) {
+      setError(getErrorMessage(error, 'Failed to mark lead as won'));
+    }
+  };
+
+  const markLost = async () => {
+    if (!selectedLead) return;
+    try {
+      const next = await leadAPI.markAsLost(selectedLead.id, lostReason);
+      setSelectedLead(next);
+      await loadData(true);
+      setNotice('Lead marked as lost');
+    } catch (error) {
+      setError(getErrorMessage(error, 'Failed to mark lead as lost'));
+    }
+  };
+
+  const renderLeadCard = (lead: Lead) => (
+    <button
+      key={lead.id}
+      onClick={() => void openLead(lead)}
+      className="w-full text-left rounded-xl border border-slate-200 bg-white p-4 hover:border-blue-300 hover:shadow-sm transition-all"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-slate-800">{lead.contactName}</span>
+            <Badge variant={STATUS_CONFIG[lead.status].variant}>{STATUS_CONFIG[lead.status].label}</Badge>
+          </div>
+          <p className="text-sm text-slate-500">{lead.leadNumber}</p>
+          <p className="text-sm text-slate-600">{lead.jobType || 'General enquiry'}</p>
+        </div>
+        <div className="text-right">
+          <p className="font-semibold text-slate-800">{formatCurrency(lead.estimatedValue)}</p>
+          <p className="text-xs text-slate-400 capitalize">{lead.priority}</p>
+        </div>
+      </div>
+    </button>
+  );
+
+  if (loading) {
+    return (
+      <div className="bg-white rounded-xl border border-slate-200 p-12 flex items-center justify-center">
+        <RotateCcw className="w-6 h-6 text-blue-600 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      {/* Header Stats */}
+      {notice && (
+        <div className="rounded-xl border border-blue-200 bg-blue-50 text-blue-700 px-4 py-3 text-sm">
+          {notice}
+        </div>
+      )}
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-white p-4 rounded-xl border border-slate-200">
           <p className="text-sm text-slate-500">Total Leads</p>
@@ -314,7 +330,6 @@ export function LeadPipelineView() {
         </div>
       </div>
 
-      {/* Toolbar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-2">
           <div className="flex items-center bg-slate-100 rounded-lg p-1">
@@ -335,21 +350,19 @@ export function LeadPipelineView() {
               List
             </button>
           </div>
-          
+
           <select
             value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value as FilterStatus)}
+            onChange={(event) => setFilterStatus(event.target.value as FilterStatus)}
             className="px-3 py-2 border border-slate-200 rounded-lg text-sm"
           >
             <option value="all">All Status</option>
-            {LEAD_STATUSES.map(status => (
-              <option key={status} value={status}>
-                {STATUS_CONFIG[status].label}
-              </option>
+            {LEAD_STATUSES.map((status) => (
+              <option key={status} value={status}>{STATUS_CONFIG[status].label}</option>
             ))}
           </select>
         </div>
-        
+
         <div className="flex items-center gap-2">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -357,204 +370,283 @@ export function LeadPipelineView() {
               type="text"
               placeholder="Search leads..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm"
+              onChange={(event) => setSearchQuery(event.target.value)}
+              className="pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm"
             />
           </div>
-          <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+          <button onClick={() => void loadData(true)} className="p-2 border border-slate-200 rounded-lg hover:bg-slate-50">
+            <RotateCcw className={`w-4 h-4 text-slate-600 ${refreshing ? 'animate-spin' : ''}`} />
+          </button>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
             <Plus className="w-4 h-4" />
             New Lead
           </button>
         </div>
       </div>
 
-      {/* Pipeline View */}
       {viewMode === 'pipeline' ? (
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-          <div className="overflow-x-auto">
-            <div className="flex min-w-max p-4 gap-4">
-              {LEAD_STATUSES.filter(s => !['won', 'lost'].includes(s)).map(status => {
-                const statusLeads = leadsByStatus[status] || [];
-                const config = STATUS_CONFIG[status];
-                const Icon = config.icon;
-                
-                return (
-                  <div key={status} className="w-72 flex-shrink-0">
-                    {/* Column Header */}
-                    <div className={`p-3 rounded-lg mb-3 ${config.bgColor}`}>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Icon className={`w-4 h-4 ${config.color}`} />
-                          <span className={`font-semibold ${config.color}`}>{config.label}</span>
-                        </div>
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium bg-white ${config.color}`}>
-                          {statusLeads.length}
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-500 mt-1">
-                        {formatCurrency(statusLeads.reduce((sum, l) => sum + (l.estimatedValue || 0), 0))}
-                      </p>
-                    </div>
-                    
-                    {/* Leads */}
-                    <div className="space-y-2">
-                      {statusLeads.map(lead => (
-                        <div
-                          key={lead.id}
-                          onClick={() => {
-                            setSelectedLead(lead);
-                            setShowLeadModal(true);
-                          }}
-                          className="p-3 bg-white border border-slate-200 rounded-lg shadow-sm hover:shadow-md cursor-pointer transition-shadow"
-                        >
-                          <div className="flex items-start justify-between mb-2">
-                            <h4 className="font-medium text-slate-800 text-sm">{lead.contactName}</h4>
-                            {lead.priority && (
-                              <span className={`px-1.5 py-0.5 rounded text-xs ${PRIORITY_CONFIG[lead.priority].bgColor} ${PRIORITY_CONFIG[lead.priority].color}`}>
-                                {PRIORITY_CONFIG[lead.priority].label}
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-xs text-slate-500 mb-2 line-clamp-2">{lead.jobType}</p>
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="font-medium text-slate-700">
-                              {formatCurrency(lead.estimatedValue)}
-                            </span>
-                            <span className="text-slate-400">
-                              {formatDate(lead.receivedAt)}
-                            </span>
-                          </div>
-                          {lead.assignedToName && (
-                            <p className="text-xs text-slate-400 mt-1">
-                              Assigned: {lead.assignedToName}
-                            </p>
-                          )}
-                        </div>
-                      ))}
-                    </div>
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-4">
+          {LEAD_STATUSES.map((status) => (
+            <div key={status} className="bg-slate-50 rounded-xl border border-slate-200 p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-slate-800">{STATUS_CONFIG[status].label}</span>
+                <Badge variant={STATUS_CONFIG[status].variant}>{leadsByStatus[status]?.length || 0}</Badge>
+              </div>
+              <div className="space-y-3">
+                {(leadsByStatus[status] || []).map((lead) => renderLeadCard(lead))}
+                {(leadsByStatus[status] || []).length === 0 && (
+                  <div className="rounded-lg border border-dashed border-slate-200 bg-white p-4 text-center text-sm text-slate-400">
+                    No leads
                   </div>
-                );
-              })}
-              
-              {/* Won/Lost Column */}
-              <div className="w-72 flex-shrink-0">
-                <div className="p-3 rounded-lg mb-3 bg-slate-100">
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold text-slate-700">Closed</span>
-                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-white text-slate-600">
-                      {leadsByStatus.won?.length + leadsByStatus.lost?.length}
-                    </span>
-                  </div>
-                </div>
-                
-                {/* Won */}
-                {(leadsByStatus.won || []).map(lead => (
-                  <div
-                    key={lead.id}
-                    onClick={() => {
-                      setSelectedLead(lead);
-                      setShowLeadModal(true);
-                    }}
-                    className="p-3 bg-green-50 border border-green-200 rounded-lg shadow-sm mb-2 cursor-pointer"
-                  >
-                    <div className="flex items-center gap-1 mb-1">
-                      <CheckCircle className="w-3 h-3 text-green-600" />
-                      <span className="text-xs font-medium text-green-600">Won</span>
-                    </div>
-                    <h4 className="font-medium text-slate-800 text-sm">{lead.contactName}</h4>
-                    <p className="text-xs text-slate-500">{formatCurrency(lead.estimatedValue)}</p>
-                  </div>
-                ))}
-                
-                {/* Lost */}
-                {(leadsByStatus.lost || []).map(lead => (
-                  <div
-                    key={lead.id}
-                    onClick={() => {
-                      setSelectedLead(lead);
-                      setShowLeadModal(true);
-                    }}
-                    className="p-3 bg-red-50 border border-red-200 rounded-lg shadow-sm mb-2 cursor-pointer opacity-60"
-                  >
-                    <div className="flex items-center gap-1 mb-1">
-                      <XCircle className="w-3 h-3 text-red-600" />
-                      <span className="text-xs font-medium text-red-600">Lost</span>
-                    </div>
-                    <h4 className="font-medium text-slate-800 text-sm">{lead.contactName}</h4>
-                    {lead.lostReason && (
-                      <p className="text-xs text-slate-400">{LOST_REASONS[lead.lostReason]}</p>
-                    )}
-                  </div>
-                ))}
+                )}
               </div>
             </div>
-          </div>
+          ))}
         </div>
       ) : (
-        /* List View */
         <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
           <table className="w-full">
-            <thead className="bg-slate-50">
+            <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
                 <th className="px-4 py-3 text-left text-sm font-medium text-slate-600">Lead</th>
                 <th className="px-4 py-3 text-left text-sm font-medium text-slate-600">Source</th>
-                <th className="px-4 py-3 text-center text-sm font-medium text-slate-600">Status</th>
-                <th className="px-4 py-3 text-center text-sm font-medium text-slate-600">Value</th>
-                <th className="px-4 py-3 text-center text-sm font-medium text-slate-600">Assigned</th>
-                <th className="px-4 py-3 text-center text-sm font-medium text-slate-600">Received</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-slate-600">Status</th>
+                <th className="px-4 py-3 text-right text-sm font-medium text-slate-600">Value</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filteredLeads.map(lead => {
-                const statusConfig = STATUS_CONFIG[lead.status];
-                const SourceIcon = SOURCE_ICONS[lead.source];
-                
-                return (
-                  <tr
-                    key={lead.id}
-                    onClick={() => {
-                      setSelectedLead(lead);
-                      setShowLeadModal(true);
-                    }}
-                    className="hover:bg-slate-50 cursor-pointer"
-                  >
-                    <td className="px-4 py-4">
-                      <div>
-                        <p className="font-medium text-slate-800">{lead.contactName}</p>
-                        <p className="text-sm text-slate-500">{lead.jobType}</p>
-                        <p className="text-xs text-slate-400">{lead.leadNumber}</p>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="flex items-center gap-2">
-                        <SourceIcon className="w-4 h-4 text-slate-400" />
-                        <span className="text-sm text-slate-600 capitalize">{lead.source.replace('_', ' ')}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4 text-center">
-                      <Badge variant={
-                        lead.status === 'won' ? 'green' :
-                        lead.status === 'lost' ? 'red' :
-                        lead.status === 'new' ? 'blue' :
-                        'yellow'
-                      }>
-                        {statusConfig.label}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-4 text-center font-medium">
-                      {formatCurrency(lead.estimatedValue)}
-                    </td>
-                    <td className="px-4 py-4 text-center text-sm text-slate-600">
-                      {lead.assignedToName || 'Unassigned'}
-                    </td>
-                    <td className="px-4 py-4 text-center text-sm text-slate-500">
-                      {formatDate(lead.receivedAt)}
-                    </td>
-                  </tr>
-                );
-              })}
+            <tbody>
+              {filteredLeads.map((lead) => (
+                <tr key={lead.id} className="border-b border-slate-100 hover:bg-slate-50 cursor-pointer" onClick={() => void openLead(lead)}>
+                  <td className="px-4 py-4">
+                    <p className="font-medium text-slate-800">{lead.contactName}</p>
+                    <p className="text-sm text-slate-500">{lead.leadNumber}</p>
+                  </td>
+                  <td className="px-4 py-4 capitalize text-slate-600">{lead.source.replace('_', ' ')}</td>
+                  <td className="px-4 py-4"><Badge variant={STATUS_CONFIG[lead.status].variant}>{STATUS_CONFIG[lead.status].label}</Badge></td>
+                  <td className="px-4 py-4 text-right font-medium text-slate-800">{formatCurrency(lead.estimatedValue)}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-2xl w-full overflow-hidden">
+            <div className="p-6 border-b border-slate-200 flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-bold text-slate-800">Create Lead</h2>
+                <p className="text-sm text-slate-500">Persist a new lead to the live pipeline</p>
+              </div>
+              <button onClick={() => setShowCreateModal(false)} className="p-2 hover:bg-slate-100 rounded-lg">
+                <X className="w-5 h-5 text-slate-400" />
+              </button>
+            </div>
+            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <label className="text-sm text-slate-600">
+                Contact Name
+                <input value={leadDraft.contactName || ''} onChange={(event) => setLeadDraft((current) => ({ ...current, contactName: event.target.value }))} className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-lg" />
+              </label>
+              <label className="text-sm text-slate-600">
+                Phone
+                <input value={leadDraft.phone || ''} onChange={(event) => setLeadDraft((current) => ({ ...current, phone: event.target.value }))} className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-lg" />
+              </label>
+              <label className="text-sm text-slate-600">
+                Email
+                <input value={leadDraft.email || ''} onChange={(event) => setLeadDraft((current) => ({ ...current, email: event.target.value }))} className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-lg" />
+              </label>
+              <label className="text-sm text-slate-600">
+                Source
+                <select value={leadDraft.source || 'website'} onChange={(event) => setLeadDraft((current) => ({ ...current, source: event.target.value as LeadSource }))} className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-lg">
+                  {SOURCE_OPTIONS.map((source) => <option key={source} value={source}>{source.replace('_', ' ')}</option>)}
+                </select>
+              </label>
+              <label className="text-sm text-slate-600">
+                Priority
+                <select value={leadDraft.priority || 'warm'} onChange={(event) => setLeadDraft((current) => ({ ...current, priority: event.target.value as LeadPriority }))} className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-lg">
+                  {PRIORITY_OPTIONS.map((priority) => <option key={priority} value={priority}>{priority}</option>)}
+                </select>
+              </label>
+              <label className="text-sm text-slate-600">
+                Job Type
+                <input value={leadDraft.jobType || ''} onChange={(event) => setLeadDraft((current) => ({ ...current, jobType: event.target.value }))} className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-lg" />
+              </label>
+              <label className="text-sm text-slate-600 md:col-span-2">
+                Estimated Value
+                <input type="number" value={leadDraft.estimatedValue || ''} onChange={(event) => setLeadDraft((current) => ({ ...current, estimatedValue: Number(event.target.value) || undefined }))} className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-lg" />
+              </label>
+              <label className="text-sm text-slate-600 md:col-span-2">
+                Description
+                <textarea value={leadDraft.description || ''} onChange={(event) => setLeadDraft((current) => ({ ...current, description: event.target.value }))} className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-lg min-h-[120px]" />
+              </label>
+            </div>
+            <div className="p-6 border-t border-slate-200 flex justify-end gap-3">
+              <button onClick={() => setShowCreateModal(false)} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
+              <button onClick={() => void saveLead()} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2">
+                <Save className="w-4 h-4" />
+                Save Lead
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showLeadModal && selectedLead && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="p-6 border-b border-slate-200 flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-3">
+                  <h2 className="text-2xl font-bold text-slate-800">{selectedLead.contactName}</h2>
+                  <Badge variant={STATUS_CONFIG[selectedLead.status].variant}>{STATUS_CONFIG[selectedLead.status].label}</Badge>
+                </div>
+                <p className="text-slate-500">{selectedLead.leadNumber}</p>
+              </div>
+              <button onClick={() => setShowLeadModal(false)} className="p-2 hover:bg-slate-100 rounded-lg">
+                <X className="w-5 h-5 text-slate-400" />
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto flex-1 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="rounded-xl border border-slate-200 p-4">
+                  <p className="text-sm text-slate-500">Source</p>
+                  <p className="font-semibold text-slate-800 mt-1 capitalize">{selectedLead.source.replace('_', ' ')}</p>
+                </div>
+                <div className="rounded-xl border border-slate-200 p-4">
+                  <p className="text-sm text-slate-500">Priority</p>
+                  <p className="font-semibold text-slate-800 mt-1 capitalize">{selectedLead.priority}</p>
+                </div>
+                <div className="rounded-xl border border-slate-200 p-4">
+                  <p className="text-sm text-slate-500">Estimated Value</p>
+                  <p className="font-semibold text-slate-800 mt-1">{formatCurrency(selectedLead.estimatedValue)}</p>
+                </div>
+                <div className="rounded-xl border border-slate-200 p-4">
+                  <p className="text-sm text-slate-500">Next Follow-up</p>
+                  <p className="font-semibold text-slate-800 mt-1">{selectedLead.nextFollowUpDate ? new Date(selectedLead.nextFollowUpDate).toLocaleDateString('en-AU') : 'Not scheduled'}</p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {LEAD_STATUSES.filter((status) => !['won', 'lost'].includes(status)).map((status) => (
+                  <button
+                    key={status}
+                    onClick={() => void updateLeadStatus(status)}
+                    className={`px-3 py-2 rounded-lg text-sm border ${selectedLead.status === status ? 'border-blue-600 text-blue-700 bg-blue-50' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                  >
+                    {STATUS_CONFIG[status].label}
+                  </button>
+                ))}
+                <button onClick={() => void convertToQuote()} className="px-3 py-2 rounded-lg text-sm border border-purple-200 text-purple-700 bg-purple-50 hover:bg-purple-100">
+                  Convert to Quote
+                </button>
+                <button onClick={() => void markWon()} className="px-3 py-2 rounded-lg text-sm border border-green-200 text-green-700 bg-green-50 hover:bg-green-100">
+                  Mark Won
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="rounded-xl border border-slate-200 p-4 space-y-4">
+                  <h3 className="font-semibold text-slate-800">Lead Details</h3>
+                  <div className="space-y-2 text-sm text-slate-600">
+                    {selectedLead.phone && <p className="flex items-center gap-2"><Phone className="w-4 h-4" /> {selectedLead.phone}</p>}
+                    {selectedLead.email && <p className="flex items-center gap-2"><Mail className="w-4 h-4" /> {selectedLead.email}</p>}
+                    {selectedLead.companyName && <p className="flex items-center gap-2"><Building2 className="w-4 h-4" /> {selectedLead.companyName}</p>}
+                    {selectedLead.address && <p className="flex items-center gap-2"><Calendar className="w-4 h-4" /> {selectedLead.address}</p>}
+                    {selectedLead.jobType && <p className="flex items-center gap-2"><Tag className="w-4 h-4" /> {selectedLead.jobType}</p>}
+                  </div>
+                  {selectedLead.description && (
+                    <div className="rounded-lg bg-slate-50 p-3 text-sm text-slate-700">
+                      {selectedLead.description}
+                    </div>
+                  )}
+                </div>
+
+                <div className="rounded-xl border border-slate-200 p-4 space-y-4">
+                  <h3 className="font-semibold text-slate-800">Add Communication</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <select value={communicationDraft.method} onChange={(event) => setCommunicationDraft((current) => ({ ...current, method: event.target.value }))} className="px-3 py-2 border border-slate-200 rounded-lg">
+                      <option value="phone">Phone</option>
+                      <option value="email">Email</option>
+                      <option value="sms">SMS</option>
+                      <option value="meeting">Meeting</option>
+                    </select>
+                    <input value={communicationDraft.summary} onChange={(event) => setCommunicationDraft((current) => ({ ...current, summary: event.target.value }))} className="px-3 py-2 border border-slate-200 rounded-lg md:col-span-2" placeholder="Summary" />
+                    <textarea value={communicationDraft.notes} onChange={(event) => setCommunicationDraft((current) => ({ ...current, notes: event.target.value }))} className="px-3 py-2 border border-slate-200 rounded-lg md:col-span-3 min-h-[100px]" placeholder="Notes" />
+                  </div>
+                  <button onClick={() => void addCommunication()} className="text-sm text-blue-600 hover:underline">
+                    Save communication
+                  </button>
+
+                  <h3 className="font-semibold text-slate-800 pt-2">Schedule Follow-up</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <input type="date" value={followUpDraft.date} onChange={(event) => setFollowUpDraft((current) => ({ ...current, date: event.target.value }))} className="px-3 py-2 border border-slate-200 rounded-lg" />
+                    <select value={followUpDraft.type} onChange={(event) => setFollowUpDraft((current) => ({ ...current, type: event.target.value }))} className="px-3 py-2 border border-slate-200 rounded-lg">
+                      <option value="call">Call</option>
+                      <option value="email">Email</option>
+                      <option value="sms">SMS</option>
+                      <option value="visit">Visit</option>
+                    </select>
+                    <input value={followUpDraft.notes} onChange={(event) => setFollowUpDraft((current) => ({ ...current, notes: event.target.value }))} className="px-3 py-2 border border-slate-200 rounded-lg" placeholder="Notes" />
+                  </div>
+                  <button onClick={() => void saveFollowUp()} className="text-sm text-blue-600 hover:underline">
+                    Schedule follow-up
+                  </button>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-slate-200 p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-slate-800">Communication History</h3>
+                  <span className="text-sm text-slate-400">{selectedLead.communications.length} entries</span>
+                </div>
+                {selectedLead.communications.length === 0 ? (
+                  <p className="text-sm text-slate-500">No communications logged yet</p>
+                ) : (
+                  selectedLead.communications.map((communication) => (
+                    <div key={communication.id} className="rounded-lg border border-slate-200 p-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="font-medium text-slate-800">{communication.summary}</p>
+                          <p className="text-sm text-slate-500">{communication.method} • {new Date(communication.timestamp).toLocaleString('en-AU')}</p>
+                        </div>
+                        <Badge variant="slate">{communication.type}</Badge>
+                      </div>
+                      {communication.notes && <p className="text-sm text-slate-600 mt-2">{communication.notes}</p>}
+                    </div>
+                  ))
+                )}
+              </div>
+
+              <div className="rounded-xl border border-red-200 bg-red-50 p-4 space-y-3">
+                <h3 className="font-semibold text-red-800">Mark as Lost</h3>
+                <div className="flex flex-wrap gap-2">
+                  {LOST_REASONS.map((reason) => (
+                    <button
+                      key={reason}
+                      onClick={() => setLostReason(reason)}
+                      className={`px-3 py-2 rounded-lg text-sm border ${lostReason === reason ? 'border-red-500 bg-white text-red-700' : 'border-red-200 text-red-600 hover:bg-white'}`}
+                    >
+                      {reason.replace('_', ' ')}
+                    </button>
+                  ))}
+                </div>
+                <button onClick={() => void markLost()} className="text-sm text-red-700 hover:underline">
+                  Mark lost
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-slate-200 flex justify-end">
+              <button onClick={() => setShowLeadModal(false)} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg">
+                Close
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

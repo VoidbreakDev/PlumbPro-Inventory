@@ -10,7 +10,7 @@ export interface KeyboardShortcut {
   shift?: boolean;
   meta?: boolean; // Cmd on Mac, Win on Windows
   description: string;
-  action: () => void;
+  action: (event?: KeyboardEvent) => void;
   category?: string;
   enabled?: boolean;
 }

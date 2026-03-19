@@ -29,6 +29,7 @@ import { invoicesAPI, type Invoice, type InvoiceStats, type CreateInvoiceRequest
 import { contactsAPI, jobsAPI } from '../lib/api';
 import { getErrorMessage } from '../lib/errors';
 import { useStore } from '../store/useStore';
+import type { Job as AppJob } from '../types';
 
 interface Contact {
   id: string;
@@ -40,7 +41,7 @@ interface Contact {
 interface Job {
   id: string;
   title: string;
-  builder: string;
+  builder?: string;
 }
 
 export default function InvoicesView() {
@@ -354,7 +355,7 @@ function CreateInvoiceModal({ onClose, onCreate }: CreateInvoiceModalProps) {
   const loadJobs = async (contactId: string) => {
     try {
       const data = await jobsAPI.getJobs();
-      setJobs(data.filter((j: Job) => j.builder === contactId));
+      setJobs(data.filter((j: AppJob) => j.builder === contactId));
     } catch (err) {
       console.error('Failed to load jobs:', err);
     }

@@ -1,19 +1,105 @@
 import express from 'express';
 import crypto from 'crypto';
+import dns from 'dns/promises';
+import fs from 'fs';
+import multer from 'multer';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import pool from '../config/database.js';
+import { authenticateToken } from '../middleware/auth.js';
 
 const router = express.Router();
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const WHITE_LABEL_UPLOADS_DIR = path.resolve(__dirname, '../../../uploads/white-label');
+
+if (!fs.existsSync(WHITE_LABEL_UPLOADS_DIR)) {
+  fs.mkdirSync(WHITE_LABEL_UPLOADS_DIR, { recursive: true });
+}
 
 // Helper for database queries
 const db = {
   query: (text, params) => pool.query(text, params)
 };
 
+const ALLOWED_UPLOAD_TYPES = {
+  logo: ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'],
+  favicon: ['image/png', 'image/x-icon', 'image/vnd.microsoft.icon', 'image/svg+xml'],
+  emailLogo: ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml']
+};
+
+const uploadStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, WHITE_LABEL_UPLOADS_DIR),
+  filename: (req, file, cb) => {
+    const requestedType = String(req.body.type || 'asset');
+    const ext = path.extname(file.originalname).toLowerCase();
+    cb(null, `${requestedType}-${Date.now()}-${crypto.randomBytes(8).toString('hex')}${ext}`);
+  }
+});
+
+const upload = multer({
+  storage: uploadStorage,
+  limits: {
+    fileSize: 5 * 1024 * 1024,
+    files: 1
+  },
+  fileFilter: (req, file, cb) => {
+    const requestedType = String(req.body.type || '');
+    const allowedMimeTypes = ALLOWED_UPLOAD_TYPES[requestedType];
+
+    if (!allowedMimeTypes) {
+      return cb(new Error('Invalid white-label asset type'));
+    }
+
+    if (!allowedMimeTypes.includes(file.mimetype)) {
+      return cb(new Error(`Unsupported file type for ${requestedType}`));
+    }
+
+    cb(null, true);
+  }
+});
+
+async function tableExists(tableName) {
+  const result = await db.query(
+    `SELECT EXISTS (
+      SELECT 1
+      FROM information_schema.tables
+      WHERE table_schema = 'public'
+        AND table_name = $1
+    )`,
+    [tableName]
+  );
+
+  return result.rows[0]?.exists === true;
+}
+
+async function getOrganizationIdForUser(userId) {
+  const usersColumnResult = await db.query(
+    `SELECT EXISTS (
+      SELECT 1
+      FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND table_name = 'users'
+        AND column_name = 'organization_id'
+    )`
+  );
+
+  if (!usersColumnResult.rows[0]?.exists) {
+    return null;
+  }
+
+  const result = await db.query(
+    'SELECT organization_id FROM users WHERE id = $1',
+    [userId]
+  );
+
+  return result.rows[0]?.organization_id || null;
+}
+
 // Get white-label configuration
 router.get('/config', async (req, res) => {
   try {
     const { networkId } = req.query;
-    const userId = req.user?.id;
+    const userId = req.user?.userId;
 
     let config = null;
 
@@ -49,7 +135,7 @@ router.put('/config', async (req, res) => {
   try {
     const { networkId } = req.query;
     const config = req.body;
-    const userId = req.user?.id;
+    const userId = req.user?.userId;
 
     let result;
 
@@ -88,7 +174,7 @@ router.put('/config', async (req, res) => {
 router.delete('/config', async (req, res) => {
   try {
     const { networkId } = req.query;
-    const userId = req.user?.id;
+    const userId = req.user?.userId;
 
     if (networkId) {
       await db.query(`
@@ -117,7 +203,7 @@ router.delete('/config', async (req, res) => {
 router.get('/branding', async (req, res) => {
   try {
     const host = req.get('host');
-    const userId = req.user?.id;
+    const userId = req.user?.userId;
 
     // Try to find branding by custom domain
     let config = null;
@@ -258,22 +344,49 @@ router.get('/domains/check', async (req, res) => {
 
     const verification = result.rows[0];
 
-    // In a real implementation, you would:
-    // 1. Perform DNS lookup for TXT/CNAME record
-    // 2. Or check for file at well-known path
-    // For now, we'll simulate verification
+    const normalizedDomain = String(domain || '').replace(/^https?:\/\//, '').replace(/\/$/, '');
+    let isVerified = false;
+    let verificationError = null;
 
-    // Simulate DNS check (in production, use a DNS library)
-    const isVerified = false; // Would be actual DNS lookup result
+    try {
+      if (verification.verification_method === 'dns_txt') {
+        const txtRecords = await dns.resolveTxt(normalizedDomain);
+        const flattenedRecords = txtRecords.flat().join(' ');
+        isVerified = flattenedRecords.includes(verification.verification_token);
+        if (!isVerified) {
+          verificationError = 'Expected TXT verification token was not found.';
+        }
+      } else if (verification.verification_method === 'dns_cname') {
+        const cnameRecords = await dns.resolveCname(normalizedDomain);
+        isVerified = cnameRecords.length > 0;
+        if (!isVerified) {
+          verificationError = 'Expected CNAME record was not found.';
+        }
+      } else if (verification.verification_method === 'file') {
+        const response = await fetch(`https://${normalizedDomain}/.well-known/plumbpro-verification.txt`);
+        const body = await response.text();
+        isVerified = response.ok && body.includes(verification.verification_token);
+        if (!isVerified) {
+          verificationError = 'Verification file was not reachable or did not contain the expected token.';
+        }
+      }
+    } catch (error) {
+      verificationError = error.message;
+      isVerified = false;
+    }
 
     if (isVerified && verification.status !== 'verified') {
       await db.query(`
         UPDATE domain_verifications
-        SET status = 'verified', verified_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+        SET status = 'verified',
+            verified_at = CURRENT_TIMESTAMP,
+            error = NULL,
+            updated_at = CURRENT_TIMESTAMP
         WHERE domain = $1
       `, [domain]);
       verification.status = 'verified';
       verification.verified_at = new Date().toISOString();
+      verification.error = null;
 
       // Update the network's white-label config with the verified domain
       if (networkId) {
@@ -291,9 +404,12 @@ router.get('/domains/check', async (req, res) => {
     } else {
       await db.query(`
         UPDATE domain_verifications
-        SET updated_at = CURRENT_TIMESTAMP
+        SET status = 'pending',
+            error = $2,
+            updated_at = CURRENT_TIMESTAMP
         WHERE domain = $1
-      `, [domain]);
+      `, [domain, verificationError]);
+      verification.error = verificationError;
     }
 
     res.json({
@@ -336,19 +452,50 @@ router.delete('/domains', async (req, res) => {
   }
 });
 
-// Upload logo/favicon (placeholder - would need file storage integration)
-router.post('/upload', async (req, res) => {
+router.post('/upload', authenticateToken, upload.single('file'), async (req, res) => {
   try {
-    // In a real implementation, this would:
-    // 1. Accept multipart form data
-    // 2. Validate file type and size
-    // 3. Upload to S3/CloudStorage
-    // 4. Return the public URL
+    const userId = req.user?.userId;
+    const { networkId = null, type } = req.body;
 
-    // For now, return a placeholder
+    if (!req.file) {
+      return res.status(400).json({ error: 'A file is required' });
+    }
+
+    if (!type || !ALLOWED_UPLOAD_TYPES[type]) {
+      return res.status(400).json({ error: 'A valid white-label asset type is required' });
+    }
+
+    const organizationId = networkId ? null : await getOrganizationIdForUser(userId);
+    const publicUrl = `${req.protocol}://${req.get('host')}/uploads/white-label/${req.file.filename}`;
+
+    if (await tableExists('white_label_assets')) {
+      await db.query(`
+        INSERT INTO white_label_assets (
+          network_id,
+          organization_id,
+          name,
+          asset_type,
+          file_url,
+          file_size,
+          mime_type,
+          is_primary
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, true)
+      `, [
+        networkId || null,
+        organizationId,
+        req.file.originalname,
+        type === 'emailLogo' ? 'email_logo' : type,
+        publicUrl,
+        req.file.size,
+        req.file.mimetype
+      ]);
+    }
+
     res.json({
-      url: '/placeholder-logo.png',
-      message: 'File upload integration required',
+      url: publicUrl,
+      fileName: req.file.originalname,
+      type
     });
   } catch (error) {
     console.error('Error uploading file:', error);

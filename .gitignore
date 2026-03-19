@@ -6,6 +6,7 @@ node_modules/
 # Production builds
 dist/
 dist-ssr/
+dist-prod/
 *.local
 
 # Environment variables
@@ -48,6 +49,8 @@ coverage/
 *.tmp
 *.temp
 .cache/
+.eslintcache
+*.tsbuildinfo
 
 # Database
 *.sqlite

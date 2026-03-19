@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { Package, Search, Plus, Minus, Check, X, Camera, Barcode, ArrowLeft } from 'lucide-react';
+import { Package, Search, Plus, Minus, Barcode, ArrowLeft } from 'lucide-react';
 import { InventoryItem } from '../types';
 import { Badge, getStockStatus } from '../components/Shared';
+import { BarcodeScanner } from '../components/BarcodeScanner';
+import { useToast } from '../components/ToastNotification';
 
 interface MobileStockCountViewProps {
   inventory: InventoryItem[];
@@ -14,6 +16,7 @@ export const MobileStockCountView: React.FC<MobileStockCountViewProps> = ({
   onUpdateStock,
   onClose
 }) => {
+  const toast = useToast();
   const [search, setSearch] = useState('');
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
   const [countValue, setCountValue] = useState<string>('');
@@ -39,6 +42,25 @@ export const MobileStockCountView: React.FC<MobileStockCountViewProps> = ({
         setCountValue('');
       }
     }
+  };
+
+  const handleBarcodeScan = (barcode: string) => {
+    const normalizedBarcode = barcode.trim().toLowerCase();
+    const matchedItem = inventory.find((item) =>
+      item.supplierCode?.trim().toLowerCase() === normalizedBarcode ||
+      item.id.toLowerCase() === normalizedBarcode
+    );
+
+    if (!matchedItem) {
+      toast.warning('No inventory item matched that barcode');
+      setSearch(barcode);
+      return;
+    }
+
+    setSearch(matchedItem.name);
+    setSelectedItem(matchedItem);
+    setCountValue(String(matchedItem.quantity));
+    toast.success(`Matched ${matchedItem.name}`);
   };
 
   // Item detail modal for counting
@@ -228,21 +250,15 @@ export const MobileStockCountView: React.FC<MobileStockCountViewProps> = ({
         )}
       </div>
 
-      {/* Scanner placeholder */}
-      {showScanner && (
-        <div className="fixed inset-0 bg-black z-50 flex items-center justify-center">
-          <div className="text-center">
-            <Camera className="w-20 h-20 text-white mx-auto mb-4" />
-            <p className="text-white mb-6">Barcode scanner coming soon</p>
-            <button
-              onClick={() => setShowScanner(false)}
-              className="px-6 py-3 bg-white text-slate-900 font-bold rounded-xl"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
+      <BarcodeScanner
+        isOpen={showScanner}
+        onClose={() => setShowScanner(false)}
+        onScan={(barcode) => {
+          setShowScanner(false);
+          handleBarcodeScan(barcode);
+        }}
+        scanType="inventory"
+      />
     </div>
   );
 };

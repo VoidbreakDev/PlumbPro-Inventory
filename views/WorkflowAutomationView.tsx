@@ -7,8 +7,10 @@ import React, { useState, useEffect } from 'react';
 import workflowAPI, { Workflow, WorkflowTemplate, WorkflowStats } from '../lib/workflowAPI';
 import { useStore } from '../store/useStore';
 import { getErrorMessage } from '../lib/errors';
+import { useToast } from '../components/ToastNotification';
 
 const WorkflowAutomationView: React.FC = () => {
+  const toast = useToast();
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [templates, setTemplates] = useState<WorkflowTemplate[]>([]);
   const [stats, setStats] = useState<WorkflowStats | null>(null);
@@ -17,6 +19,16 @@ const WorkflowAutomationView: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [filterActive, setFilterActive] = useState<boolean | undefined>(undefined);
+  const [workflowToDelete, setWorkflowToDelete] = useState<Workflow | null>(null);
+  const [templateToCreate, setTemplateToCreate] = useState<WorkflowTemplate | null>(null);
+  const [templateWorkflowName, setTemplateWorkflowName] = useState('');
+  const [newWorkflow, setNewWorkflow] = useState({
+    name: '',
+    description: '',
+    trigger_type: 'manual' as Workflow['trigger_type'],
+    priority: 5,
+    is_active: true
+  });
   const setError = useStore((state) => state.setError);
 
   useEffect(() => {
@@ -54,37 +66,81 @@ const WorkflowAutomationView: React.FC = () => {
   const handleExecuteWorkflow = async (id: string) => {
     try {
       await workflowAPI.executeWorkflow(id);
-      alert('Workflow executed successfully');
+      toast.success('Workflow executed successfully');
       loadData();
     } catch (error) {
       setError(getErrorMessage(error, 'Failed to execute workflow'));
-      alert('Failed to execute workflow');
+      toast.error('Failed to execute workflow');
     }
   };
 
-  const handleDeleteWorkflow = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this workflow?')) return;
-
+  const handleDeleteWorkflow = async () => {
+    if (!workflowToDelete) return;
     try {
-      await workflowAPI.deleteWorkflow(id);
-      setWorkflows(workflows.filter(w => w.id !== id));
+      await workflowAPI.deleteWorkflow(workflowToDelete.id);
+      setWorkflows(workflows.filter(w => w.id !== workflowToDelete.id));
+      toast.success(`Deleted workflow "${workflowToDelete.name}"`);
+      setWorkflowToDelete(null);
     } catch (error) {
       setError(getErrorMessage(error, 'Failed to delete workflow'));
+      toast.error('Failed to delete workflow');
     }
   };
 
-  const handleCreateFromTemplate = async (templateId: string) => {
-    try {
-      const template = templates.find(t => t.id === templateId);
-      const name = prompt('Enter workflow name:', template?.name);
-      if (!name) return;
+  const handleCreateFromTemplate = (templateId: string) => {
+    const template = templates.find(t => t.id === templateId);
+    if (!template) return;
+    setTemplateToCreate(template);
+    setTemplateWorkflowName(template.name);
+  };
 
-      await workflowAPI.createFromTemplate(templateId, name);
+  const handleConfirmCreateFromTemplate = async () => {
+    if (!templateToCreate || !templateWorkflowName.trim()) {
+      toast.warning('Workflow name is required');
+      return;
+    }
+
+    try {
+      await workflowAPI.createFromTemplate(templateToCreate.id, templateWorkflowName.trim());
       loadData();
-      alert('Workflow created successfully');
+      toast.success('Workflow created successfully');
+      setTemplateToCreate(null);
+      setTemplateWorkflowName('');
     } catch (error) {
       setError(getErrorMessage(error, 'Failed to create workflow from template'));
-      alert('Failed to create workflow');
+      toast.error('Failed to create workflow');
+    }
+  };
+
+  const handleCreateWorkflow = async () => {
+    if (!newWorkflow.name.trim()) {
+      toast.warning('Workflow name is required');
+      return;
+    }
+
+    try {
+      await workflowAPI.createWorkflow({
+        name: newWorkflow.name.trim(),
+        description: newWorkflow.description.trim() || undefined,
+        trigger_type: newWorkflow.trigger_type,
+        trigger_config: {},
+        priority: newWorkflow.priority,
+        is_active: newWorkflow.is_active,
+        actions: []
+      });
+      toast.success('Workflow created successfully');
+      setShowCreateModal(false);
+      setNewWorkflow({
+        name: '',
+        description: '',
+        trigger_type: 'manual',
+        priority: 5,
+        is_active: true
+      });
+      loadData();
+    } catch (error) {
+      setError(getErrorMessage(error, 'Failed to create workflow'));
+      toast.error('Failed to create workflow');
     }
   };
 
@@ -92,6 +148,7 @@ const WorkflowAutomationView: React.FC = () => {
     const labels: Record<string, string> = {
       stock_level: 'Stock Level',
       job_status: 'Job Status',
+      project_stage: 'Project Stage',
       time_schedule: 'Scheduled',
       manual: 'Manual',
       webhook: 'Webhook'
@@ -103,6 +160,7 @@ const WorkflowAutomationView: React.FC = () => {
     const colors: Record<string, string> = {
       stock_level: 'bg-blue-100 text-blue-800',
       job_status: 'bg-green-100 text-green-800',
+      project_stage: 'bg-indigo-100 text-indigo-800',
       time_schedule: 'bg-purple-100 text-purple-800',
       manual: 'bg-gray-100 text-gray-800',
       webhook: 'bg-orange-100 text-orange-800'
@@ -287,7 +345,7 @@ const WorkflowAutomationView: React.FC = () => {
                       View
                     </button>
                     <button
-                      onClick={() => handleDeleteWorkflow(workflow.id)}
+                      onClick={() => setWorkflowToDelete(workflow)}
                       className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200"
                     >
                       Delete
@@ -342,6 +400,162 @@ const WorkflowAutomationView: React.FC = () => {
           <p className="text-gray-600">
             Select a workflow from the Workflows tab to view its execution history
           </p>
+        </div>
+      )}
+
+      {showCreateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-900">Create Workflow</h2>
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="rounded p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">Name</label>
+                <input
+                  type="text"
+                  value={newWorkflow.name}
+                  onChange={(e) => setNewWorkflow((current) => ({ ...current, name: e.target.value }))}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Low stock notification"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">Description</label>
+                <textarea
+                  value={newWorkflow.description}
+                  onChange={(e) => setNewWorkflow((current) => ({ ...current, description: e.target.value }))}
+                  rows={3}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Optional description"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">Trigger</label>
+                  <select
+                    value={newWorkflow.trigger_type}
+                    onChange={(e) => setNewWorkflow((current) => ({ ...current, trigger_type: e.target.value as Workflow['trigger_type'] }))}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="manual">Manual</option>
+                    <option value="stock_level">Stock Level</option>
+                    <option value="job_status">Job Status</option>
+                    <option value="project_stage">Project Stage</option>
+                    <option value="time_schedule">Scheduled</option>
+                    <option value="webhook">Webhook</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">Priority</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={10}
+                    value={newWorkflow.priority}
+                    onChange={(e) => setNewWorkflow((current) => ({ ...current, priority: Number(e.target.value) || 5 }))}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={newWorkflow.is_active}
+                  onChange={(e) => setNewWorkflow((current) => ({ ...current, is_active: e.target.checked }))}
+                />
+                Activate immediately
+              </label>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateWorkflow}
+                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+              >
+                Create Workflow
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {workflowToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+            <h2 className="text-lg font-semibold text-gray-900">Delete workflow?</h2>
+            <p className="mt-2 text-sm text-gray-600">
+              This will permanently remove <strong>{workflowToDelete.name}</strong>.
+            </p>
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                onClick={() => setWorkflowToDelete(null)}
+                className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteWorkflow}
+                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {templateToCreate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+            <h2 className="text-lg font-semibold text-gray-900">Create from template</h2>
+            <p className="mt-2 text-sm text-gray-600">
+              Create a workflow from <strong>{templateToCreate.name}</strong>.
+            </p>
+            <div className="mt-4">
+              <label className="mb-1 block text-sm font-medium text-gray-700">Workflow name</label>
+              <input
+                type="text"
+                value={templateWorkflowName}
+                onChange={(e) => setTemplateWorkflowName(e.target.value)}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setTemplateToCreate(null);
+                  setTemplateWorkflowName('');
+                }}
+                className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmCreateFromTemplate}
+                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+              >
+                Create Workflow
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

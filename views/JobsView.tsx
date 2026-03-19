@@ -10,6 +10,7 @@ import {
   AlertTriangle, 
   Package, 
   Calendar, 
+  MapPin,
   TrendingUp,
   Settings2,
   X,
@@ -18,7 +19,7 @@ import {
   Search,
   Save
 } from 'lucide-react';
-import { Job, Contact, InventoryItem, JobTemplate, AllocatedItem } from '../types';
+import { Job, Contact, InventoryItem, JobTemplate, AllocatedItem, Kit } from '../types';
 import { Badge } from '../components/Shared';
 
 interface JobsViewProps {
@@ -26,6 +27,7 @@ interface JobsViewProps {
   contacts: Contact[];
   inventory: InventoryItem[];
   templates: JobTemplate[];
+  kits: Kit[];
   onOpenNewJobModal: () => void;
   onConfirmPick: (jobId: string) => void;
   onOpenAllocateModal: (job: Job) => void;
@@ -41,6 +43,7 @@ export const JobsView: React.FC<JobsViewProps> = ({
   contacts, 
   inventory, 
   templates,
+  kits,
   onOpenNewJobModal,
   onConfirmPick,
   onOpenAllocateModal, 
@@ -56,6 +59,7 @@ export const JobsView: React.FC<JobsViewProps> = ({
   const [tempName, setTempName] = useState('');
   const [tempItems, setTempItems] = useState<AllocatedItem[]>([]);
   const [itemSearch, setItemSearch] = useState('');
+  const activeJobs = jobs.filter((job) => !['Completed', 'Cancelled'].includes(job.status));
 
   const openEditTemplate = (template?: JobTemplate) => {
     if (template) {
@@ -105,17 +109,23 @@ export const JobsView: React.FC<JobsViewProps> = ({
             <Plus className="w-4 h-4 mr-2" /> New Job
           </button>
         </div>
-        {jobs.map(job => (
+        {activeJobs.map(job => (
           <div key={job.id} className={`bg-white p-6 rounded-2xl shadow-sm border transition-all ${job.isPicked ? 'border-slate-100' : 'border-blue-200 bg-blue-50/10'}`}>
             <div className="flex justify-between items-start mb-4">
               <div>
                 <div className="flex items-center space-x-2 mb-1">
                   <h4 className="text-xl font-black text-slate-800">{job.title}</h4>
                   {!job.isPicked && <Badge variant="blue">Stock Reserved</Badge>}
+                  {job.developmentStageType && <Badge variant="slate">{job.developmentStageType}</Badge>}
                 </div>
                 <div className="flex flex-wrap items-center gap-4 text-slate-500 text-sm">
                   <span className="flex items-center"><User className="w-3 h-3 mr-1" /> {job.builder || 'No Builder'}</span>
-                  <span className="flex items-center"><Plus className="w-3 h-3 mr-1" /> {job.date}</span>
+                  <span className="flex items-center"><Calendar className="w-3 h-3 mr-1" /> {job.date}</span>
+                  {(job.jobAddress || job.builder) && (
+                    <span className="flex items-center">
+                      <MapPin className="w-3 h-3 mr-1" /> {job.jobAddress || job.builder}
+                    </span>
+                  )}
                   <div className="flex items-center -space-x-2">
                     {job.assignedWorkerIds.map(workerId => (
                       <div key={workerId} title={contacts.find(c => c.id === workerId)?.name} className="w-6 h-6 rounded-full bg-slate-200 border-2 border-white flex items-center justify-center text-[10px] font-bold text-slate-600">
@@ -188,8 +198,21 @@ export const JobsView: React.FC<JobsViewProps> = ({
                   onChange={(e) => onOpenTemplateModal(job.id, e.target.value)}
                   className="bg-white border-2 border-slate-100 rounded-xl px-4 py-2 text-sm font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none hover:border-blue-100 transition-all"
                 >
-                  <option value="">Apply Template...</option>
-                  {templates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                  <option value="">Apply Stock Plan...</option>
+                  {templates.length > 0 && (
+                    <optgroup label="Stock Templates">
+                      {templates.map((template) => (
+                        <option key={template.id} value={`template:${template.id}`}>{template.name}</option>
+                      ))}
+                    </optgroup>
+                  )}
+                  {kits.length > 0 && (
+                    <optgroup label="Kits & BOMs">
+                      {kits.map((kit) => (
+                        <option key={kit.id} value={`kit:${kit.id}`}>{kit.name}</option>
+                      ))}
+                    </optgroup>
+                  )}
                 </select>
               )}
               
@@ -199,7 +222,7 @@ export const JobsView: React.FC<JobsViewProps> = ({
             </div>
           </div>
         ))}
-        {jobs.length === 0 && (
+        {activeJobs.length === 0 && (
           <div className="bg-slate-100 rounded-2xl p-12 text-center border-2 border-dashed border-slate-200">
             <Calendar className="w-12 h-12 text-slate-300 mx-auto mb-4" />
             <p className="text-slate-500 font-bold">No jobs in the pipeline. Start by scheduling a new one.</p>
@@ -216,11 +239,11 @@ export const JobsView: React.FC<JobsViewProps> = ({
           <div className="space-y-4">
              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
                <p className="text-xs font-bold text-slate-400 uppercase mb-1">Unpicked Orders</p>
-               <p className="text-3xl font-black text-slate-800">{jobs.filter(j => !j.isPicked).length}</p>
+               <p className="text-3xl font-black text-slate-800">{activeJobs.filter((job) => !job.isPicked).length}</p>
              </div>
              <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100">
                <p className="text-xs font-bold text-blue-400 uppercase mb-1">Ready to Pack</p>
-               <p className="text-3xl font-black text-blue-800">{jobs.filter(j => !j.isPicked && j.allocatedItems.length > 0).length}</p>
+               <p className="text-3xl font-black text-blue-800">{activeJobs.filter((job) => !job.isPicked && job.allocatedItems.length > 0).length}</p>
              </div>
           </div>
         </div>
@@ -229,7 +252,7 @@ export const JobsView: React.FC<JobsViewProps> = ({
           <div className="flex justify-between items-center mb-4">
             <h4 className="font-bold text-slate-800 flex items-center text-sm uppercase tracking-wider">
               <CheckCircle className="w-5 h-5 mr-3 text-green-500" />
-              Stock Templates
+              Stock Plans
             </h4>
             <button 
               onClick={() => setIsManageTemplatesOpen(true)}
@@ -240,11 +263,21 @@ export const JobsView: React.FC<JobsViewProps> = ({
             </button>
           </div>
           <div className="space-y-3">
-            {templates.map(template => (
+            {templates.map((template) => (
               <div key={template.id} className="p-3 border border-slate-100 rounded-xl bg-slate-50 hover:bg-blue-50 hover:border-blue-100 transition-all group">
                 <p className="font-bold text-sm text-slate-700 group-hover:text-blue-700 mb-1">{template.name}</p>
                 <div className="flex items-center justify-between">
                   <p className="text-xs text-slate-500">{template.items.length} materials</p>
+                  <Badge variant="slate" className="px-2 py-0.5 text-[10px]">Template</Badge>
+                </div>
+              </div>
+            ))}
+            {kits.map((kit) => (
+              <div key={kit.id} className="p-3 border border-slate-100 rounded-xl bg-slate-50 hover:bg-blue-50 hover:border-blue-100 transition-all group">
+                <p className="font-bold text-sm text-slate-700 group-hover:text-blue-700 mb-1">{kit.name}</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-slate-500">{kit.items.length} BOM lines</p>
+                  <Badge variant="blue" className="px-2 py-0.5 text-[10px]">Kit</Badge>
                 </div>
               </div>
             ))}
@@ -260,7 +293,7 @@ export const JobsView: React.FC<JobsViewProps> = ({
         <div className="bg-indigo-600 p-8 rounded-2xl text-white shadow-xl relative overflow-hidden group">
           <div className="relative z-10">
             <h4 className="font-black text-xl mb-2">Smart Stock Control</h4>
-            <p className="text-sm opacity-80 mb-6 leading-relaxed">System is tracking {jobs.filter(j => !j.isPicked).length} upcoming job stock reservations.</p>
+            <p className="text-sm opacity-80 mb-6 leading-relaxed">System is tracking {activeJobs.filter((job) => !job.isPicked).length} upcoming job stock reservations.</p>
             <button 
               onClick={() => onNavigate('ordering')}
               className="w-full py-3 bg-white text-indigo-700 rounded-xl text-sm font-black hover:bg-indigo-50 transition-all shadow-lg"

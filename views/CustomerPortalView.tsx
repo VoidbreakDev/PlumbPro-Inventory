@@ -25,8 +25,37 @@ import {
   ClipboardList,
   Receipt
 } from 'lucide-react';
-import { portalAPI, type PortalDashboard, type PortalQuote, type PortalInvoice, type PortalJob } from '../lib/portalAPI';
+import {
+  clearPortalToken,
+  portalAPI,
+  setPortalToken,
+  type PortalDashboard,
+  type PortalQuote,
+  type PortalInvoice,
+  type PortalJob
+} from '../lib/portalAPI';
 import { getErrorMessage } from '../lib/errors';
+
+const PORTAL_TOKEN_KEY = 'portal_token';
+
+const readPortalToken = (): string | null => {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  const sessionToken = window.sessionStorage.getItem(PORTAL_TOKEN_KEY);
+  if (sessionToken) {
+    return sessionToken;
+  }
+
+  const legacyToken = window.localStorage.getItem(PORTAL_TOKEN_KEY);
+  if (legacyToken) {
+    setPortalToken(legacyToken);
+    return legacyToken;
+  }
+
+  return null;
+};
 
 interface PortalLoginProps {
   onLogin: (token: string) => void;
@@ -56,7 +85,7 @@ function PortalLogin({ onLogin }: PortalLoginProps) {
           // Try to auto-login in development
           try {
             const auth = await portalAPI.verifyToken(token);
-            localStorage.setItem('portal_token', auth.token);
+            setPortalToken(auth.token);
             onLogin(auth.token);
           } catch {
             // Silent fail - user will need to check email
@@ -799,7 +828,7 @@ function InvoiceDetailModal({ invoice, onClose, formatCurrency, formatDate }: In
 
 export default function CustomerPortalView() {
   const [searchParams] = useSearchParams();
-  const [token, setToken] = useState<string | null>(localStorage.getItem('portal_token'));
+  const [token, setToken] = useState<string | null>(readPortalToken);
 
   // Check for token in URL (magic link)
   useEffect(() => {
@@ -807,20 +836,20 @@ export default function CustomerPortalView() {
     if (urlToken && !token) {
       // Verify token and login
       portalAPI.verifyToken(urlToken).then((auth) => {
-        localStorage.setItem('portal_token', auth.token);
+        setPortalToken(auth.token);
         setToken(auth.token);
       }).catch(() => {
         // Invalid token, stay on login page
       });
     }
-  }, [searchParams]);
+  }, [searchParams, token]);
 
   const handleLogin = (newToken: string) => {
     setToken(newToken);
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('portal_token');
+    clearPortalToken();
     setToken(null);
   };
 

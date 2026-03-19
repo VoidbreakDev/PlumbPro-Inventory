@@ -10,9 +10,37 @@ import pool from '../config/database.js';
 const EMAIL_PROVIDER = process.env.EMAIL_PROVIDER || 'smtp'; // 'sendgrid', 'ses', 'smtp'
 const FROM_EMAIL = process.env.SMTP_FROM || 'noreply@plumbpro.com';
 const FROM_NAME = process.env.SMTP_FROM_NAME || 'PlumbPro Inventory';
+const MAX_EMAIL_LENGTH = 254;
+const MAX_DISPLAY_NAME_LENGTH = 120;
 
 // Initialize transporter
 let transporter = null;
+
+function normalizeEmailAddress(value) {
+  if (typeof value !== 'string') {
+    throw new Error('Email address is required');
+  }
+
+  const normalized = value.trim();
+  const simpleEmailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  if (
+    normalized.length === 0 ||
+    normalized.length > MAX_EMAIL_LENGTH ||
+    !simpleEmailPattern.test(normalized)
+  ) {
+    throw new Error('Invalid email address');
+  }
+
+  return normalized;
+}
+
+function normalizeDisplayName(value = '') {
+  return String(value)
+    .trim()
+    .replace(/[\r\n"]/g, '')
+    .slice(0, MAX_DISPLAY_NAME_LENGTH);
+}
 
 async function getTransporter() {
   if (transporter) return transporter;
@@ -87,6 +115,9 @@ export async function queueEmail({
   variables = {}
 }) {
   try {
+    const normalizedTo = normalizeEmailAddress(to);
+    const normalizedToName = normalizeDisplayName(toName);
+
     // Check if email_queue table exists
     const tableCheck = await pool.query(
       `SELECT EXISTS (
@@ -107,7 +138,7 @@ export async function queueEmail({
         subject, body_html, body_text, variables, status
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'pending')
       RETURNING *`,
-      [userId, templateId, to, toName, subject, bodyHtml, bodyText, JSON.stringify(variables)]
+      [userId, templateId, normalizedTo, normalizedToName, subject, bodyHtml, bodyText, JSON.stringify(variables)]
     );
     
     return result.rows[0];
@@ -131,11 +162,15 @@ export async function sendEmail({
   attachments = []
 }) {
   try {
+    const normalizedTo = normalizeEmailAddress(to);
+    const normalizedToName = normalizeDisplayName(toName);
+    const normalizedFrom = normalizeEmailAddress(from);
+    const normalizedFromName = normalizeDisplayName(fromName);
     const transport = await getTransporter();
     
     const info = await transport.sendMail({
-      from: `"${fromName}" <${from}>`,
-      to: `"${toName}" <${to}>`,
+      from: `"${normalizedFromName}" <${normalizedFrom}>`,
+      to: `"${normalizedToName}" <${normalizedTo}>`,
       subject,
       text: bodyText,
       html: bodyHtml,
@@ -394,9 +429,13 @@ export async function sendQuoteEmail({ userId, jobId, to, toName }) {
   try {
     // Get job details
     const jobResult = await pool.query(
-      `SELECT j.*, c.name as customer_name, u.company_name as business_name
+      `SELECT j.*,
+              COALESCE(c.name, j.builder, 'Customer') as customer_name,
+              u.company_name as business_name
        FROM jobs j
-       JOIN contacts c ON j.builder::uuid = c.id
+       LEFT JOIN contacts c
+         ON c.id = j.customer_id
+         OR (j.customer_id IS NULL AND c.id::text = j.builder)
        JOIN users u ON j.user_id = u.id
        WHERE j.id = $1 AND j.user_id = $2`,
       [jobId, userId]
@@ -465,10 +504,99 @@ export async function sendQuoteEmail({ userId, jobId, to, toName }) {
   }
 }
 
+export function getAppBaseUrl() {
+  return process.env.APP_URL || process.env.CLIENT_URL || process.env.PORTAL_URL || 'http://localhost:5173';
+}
+
+export async function sendPortalMagicLinkEmail({
+  to,
+  toName,
+  businessName,
+  magicLink,
+  expiresAt
+}) {
+  const safeBusinessName = businessName || 'PlumbPro';
+  const expiryLabel = expiresAt ? new Date(expiresAt).toLocaleString() : '24 hours';
+
+  return sendEmail({
+    to,
+    toName,
+    subject: `Your secure sign-in link for ${safeBusinessName}`,
+    bodyHtml: `
+      <div style="font-family: Arial, sans-serif; max-width: 640px; margin: 0 auto; color: #1f2937;">
+        <h2 style="margin-bottom: 12px;">Access your ${safeBusinessName} customer portal</h2>
+        <p>Hello${toName ? ` ${toName}` : ''},</p>
+        <p>Use the secure link below to view your quotes, invoices, and job updates.</p>
+        <p style="margin: 28px 0;">
+          <a href="${magicLink}" style="background: #2563eb; color: #ffffff; text-decoration: none; padding: 12px 20px; border-radius: 8px; display: inline-block; font-weight: 600;">
+            Open customer portal
+          </a>
+        </p>
+        <p style="font-size: 14px; color: #475569;">This link expires on ${expiryLabel}.</p>
+        <p style="font-size: 14px; color: #475569;">If you did not request this email, you can safely ignore it.</p>
+      </div>
+    `,
+    bodyText: [
+      `Access your ${safeBusinessName} customer portal`,
+      '',
+      `Use this secure link to sign in: ${magicLink}`,
+      '',
+      `This link expires on ${expiryLabel}.`,
+      'If you did not request this email, you can safely ignore it.'
+    ].join('\n')
+  });
+}
+
+export async function sendTeamInvitationEmail({
+  to,
+  teamName,
+  inviterName,
+  role,
+  inviteLink,
+  message,
+  expiresAt
+}) {
+  const safeTeamName = teamName || 'your team';
+  const safeInviterName = inviterName || 'A teammate';
+  const expiryLabel = expiresAt ? new Date(expiresAt).toLocaleString() : '7 days';
+
+  return sendEmail({
+    to,
+    subject: `You're invited to join ${safeTeamName} on PlumbPro`,
+    bodyHtml: `
+      <div style="font-family: Arial, sans-serif; max-width: 640px; margin: 0 auto; color: #1f2937;">
+        <h2 style="margin-bottom: 12px;">You're invited to join ${safeTeamName}</h2>
+        <p>${safeInviterName} invited you to join <strong>${safeTeamName}</strong> as <strong>${role}</strong>.</p>
+        ${message ? `<p style="padding: 12px 16px; background: #f8fafc; border-left: 4px solid #2563eb; border-radius: 6px;">${message}</p>` : ''}
+        <p style="margin: 28px 0;">
+          <a href="${inviteLink}" style="background: #2563eb; color: #ffffff; text-decoration: none; padding: 12px 20px; border-radius: 8px; display: inline-block; font-weight: 600;">
+            Accept invitation
+          </a>
+        </p>
+        <p style="font-size: 14px; color: #475569;">This invitation expires on ${expiryLabel}.</p>
+        <p style="font-size: 14px; color: #475569;">If you already have an account, open the link and sign in with the invited email address.</p>
+      </div>
+    `,
+    bodyText: [
+      `You're invited to join ${safeTeamName}`,
+      '',
+      `${safeInviterName} invited you to join ${safeTeamName} as ${role}.`,
+      message ? `Message: ${message}` : null,
+      '',
+      `Accept invitation: ${inviteLink}`,
+      '',
+      `This invitation expires on ${expiryLabel}.`
+    ].filter(Boolean).join('\n')
+  });
+}
+
 export default {
   queueEmail,
   sendEmail,
   processEmailQueue,
   sendInvoiceEmail,
-  sendQuoteEmail
+  sendQuoteEmail,
+  sendPortalMagicLinkEmail,
+  sendTeamInvitationEmail,
+  getAppBaseUrl
 };

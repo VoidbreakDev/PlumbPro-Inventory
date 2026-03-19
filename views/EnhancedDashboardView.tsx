@@ -29,14 +29,23 @@ import {
   ResponsiveContainer
 } from 'recharts';
 import { analyticsAPI } from '../lib/analyticsAPI';
-import type { DashboardAnalytics, MovementTrends } from '../lib/analyticsAPI';
+import type { DashboardAnalytics } from '../lib/analyticsAPI';
 import { StatCard } from '../components/Shared';
+import type { NavTab } from '../components/Navigation';
 import { useStore } from '../store/useStore';
 import { getErrorMessage } from '../lib/errors';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
 
-export function EnhancedDashboardView() {
+interface EnhancedDashboardViewProps {
+  embedded?: boolean;
+  onNavigate?: (tab: NavTab) => void;
+}
+
+export function EnhancedDashboardView({
+  embedded = false,
+  onNavigate
+}: EnhancedDashboardViewProps = {}) {
   const [dashboardData, setDashboardData] = useState<DashboardAnalytics | null>(null);
   const [movementTrends, setMovementTrends] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -129,17 +138,39 @@ export function EnhancedDashboardView() {
 
   if (isLoading && !dashboardData) {
     return (
-      <div className="flex justify-center items-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
+      embedded ? (
+        <div className="flex min-h-[420px] items-center justify-center rounded-xl border border-slate-100 bg-white py-12 shadow-sm">
+          <div className="text-center">
+            <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-blue-600"></div>
+            <p className="mt-4 text-sm text-slate-500">Loading analytics...</p>
+          </div>
+        </div>
+      ) : (
+        <div className="flex justify-center items-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+      )
     );
   }
 
   if (!dashboardData) {
-    return <div className="text-center py-12 text-slate-600">Failed to load dashboard</div>;
+    return embedded ? (
+      <div className="rounded-xl border border-amber-200 bg-amber-50 p-6 text-center text-amber-800">
+        Analytics are temporarily unavailable. Switch back to Overview while the dashboard data reloads.
+      </div>
+    ) : (
+      <div className="text-center py-12 text-slate-600">Failed to load dashboard</div>
+    );
   }
 
-  const totalJobs = Object.values(dashboardData.jobStats).reduce((sum, count) => sum + count, 0);
+  const jobStatusCounts = Object.values(dashboardData.jobStats) as number[];
+  const totalJobs = jobStatusCounts.reduce((sum, count) => sum + count, 0);
+  const scheduledJobs = dashboardData.jobStats['Scheduled'] ?? 0;
+  const inProgressJobs = dashboardData.jobStats['In Progress'] ?? 0;
+  const activeProjects = dashboardData.projectStats?.Active ?? 0;
+  const planningProjects = dashboardData.projectStats?.Planning ?? 0;
+  const scheduledStages = dashboardData.stageStats?.scheduled ?? 0;
+  const inProgressStages = dashboardData.stageStats?.in_progress ?? 0;
   const completionRate = totalJobs > 0
     ? ((dashboardData.jobStats.Completed || 0) / totalJobs * 100).toFixed(1)
     : '0';
@@ -147,13 +178,15 @@ export function EnhancedDashboardView() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800">Dashboard</h1>
-          <p className="text-slate-600 mt-1">
-            Business overview and key metrics
-          </p>
-        </div>
+      <div className={`flex items-center ${embedded ? 'justify-end' : 'justify-between'}`}>
+        {!embedded && (
+          <div>
+            <h1 className="text-2xl font-bold text-slate-800">Dashboard</h1>
+            <p className="text-slate-600 mt-1">
+              Business overview and key metrics
+            </p>
+          </div>
+        )}
         <div className="flex items-center gap-3">
           {/* Period Selector */}
           <select
@@ -184,37 +217,68 @@ export function EnhancedDashboardView() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6">
         <StatCard
           icon={DollarSign}
-          label="Total Inventory Value"
+          title="Total Inventory Value"
           value={`£${dashboardData.inventoryValue.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-          trend={calculateTrend('In') > calculateTrend('Out') ? 'up' : 'down'}
           color="blue"
         />
 
         <StatCard
           icon={AlertTriangle}
-          label="Low Stock Items"
+          title="Low Stock Items"
           value={dashboardData.lowStockCount.toString()}
-          trend={dashboardData.lowStockCount > 5 ? 'down' : 'up'}
           color="yellow"
         />
 
         <StatCard
           icon={Briefcase}
-          label="Active Jobs"
-          value={(dashboardData.jobStats['Scheduled'] + dashboardData.jobStats['In Progress']).toString()}
+          title="Active Jobs"
+          value={(scheduledJobs + inProgressJobs).toString()}
           color="green"
         />
 
         <StatCard
           icon={Users}
-          label="Completion Rate"
+          title="Completion Rate"
           value={`${completionRate}%`}
-          trend={parseFloat(completionRate) > 80 ? 'up' : 'down'}
           color="blue"
         />
+
+        <StatCard
+          icon={Calendar}
+          title="Active Projects"
+          value={activeProjects.toString()}
+          color="green"
+        />
+
+        <StatCard
+          icon={Briefcase}
+          title="Overdue Stages"
+          value={dashboardData.overdueStageCount.toString()}
+          color={dashboardData.overdueStageCount > 0 ? 'yellow' : 'blue'}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div className="rounded-lg border border-slate-100 bg-white p-5 shadow-sm">
+          <div className="text-sm font-semibold text-slate-500">Project Pipeline</div>
+          <div className="mt-2 text-2xl font-black text-slate-800">{activeProjects + planningProjects}</div>
+          <div className="mt-1 text-sm text-slate-500">
+            {activeProjects} active, {planningProjects} planning
+          </div>
+        </div>
+        <div className="rounded-lg border border-slate-100 bg-white p-5 shadow-sm">
+          <div className="text-sm font-semibold text-slate-500">Scheduled Stages</div>
+          <div className="mt-2 text-2xl font-black text-slate-800">{scheduledStages}</div>
+          <div className="mt-1 text-sm text-slate-500">Ready to turn into operational work</div>
+        </div>
+        <div className="rounded-lg border border-slate-100 bg-white p-5 shadow-sm">
+          <div className="text-sm font-semibold text-slate-500">Stages In Progress</div>
+          <div className="mt-2 text-2xl font-black text-slate-800">{inProgressStages}</div>
+          <div className="mt-1 text-sm text-slate-500">Live on-site plumbing stages</div>
+        </div>
       </div>
 
       {/* Charts Row 1 */}
@@ -344,9 +408,19 @@ export function EnhancedDashboardView() {
                 You have {dashboardData.lowStockCount} item{dashboardData.lowStockCount > 1 ? 's' : ''} at or below reorder level.
                 Consider placing orders soon to avoid stockouts.
               </p>
-              <a href="/inventory" className="mt-2 text-sm font-medium text-yellow-800 hover:text-yellow-900 inline-block">
-                View Items →
-              </a>
+              {onNavigate ? (
+                <button
+                  type="button"
+                  onClick={() => onNavigate('inventory')}
+                  className="mt-2 text-sm font-medium text-yellow-800 hover:text-yellow-900 inline-block"
+                >
+                  View Items →
+                </button>
+              ) : (
+                <a href="/inventory" className="mt-2 text-sm font-medium text-yellow-800 hover:text-yellow-900 inline-block">
+                  View Items →
+                </a>
+              )}
             </div>
           </div>
         </div>

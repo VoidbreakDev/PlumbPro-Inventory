@@ -33,9 +33,6 @@ import type {
 } from '../lib/analyticsAPI';
 import { useStore } from '../store/useStore';
 import { getErrorMessage } from '../lib/errors';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import ExcelJS from 'exceljs';
 import { format, subDays, subMonths } from 'date-fns';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
@@ -86,7 +83,11 @@ export function AnalyticsView() {
     });
   };
 
-  const exportToPDF = () => {
+  const exportToPDF = async () => {
+    const [{ jsPDF }, { default: autoTable }] = await Promise.all([
+      import('jspdf'),
+      import('jspdf-autotable')
+    ]);
     const doc = new jsPDF();
 
     doc.setFontSize(18);
@@ -167,6 +168,7 @@ export function AnalyticsView() {
   };
 
   const exportToExcel = async () => {
+    const { default: ExcelJS } = await import('exceljs');
     const workbook = new ExcelJS.Workbook();
     workbook.creator = 'PlumbPro Inventory';
     workbook.created = new Date();
