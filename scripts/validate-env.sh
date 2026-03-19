@@ -124,8 +124,6 @@ check_file "$PROJECT_DIR/package.json" required
 check_file "$PROJECT_DIR/server/package.json" required
 check_file "$PROJECT_DIR/server/.env" required
 check_file "$PROJECT_DIR/.env" optional
-check_file "$PROJECT_DIR/docker-compose.yml" optional
-check_file "$PROJECT_DIR/Dockerfile" optional
 echo ""
 
 echo -e "${BLUE}🔐 Backend Environment (server/.env)${NC}"
@@ -182,8 +180,6 @@ echo "----------------------"
 check_command "node" required
 check_command "npm" required
 check_command "psql" optional
-check_command "docker" optional
-check_command "docker-compose" optional
 check_command "pm2" optional
 echo ""
 
