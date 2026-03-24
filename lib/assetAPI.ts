@@ -25,7 +25,7 @@ export interface MaintenanceStats {
 }
 
 class AssetAPI {
-  private baseUrl = '/api/assets';
+  private baseUrl = '/assets';
 
   // ==================== Asset CRUD ====================
 
