@@ -6,9 +6,12 @@ import multer from 'multer';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import pool from '../config/database.js';
-import { authenticateToken } from '../middleware/auth.js';
+import { authenticateToken, authorizeRole } from '../middleware/auth.js';
 
 const router = express.Router();
+
+// All white-label management routes require authentication and owner role
+router.use(authenticateToken, authorizeRole('owner'));
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const WHITE_LABEL_UPLOADS_DIR = path.resolve(__dirname, '../../../uploads/white-label');
 
@@ -452,7 +455,7 @@ router.delete('/domains', async (req, res) => {
   }
 });
 
-router.post('/upload', authenticateToken, upload.single('file'), async (req, res) => {
+router.post('/upload', upload.single('file'), async (req, res) => {
   try {
     const userId = req.user?.userId;
     const { networkId = null, type } = req.body;

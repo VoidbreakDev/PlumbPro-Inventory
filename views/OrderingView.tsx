@@ -1,9 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import {
   ShoppingCart,
   TrendingUp,
-  ChevronRight,
   Truck,
   FileText,
   CheckCircle,
@@ -37,11 +35,15 @@ import {
   ForecastResponse,
   ItemForecast
 } from '../types';
-import { Badge } from '../components/Shared';
 import { smartOrderingAPI } from '../lib/api';
 import { useStore } from '../store/useStore';
 import { getErrorMessage } from '../lib/errors';
 import purchaseOrdersAPI from '../lib/purchaseOrdersAPI';
+import { useToast } from '../components/ToastNotification';
+import { ConfirmationModal } from '../components/ConfirmationModal';
+import { SmartSuggestions } from './ordering/SmartSuggestions';
+import { PriceAlertsList } from './ordering/PriceAlertsList';
+import { OrderForm } from './ordering/OrderForm';
 
 interface OrderingViewProps {
   inventory: InventoryItem[];
@@ -65,9 +67,17 @@ export const OrderingView: React.FC<OrderingViewProps> = ({ inventory, jobs }) =
   const [isCheckingStock, setIsCheckingStock] = useState(false);
   const [forecastDays, setForecastDays] = useState(30);
 
+  const toast = useToast();
   const [showRuleModal, setShowRuleModal] = useState(false);
   const [showUsageModal, setShowUsageModal] = useState(false);
   const [editingRule, setEditingRule] = useState<ReorderRule | null>(null);
+  const [dismissingAlertId, setDismissingAlertId] = useState<string | null>(null);
+  const [dismissReason, setDismissReason] = useState('');
+  const [confirmModal, setConfirmModal] = useState<{
+    title: string;
+    description: string;
+    onConfirm: () => void;
+  } | null>(null);
 
   const setError = useStore((state) => state.setError);
   const contacts = useStore((state) => state.contacts);
@@ -153,7 +163,7 @@ export const OrderingView: React.FC<OrderingViewProps> = ({ inventory, jobs }) =
     setIsCheckingStock(true);
     try {
       const result = await smartOrderingAPI.checkAllStock();
-      alert(`Stock check complete!\n\nItems checked: ${result.itemsChecked}\nNew alerts created: ${result.alertsCreated}`);
+      toast.success(`Stock check complete! ${result.itemsChecked} items checked, ${result.alertsCreated} new alerts created.`);
       loadAlerts();
       loadDashboard();
     } catch (err) {
@@ -174,10 +184,17 @@ export const OrderingView: React.FC<OrderingViewProps> = ({ inventory, jobs }) =
     }
   };
 
-  const handleDismissAlert = async (alertId: string) => {
-    const reason = prompt('Reason for dismissing this alert (optional):');
+  const handleDismissAlert = (alertId: string) => {
+    setDismissingAlertId(alertId);
+    setDismissReason('');
+  };
+
+  const handleDismissAlertConfirmed = async () => {
+    if (!dismissingAlertId) return;
+    const alertId = dismissingAlertId;
+    setDismissingAlertId(null);
     try {
-      await smartOrderingAPI.dismissAlert(alertId, reason || undefined);
+      await smartOrderingAPI.dismissAlert(alertId, dismissReason || undefined);
       setAlerts(prev => prev.filter(a => a.id !== alertId));
     } catch (err) {
       setError(getErrorMessage(err, 'Failed to dismiss alert'));
@@ -187,7 +204,7 @@ export const OrderingView: React.FC<OrderingViewProps> = ({ inventory, jobs }) =
   const handleCreatePOFromAlert = async (alertId: string) => {
     try {
       const result = await smartOrderingAPI.createPOFromAlert(alertId);
-      alert(`Purchase Order ${result.purchaseOrder.po_number} created successfully!`);
+      toast.success(`Purchase Order ${result.purchaseOrder.po_number} created successfully!`);
       loadAlerts();
       loadDashboard();
     } catch (err) {
@@ -216,84 +233,73 @@ export const OrderingView: React.FC<OrderingViewProps> = ({ inventory, jobs }) =
     }
   };
 
-  const handleDeleteRule = async (itemId: string) => {
-    if (!confirm('Delete this reorder rule?')) return;
-    try {
-      await smartOrderingAPI.deleteRule(itemId);
-      loadRules();
-    } catch (err) {
-      setError(getErrorMessage(err, 'Failed to delete rule'));
-    }
-  };
-
-  const createPOsFromSuggestions = async () => {
-    if (!confirm(`Create purchase orders for ${suggestions.length} suggested items?`)) {
-      return;
-    }
-
-    setIsCreatingPOs(true);
-    try {
-      const itemsBySupplier = new Map<string, typeof suggestions>();
-
-      suggestions.forEach(suggestion => {
-        const invItem = inventory.find(i => i.name === suggestion.itemName);
-        const supplierId = invItem?.supplierId || 'no-supplier';
-
-        if (!itemsBySupplier.has(supplierId)) {
-          itemsBySupplier.set(supplierId, []);
+  const handleDeleteRule = (itemId: string) => {
+    setConfirmModal({
+      title: 'Delete Reorder Rule',
+      description: 'Delete this reorder rule?',
+      onConfirm: async () => {
+        setConfirmModal(null);
+        try {
+          await smartOrderingAPI.deleteRule(itemId);
+          loadRules();
+        } catch (err) {
+          setError(getErrorMessage(err, 'Failed to delete rule'));
         }
-        itemsBySupplier.get(supplierId)!.push(suggestion);
-      });
-
-      const createdPOs = [];
-      for (const [supplierId, items] of itemsBySupplier.entries()) {
-        const poItems = items.map(suggestion => {
-          const invItem = inventory.find(i => i.name === suggestion.itemName);
-          return {
-            inventory_item_id: invItem?.id,
-            item_name: suggestion.itemName,
-            quantity_ordered: suggestion.suggestedQuantity,
-            unit_price: invItem?.price || 0
-          };
-        });
-
-        const poData = {
-          supplier_id: supplierId !== 'no-supplier' ? supplierId : undefined,
-          items: poItems,
-          notes: 'Created from Smart Ordering suggestions'
-        };
-
-        const newPO = await purchaseOrdersAPI.create(poData);
-        createdPOs.push(newPO);
       }
-
-      alert(`Successfully created ${createdPOs.length} purchase order(s)!\n\nPO Numbers:\n${createdPOs.map(po => po.po_number).join('\n')}`);
-      setSuggestions([]);
-    } catch (err) {
-      setError(getErrorMessage(err, 'Failed to create purchase orders from suggestions'));
-    } finally {
-      setIsCreatingPOs(false);
-    }
+    });
   };
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'critical': return 'bg-red-100 text-red-800';
-      case 'high': return 'bg-orange-100 text-orange-800';
-      case 'medium': return 'bg-yellow-100 text-yellow-800';
-      case 'low': return 'bg-blue-100 text-blue-800';
-      default: return 'bg-slate-100 text-slate-800';
-    }
-  };
+  const createPOsFromSuggestions = () => {
+    setConfirmModal({
+      title: 'Create Purchase Orders',
+      description: `Create purchase orders for ${suggestions.length} suggested items?`,
+      onConfirm: async () => {
+        setConfirmModal(null);
+        setIsCreatingPOs(true);
+        try {
+          const itemsBySupplier = new Map<string, typeof suggestions>();
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'acknowledged': return 'bg-blue-100 text-blue-800';
-      case 'ordered': return 'bg-green-100 text-green-800';
-      case 'dismissed': return 'bg-slate-100 text-slate-800';
-      default: return 'bg-slate-100 text-slate-800';
-    }
+          suggestions.forEach(suggestion => {
+            const invItem = inventory.find(i => i.name === suggestion.itemName);
+            const supplierId = invItem?.supplierId || 'no-supplier';
+
+            if (!itemsBySupplier.has(supplierId)) {
+              itemsBySupplier.set(supplierId, []);
+            }
+            itemsBySupplier.get(supplierId)!.push(suggestion);
+          });
+
+          const createdPOs = [];
+          for (const [supplierId, items] of itemsBySupplier.entries()) {
+            const poItems = items.map(suggestion => {
+              const invItem = inventory.find(i => i.name === suggestion.itemName);
+              return {
+                inventory_item_id: invItem?.id,
+                item_name: suggestion.itemName,
+                quantity_ordered: suggestion.suggestedQuantity,
+                unit_price: invItem?.price || 0
+              };
+            });
+
+            const poData = {
+              supplier_id: supplierId !== 'no-supplier' ? supplierId : undefined,
+              items: poItems,
+              notes: 'Created from Smart Ordering suggestions'
+            };
+
+            const newPO = await purchaseOrdersAPI.create(poData);
+            createdPOs.push(newPO);
+          }
+
+          toast.success(`Successfully created ${createdPOs.length} purchase order(s): ${createdPOs.map(po => po.po_number).join(', ')}`);
+          setSuggestions([]);
+        } catch (err) {
+          setError(getErrorMessage(err, 'Failed to create purchase orders from suggestions'));
+        } finally {
+          setIsCreatingPOs(false);
+        }
+      }
+    });
   };
 
   const tabs = [
@@ -517,136 +523,21 @@ export const OrderingView: React.FC<OrderingViewProps> = ({ inventory, jobs }) =
 
       {/* Alerts Tab */}
       {activeTab === 'alerts' && (
-        <div className="space-y-4">
-          {/* Filter Bar */}
-          <div className="flex justify-between items-center">
-            <div className="flex space-x-2">
-              <select className="px-3 py-2 border border-slate-300 rounded-lg text-sm">
-                <option value="">All Statuses</option>
-                <option value="pending">Pending</option>
-                <option value="acknowledged">Acknowledged</option>
-                <option value="ordered">Ordered</option>
-              </select>
-              <select className="px-3 py-2 border border-slate-300 rounded-lg text-sm">
-                <option value="">All Priorities</option>
-                <option value="critical">Critical</option>
-                <option value="high">High</option>
-                <option value="medium">Medium</option>
-                <option value="low">Low</option>
-              </select>
-            </div>
-            <button
-              onClick={handleCheckAllStock}
-              disabled={isCheckingStock}
-              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-            >
-              <RefreshCw className={`w-4 h-4 mr-2 ${isCheckingStock ? 'animate-spin' : ''}`} />
-              Refresh
-            </button>
-          </div>
-
-          {isLoading ? (
-            <div className="text-center py-12">
-              <RefreshCw className="w-8 h-8 animate-spin mx-auto text-blue-600 mb-4" />
-              <p className="text-slate-600">Loading alerts...</p>
-            </div>
-          ) : alerts.length === 0 ? (
-            <div className="text-center py-12 bg-white rounded-xl border border-slate-100">
-              <Bell className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-              <p className="text-slate-600">No reorder alerts at this time.</p>
-              <p className="text-sm text-slate-500 mt-1">All inventory levels are healthy.</p>
-            </div>
-          ) : (
-            <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
-              <div className="divide-y divide-slate-100">
-                {alerts.map(alert => (
-                  <div key={alert.id} className="p-6 hover:bg-slate-50">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-3 mb-2">
-                          <h4 className="font-bold text-slate-800">{alert.itemName}</h4>
-                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getPriorityColor(alert.priority)}`}>
-                            {alert.priority.toUpperCase()}
-                          </span>
-                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(alert.status)}`}>
-                            {alert.status}
-                          </span>
-                        </div>
-                        <p className="text-slate-600 mb-2">{alert.reason}</p>
-                        <div className="flex items-center space-x-6 text-sm text-slate-500">
-                          <span className="flex items-center">
-                            <Package className="w-4 h-4 mr-1" />
-                            Current: {alert.currentStock}
-                          </span>
-                          <span className="flex items-center">
-                            <AlertTriangle className="w-4 h-4 mr-1" />
-                            Reorder at: {alert.reorderPoint}
-                          </span>
-                          <span className="flex items-center">
-                            <ShoppingCart className="w-4 h-4 mr-1" />
-                            Suggested qty: {alert.suggestedQuantity}
-                          </span>
-                          {alert.daysOfStockRemaining !== undefined && (
-                            <span className="flex items-center">
-                              <Clock className="w-4 h-4 mr-1" />
-                              {alert.daysOfStockRemaining} days remaining
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-2 ml-4">
-                        {alert.status === 'pending' && (
-                          <>
-                            <button
-                              onClick={() => handleViewUsage(alert.itemId)}
-                              className="p-2 text-slate-600 hover:bg-slate-100 rounded-lg"
-                              title="View Usage"
-                            >
-                              <Eye className="w-5 h-5" />
-                            </button>
-                            <button
-                              onClick={() => handleAcknowledgeAlert(alert.id)}
-                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
-                              title="Acknowledge"
-                            >
-                              <CheckCircle2 className="w-5 h-5" />
-                            </button>
-                            <button
-                              onClick={() => handleCreatePOFromAlert(alert.id)}
-                              className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium"
-                            >
-                              Create PO
-                            </button>
-                            <button
-                              onClick={() => handleDismissAlert(alert.id)}
-                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
-                              title="Dismiss"
-                            >
-                              <XCircle className="w-5 h-5" />
-                            </button>
-                          </>
-                        )}
-                        {alert.status === 'acknowledged' && (
-                          <button
-                            onClick={() => handleCreatePOFromAlert(alert.id)}
-                            className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium"
-                          >
-                            Create PO
-                          </button>
-                        )}
-                        {alert.status === 'ordered' && alert.poNumber && (
-                          <span className="text-sm text-green-600 font-medium">
-                            PO: {alert.poNumber}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+        <PriceAlertsList
+          alerts={alerts}
+          isLoading={isLoading}
+          isCheckingStock={isCheckingStock}
+          dismissingAlertId={dismissingAlertId}
+          dismissReason={dismissReason}
+          onCheckAllStock={handleCheckAllStock}
+          onAcknowledgeAlert={handleAcknowledgeAlert}
+          onDismissAlert={handleDismissAlert}
+          onDismissAlertConfirmed={handleDismissAlertConfirmed}
+          onCancelDismiss={() => setDismissingAlertId(null)}
+          onSetDismissReason={setDismissReason}
+          onCreatePOFromAlert={handleCreatePOFromAlert}
+          onViewUsage={handleViewUsage}
+        />
       )}
 
       {/* Rules Tab */}
@@ -962,81 +853,18 @@ export const OrderingView: React.FC<OrderingViewProps> = ({ inventory, jobs }) =
 
       {/* AI Suggestions Tab */}
       {activeTab === 'suggestions' && (
-        <div className="space-y-6">
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-            <div className="flex items-start justify-between">
-              <div>
-                <h4 className="font-bold text-slate-800 mb-2">AI-Powered Order Suggestions</h4>
-                <p className="text-slate-600">
-                  Our AI analyzes your upcoming jobs, usage patterns, and current stock levels to suggest optimal purchase orders.
-                </p>
-              </div>
-              <button
-                onClick={fetchSuggestions}
-                disabled={isSuggesting}
-                className="px-6 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center"
-              >
-                {isSuggesting ? (
-                  <>
-                    <RefreshCw className="w-5 h-5 mr-2 animate-spin" />
-                    Analyzing...
-                  </>
-                ) : (
-                  <>
-                    <TrendingUp className="w-5 h-5 mr-2" />
-                    Generate Suggestions
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-
-          {suggestions.length > 0 && (
-            <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
-              <div className="p-6 border-b border-slate-100 flex justify-between items-center">
-                <h4 className="font-bold text-slate-800">Suggested Purchase Order ({suggestions.length} items)</h4>
-                <button
-                  onClick={createPOsFromSuggestions}
-                  disabled={isCreatingPOs}
-                  className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors disabled:opacity-50"
-                >
-                  {isCreatingPOs ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                      Creating POs...
-                    </>
-                  ) : (
-                    <>
-                      <FileText className="w-4 h-4 mr-2" />
-                      Create Purchase Orders
-                    </>
-                  )}
-                </button>
-              </div>
-              <div className="divide-y divide-slate-100">
-                {suggestions.map((s, idx) => (
-                  <div key={idx} className="p-6 flex items-start justify-between hover:bg-slate-50 transition-colors">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2 mb-1">
-                        <p className="font-bold text-slate-800">{s.itemName}</p>
-                        <Badge variant="blue">+{s.suggestedQuantity}</Badge>
-                      </div>
-                      <p className="text-sm text-slate-500 flex items-center italic">
-                        <ChevronRight className="w-4 h-4 text-slate-400 mr-1" />
-                        {s.reason}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+        <SmartSuggestions
+          suggestions={suggestions}
+          isSuggesting={isSuggesting}
+          isCreatingPOs={isCreatingPOs}
+          onFetchSuggestions={fetchSuggestions}
+          onCreatePOs={createPOsFromSuggestions}
+        />
       )}
 
       {/* Rule Modal */}
       {showRuleModal && (
-        <RuleModal
+        <OrderForm
           rule={editingRule}
           inventory={inventory}
           contacts={contacts}
@@ -1058,186 +886,16 @@ export const OrderingView: React.FC<OrderingViewProps> = ({ inventory, jobs }) =
           }}
         />
       )}
-    </div>
-  );
-};
 
-// Rule Modal Component
-interface RuleModalProps {
-  rule: ReorderRule | null;
-  inventory: InventoryItem[];
-  contacts: any[];
-  onSave: (data: CreateReorderRuleInput) => void;
-  onClose: () => void;
-}
-
-const RuleModal: React.FC<RuleModalProps> = ({ rule, inventory, contacts, onSave, onClose }) => {
-  const [formData, setFormData] = useState<CreateReorderRuleInput>({
-    itemId: rule?.itemId || '',
-    reorderPoint: rule?.reorderPoint || 10,
-    reorderQuantity: rule?.reorderQuantity || 20,
-    maxStockLevel: rule?.maxStockLevel || undefined,
-    leadTimeDays: rule?.leadTimeDays || 7,
-    safetyStockDays: rule?.safetyStockDays || 3,
-    preferredSupplierId: rule?.preferredSupplierId || undefined,
-    autoCreatePo: rule?.autoCreatePo || false,
-    isActive: rule?.isActive ?? true,
-  });
-
-  const suppliers = contacts.filter(c => c.type === 'Supplier');
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.itemId) {
-      alert('Please select an item');
-      return;
-    }
-    onSave(formData);
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-          <h3 className="text-lg font-bold text-slate-800">
-            {rule ? 'Edit Reorder Rule' : 'Add Reorder Rule'}
-          </h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Item *</label>
-            <select
-              value={formData.itemId}
-              onChange={(e) => setFormData({ ...formData, itemId: e.target.value })}
-              disabled={!!rule}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg disabled:bg-slate-100"
-              required
-            >
-              <option value="">Select an item...</option>
-              {inventory.map(item => (
-                <option key={item.id} value={item.id}>
-                  {item.name} ({item.category})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Reorder Point</label>
-              <input
-                type="number"
-                value={formData.reorderPoint}
-                onChange={(e) => setFormData({ ...formData, reorderPoint: parseInt(e.target.value) || 0 })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg"
-                min="0"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Reorder Quantity</label>
-              <input
-                type="number"
-                value={formData.reorderQuantity}
-                onChange={(e) => setFormData({ ...formData, reorderQuantity: parseInt(e.target.value) || 0 })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg"
-                min="1"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Lead Time (days)</label>
-              <input
-                type="number"
-                value={formData.leadTimeDays}
-                onChange={(e) => setFormData({ ...formData, leadTimeDays: parseInt(e.target.value) || 0 })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg"
-                min="0"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Safety Stock (days)</label>
-              <input
-                type="number"
-                value={formData.safetyStockDays}
-                onChange={(e) => setFormData({ ...formData, safetyStockDays: parseInt(e.target.value) || 0 })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg"
-                min="0"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Max Stock Level (optional)</label>
-            <input
-              type="number"
-              value={formData.maxStockLevel || ''}
-              onChange={(e) => setFormData({ ...formData, maxStockLevel: e.target.value ? parseInt(e.target.value) : undefined })}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg"
-              min="0"
-              placeholder="No maximum"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Preferred Supplier</label>
-            <select
-              value={formData.preferredSupplierId || ''}
-              onChange={(e) => setFormData({ ...formData, preferredSupplierId: e.target.value || undefined })}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg"
-            >
-              <option value="">No preference</option>
-              {suppliers.map(supplier => (
-                <option key={supplier.id} value={supplier.id}>
-                  {supplier.name} {supplier.company ? `(${supplier.company})` : ''}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex items-center space-x-6">
-            <label className="flex items-center">
-              <input
-                type="checkbox"
-                checked={formData.autoCreatePo}
-                onChange={(e) => setFormData({ ...formData, autoCreatePo: e.target.checked })}
-                className="w-4 h-4 text-blue-600 border-slate-300 rounded"
-              />
-              <span className="ml-2 text-sm text-slate-700">Auto-create PO when triggered</span>
-            </label>
-            <label className="flex items-center">
-              <input
-                type="checkbox"
-                checked={formData.isActive}
-                onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                className="w-4 h-4 text-blue-600 border-slate-300 rounded"
-              />
-              <span className="ml-2 text-sm text-slate-700">Rule active</span>
-            </label>
-          </div>
-
-          <div className="flex justify-end space-x-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              {rule ? 'Update Rule' : 'Create Rule'}
-            </button>
-          </div>
-        </form>
-      </div>
+      <ConfirmationModal
+        isOpen={confirmModal !== null}
+        title={confirmModal?.title ?? ''}
+        description={confirmModal?.description ?? ''}
+        confirmLabel="Confirm"
+        variant="danger"
+        onConfirm={() => confirmModal?.onConfirm()}
+        onClose={() => setConfirmModal(null)}
+      />
     </div>
   );
 };

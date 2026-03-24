@@ -1,7 +1,7 @@
 import express from 'express';
 import { body } from 'express-validator';
 import pool from '../config/database.js';
-import { authenticateToken } from '../middleware/auth.js';
+import { authenticateToken, authorizeRole } from '../middleware/auth.js';
 import { validate } from '../middleware/validation.js';
 import {
   syncProjectJobs,
@@ -13,7 +13,7 @@ import { checkWorkflowTriggers } from '../services/workflowEngine.js';
 
 const router = express.Router();
 
-router.use(authenticateToken);
+router.use(authenticateToken, authorizeRole('admin', 'owner', 'manager'));
 
 const DEVELOPMENT_STAGE_LIBRARY = [
   'Drain Underfloor',

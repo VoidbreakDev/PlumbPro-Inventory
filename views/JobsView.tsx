@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { Job, Contact, InventoryItem, JobTemplate, AllocatedItem, Kit } from '../types';
 import { Badge } from '../components/Shared';
+import { ConfirmationModal } from '../components/ConfirmationModal';
 
 interface JobsViewProps {
   jobs: Job[];
@@ -57,9 +58,25 @@ export const JobsView: React.FC<JobsViewProps> = ({
   const [isTemplateEditOpen, setIsTemplateEditOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<JobTemplate | null>(null);
   const [tempName, setTempName] = useState('');
+  const [confirmModal, setConfirmModal] = useState<{
+    title: string;
+    description: string;
+    onConfirm: () => void;
+  } | null>(null);
   const [tempItems, setTempItems] = useState<AllocatedItem[]>([]);
   const [itemSearch, setItemSearch] = useState('');
   const activeJobs = jobs.filter((job) => !['Completed', 'Cancelled'].includes(job.status));
+
+  const handleDeleteTemplate = (template: JobTemplate) => {
+    setConfirmModal({
+      title: 'Delete Template',
+      description: `Delete template "${template.name}"?`,
+      onConfirm: () => {
+        setConfirmModal(null);
+        onDeleteTemplate(template.id);
+      }
+    });
+  };
 
   const openEditTemplate = (template?: JobTemplate) => {
     if (template) {
@@ -337,12 +354,8 @@ export const JobsView: React.FC<JobsViewProps> = ({
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
-                        <button 
-                          onClick={() => {
-                            if (confirm(`Delete template "${template.name}"?`)) {
-                              onDeleteTemplate(template.id);
-                            }
-                          }}
+                        <button
+                          onClick={() => handleDeleteTemplate(template)}
                           className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -478,6 +491,15 @@ export const JobsView: React.FC<JobsViewProps> = ({
           </div>
         </div>
       )}
+      <ConfirmationModal
+        isOpen={confirmModal !== null}
+        title={confirmModal?.title ?? ''}
+        description={confirmModal?.description ?? ''}
+        confirmLabel="Confirm"
+        variant="danger"
+        onConfirm={() => confirmModal?.onConfirm()}
+        onClose={() => setConfirmModal(null)}
+      />
     </div>
   );
 };

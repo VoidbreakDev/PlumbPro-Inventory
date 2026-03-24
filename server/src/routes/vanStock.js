@@ -1,14 +1,18 @@
 import express from 'express';
 import pool from '../config/database.js';
+import { authenticateToken } from '../middleware/auth.js';
 
 const router = express.Router();
+
+// All van stock routes require authentication
+router.use(authenticateToken);
 
 // ============ Service Vans ============
 
 // Get all vans
 router.get('/vans', async (req, res) => {
   try {
-    const userId = req.user?.id || req.headers['x-user-id'];
+    const userId = req.user.userId;
 
     const result = await pool.query(`
       SELECT
@@ -33,7 +37,7 @@ router.get('/vans', async (req, res) => {
 // Get single van with stock
 router.get('/vans/:id', async (req, res) => {
   try {
-    const userId = req.user?.id || req.headers['x-user-id'];
+    const userId = req.user.userId;
     const { id } = req.params;
 
     const vanResult = await pool.query(`
@@ -78,7 +82,7 @@ router.get('/vans/:id', async (req, res) => {
 // Create van
 router.post('/vans', async (req, res) => {
   try {
-    const userId = req.user?.id || req.headers['x-user-id'];
+    const userId = req.user.userId;
     const {
       name,
       registration,
@@ -130,7 +134,7 @@ router.post('/vans', async (req, res) => {
 // Update van
 router.put('/vans/:id', async (req, res) => {
   try {
-    const userId = req.user?.id || req.headers['x-user-id'];
+    const userId = req.user.userId;
     const { id } = req.params;
     const updates = req.body;
 
@@ -194,7 +198,7 @@ router.put('/vans/:id', async (req, res) => {
 // Delete van
 router.delete('/vans/:id', async (req, res) => {
   try {
-    const userId = req.user?.id || req.headers['x-user-id'];
+    const userId = req.user.userId;
     const { id } = req.params;
 
     const result = await pool.query(`
@@ -219,7 +223,7 @@ router.delete('/vans/:id', async (req, res) => {
 // Get low stock items across all vans
 router.get('/low-stock', async (req, res) => {
   try {
-    const userId = req.user?.id || req.headers['x-user-id'];
+    const userId = req.user.userId;
 
     const result = await pool.query(`
       SELECT
@@ -249,7 +253,7 @@ router.get('/low-stock', async (req, res) => {
 router.post('/vans/:vanId/stock', async (req, res) => {
   const client = await pool.connect();
   try {
-    const userId = req.user?.id || req.headers['x-user-id'];
+    const userId = req.user.userId;
     const { vanId } = req.params;
     const {
       itemId,
@@ -336,7 +340,7 @@ router.post('/vans/:vanId/stock', async (req, res) => {
 router.post('/vans/:vanId/stock/bulk', async (req, res) => {
   const client = await pool.connect();
   try {
-    const userId = req.user?.id || req.headers['x-user-id'];
+    const userId = req.user.userId;
     const { vanId } = req.params;
     const { items, movementType = 'restock', notes, lat, lng } = req.body;
 
@@ -420,7 +424,7 @@ router.post('/vans/:vanId/stock/bulk', async (req, res) => {
 router.post('/vans/:vanId/use', async (req, res) => {
   const client = await pool.connect();
   try {
-    const userId = req.user?.id || req.headers['x-user-id'];
+    const userId = req.user.userId;
     const { vanId } = req.params;
     const { itemId, quantity, jobId, notes, lat, lng } = req.body;
 
@@ -498,7 +502,7 @@ router.post('/vans/:vanId/use', async (req, res) => {
 // Get restock requests
 router.get('/restock-requests', async (req, res) => {
   try {
-    const userId = req.user?.id || req.headers['x-user-id'];
+    const userId = req.user.userId;
     const { status, vanId } = req.query;
 
     let query = `
@@ -538,7 +542,7 @@ router.get('/restock-requests', async (req, res) => {
 // Get single restock request with items
 router.get('/restock-requests/:id', async (req, res) => {
   try {
-    const userId = req.user?.id || req.headers['x-user-id'];
+    const userId = req.user.userId;
     const { id } = req.params;
 
     const requestResult = await pool.query(`
@@ -584,7 +588,7 @@ router.get('/restock-requests/:id', async (req, res) => {
 router.post('/restock-requests', async (req, res) => {
   const client = await pool.connect();
   try {
-    const userId = req.user?.id || req.headers['x-user-id'];
+    const userId = req.user.userId;
     const { vanId, items, priority = 'normal', notes, pickupLocation, pickupTime } = req.body;
 
     await client.query('BEGIN');
@@ -630,7 +634,7 @@ router.post('/restock-requests', async (req, res) => {
 // Update restock request status
 router.put('/restock-requests/:id/status', async (req, res) => {
   try {
-    const userId = req.user?.id || req.headers['x-user-id'];
+    const userId = req.user.userId;
     const { id } = req.params;
     const { status, approvedItems } = req.body;
 
@@ -683,7 +687,7 @@ router.put('/restock-requests/:id/status', async (req, res) => {
 router.post('/vans/:vanId/checkin', async (req, res) => {
   const client = await pool.connect();
   try {
-    const userId = req.user?.id || req.headers['x-user-id'];
+    const userId = req.user.userId;
     const { vanId } = req.params;
     const { checkinType = 'daily', lat, lng } = req.body;
 
@@ -748,7 +752,7 @@ router.post('/vans/:vanId/checkin', async (req, res) => {
 // Update check-in item count
 router.put('/checkins/:checkinId/items/:itemId', async (req, res) => {
   try {
-    const userId = req.user?.id || req.headers['x-user-id'];
+    const userId = req.user.userId;
     const { checkinId, itemId } = req.params;
     const { countedQuantity, discrepancyReason } = req.body;
 
@@ -775,7 +779,7 @@ router.put('/checkins/:checkinId/items/:itemId', async (req, res) => {
 router.post('/checkins/:checkinId/complete', async (req, res) => {
   const client = await pool.connect();
   try {
-    const userId = req.user?.id || req.headers['x-user-id'];
+    const userId = req.user.userId;
     const { checkinId } = req.params;
     const { applyAdjustments = false, notes } = req.body;
 
@@ -885,7 +889,7 @@ router.post('/checkins/:checkinId/complete', async (req, res) => {
 // Get movement history
 router.get('/movements', async (req, res) => {
   try {
-    const userId = req.user?.id || req.headers['x-user-id'];
+    const userId = req.user.userId;
     const { vanId, itemId, movementType, limit = 50, offset = 0 } = req.query;
 
     let query = `

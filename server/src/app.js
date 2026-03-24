@@ -5,6 +5,7 @@ import rateLimit from 'express-rate-limit';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { authenticateToken } from './middleware/auth.js';
+import { errorHandler } from './middleware/errorHandler.js';
 import authRoutes from './routes/auth.js';
 import inventoryRoutes from './routes/inventory.js';
 import contactsRoutes from './routes/contacts.js';
@@ -76,11 +77,12 @@ export function createApp({
 
   app.use(cors({
     origin: (origin, callback) => {
+      // Requests without an Origin header (e.g. server-to-server, curl, integration tests)
+      // are allowed outside of production. In production, all browser requests carry
+      // an Origin header; a missing one indicates a non-browser client or misconfiguration.
       if (!origin) {
-        if (!isDevelopment) {
-          console.warn('[CORS] Request without origin header - allowing for backwards compatibility');
-        }
-        return callback(null, true);
+        if (nodeEnv !== 'production') return callback(null, true);
+        return callback(new Error('CORS: missing origin header'));
       }
 
       if (corsOrigins.includes(origin)) {
@@ -125,7 +127,7 @@ export function createApp({
     },
     standardHeaders: true,
     legacyHeaders: false,
-    skip: (req) => req.path === '/health'
+    skip: (req) => req.path === '/health' || nodeEnv === 'test'
   });
   app.use('/api/', limiter);
 
@@ -136,7 +138,8 @@ export function createApp({
       error: 'Too many authentication attempts, please try again later.'
     },
     standardHeaders: true,
-    legacyHeaders: false
+    legacyHeaders: false,
+    skip: () => nodeEnv === 'test'
   });
   app.use('/api/auth/login', authLimiter);
   app.use('/api/auth/register', authLimiter);
@@ -298,26 +301,10 @@ export function createApp({
   app.use('/api/voice-notes', voiceNotesRoutes);
 
   app.use((req, res) => {
-    res.status(404).json({ error: 'Route not found' });
+    res.status(404).json({ error: 'Route not found', code: 'NOT_FOUND' });
   });
 
-  app.use((err, req, res, next) => {
-    console.error('Error:', err);
-
-    const statusCode = err.status || err.statusCode || 500;
-
-    if (statusCode === 500 && !isDevelopment) {
-      res.status(500).json({
-        error: 'Internal server error',
-        requestId: req.id
-      });
-    } else {
-      res.status(statusCode).json({
-        error: err.message || 'Internal server error',
-        ...(isDevelopment && { stack: err.stack })
-      });
-    }
-  });
+  app.use(errorHandler);
 
   return app;
 }

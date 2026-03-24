@@ -18,6 +18,8 @@ import {
 import approvalsAPI, { ApprovalWorkflow, ApprovalStats } from '../lib/approvalsAPI';
 import { useStore } from '../store/useStore';
 import { getErrorMessage } from '../lib/errors';
+import { useToast } from '../components/ToastNotification';
+import { ConfirmationModal } from '../components/ConfirmationModal';
 
 export function ApprovalsView() {
   const { t } = useTranslation();
@@ -27,10 +29,12 @@ export function ApprovalsView() {
   const [selectedApproval, setSelectedApproval] = useState<ApprovalWorkflow | null>(null);
   const [activeTab, setActiveTab] = useState<'my_approvals' | 'pending' | 'history'>('pending');
   const [loading, setLoading] = useState(true);
+  const toast = useToast();
   const [filterStatus, setFilterStatus] = useState<string | undefined>(undefined);
   const [actionComments, setActionComments] = useState('');
   const [showActionModal, setShowActionModal] = useState(false);
   const [actionType, setActionType] = useState<'approve' | 'reject' | null>(null);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
   const setError = useStore((state) => state.setError);
 
   useEffect(() => {
@@ -88,7 +92,7 @@ export function ApprovalsView() {
         await approvalsAPI.approve(selectedApproval.id, actionComments || undefined);
       } else {
         if (!actionComments.trim()) {
-          alert(t('approvals.comments') + ' required for rejection');
+          toast.warning(`${t('approvals.comments')} is required for rejection`);
           return;
         }
         await approvalsAPI.reject(selectedApproval.id, actionComments);
@@ -100,13 +104,17 @@ export function ApprovalsView() {
       loadData();
     } catch (error) {
       setError(getErrorMessage(error, 'Failed to process approval'));
-      alert('Failed to process approval');
     }
   };
 
-  const handleCancel = async (id: string) => {
-    if (!confirm('Are you sure you want to cancel this approval workflow?')) return;
+  const handleCancel = (id: string) => {
+    setCancellingId(id);
+  };
 
+  const handleCancelConfirmed = async () => {
+    if (!cancellingId) return;
+    const id = cancellingId;
+    setCancellingId(null);
     try {
       await approvalsAPI.cancel(id);
       loadData();
@@ -438,6 +446,16 @@ export function ApprovalsView() {
           </div>
         </div>
       )}
+
+      <ConfirmationModal
+        isOpen={cancellingId !== null}
+        title="Cancel Approval Workflow"
+        description="Are you sure you want to cancel this approval workflow?"
+        confirmLabel="Cancel Workflow"
+        variant="danger"
+        onConfirm={handleCancelConfirmed}
+        onClose={() => setCancellingId(null)}
+      />
     </div>
   );
 }

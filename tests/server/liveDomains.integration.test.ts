@@ -15,7 +15,8 @@ vi.mock('../../server/src/middleware/auth.js', () => ({
       email: 'test@example.com'
     };
     next();
-  }
+  },
+  authorizeRole: (..._roles: string[]) => (_req: any, _res: any, next: () => void) => next()
 }));
 
 describe('live domain backend smoke flows', () => {
@@ -45,7 +46,7 @@ describe('live domain backend smoke flows', () => {
     process.env.DB_TYPE = 'sqlite';
     process.env.SQLITE_PATH = path.join(tempDir, 'plumbpro-test.db');
     process.env.NODE_ENV = 'test';
-    process.env.JWT_SECRET = 'integration-test-secret';
+    process.env.JWT_SECRET = 'integration-test-secret-padded-32-chars';
 
     vi.resetModules();
 

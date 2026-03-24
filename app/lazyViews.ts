@@ -114,6 +114,7 @@ export const DeveloperView = lazy(async () => {
   const module = await import('../views/DeveloperView');
   return { default: module.DeveloperView };
 });
+export const FranchiseView = lazy(() => import('../views/FranchiseView'));
 
 export const AIAssistant = lazy(async () => {
   const module = await import('../components/AIAssistant');

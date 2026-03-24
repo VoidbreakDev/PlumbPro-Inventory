@@ -1,3 +1,12 @@
+export interface StandardApiError {
+  error: string;
+  code: string;
+  details?: unknown;
+}
+
+export const isStandardApiError = (data: unknown): data is StandardApiError =>
+  typeof data === 'object' && data !== null && 'error' in data && 'code' in data;
+
 export const getErrorMessage = (error: unknown, fallback: string) => {
   if (typeof error === 'string') {
     return error;
@@ -5,7 +14,7 @@ export const getErrorMessage = (error: unknown, fallback: string) => {
 
   if (error && typeof error === 'object') {
     const apiError = error as {
-      response?: { data?: { error?: string; details?: string; message?: string } };
+      response?: { data?: { error?: string; code?: string; details?: string; message?: string } };
       message?: string;
     };
 
@@ -19,6 +28,14 @@ export const getErrorMessage = (error: unknown, fallback: string) => {
   }
 
   return fallback;
+};
+
+export const getErrorCode = (error: unknown): string | undefined => {
+  if (error && typeof error === 'object') {
+    const apiError = error as { response?: { data?: { code?: string } } };
+    return apiError.response?.data?.code;
+  }
+  return undefined;
 };
 
 export const serializeError = (error: unknown) => {

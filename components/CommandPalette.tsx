@@ -6,6 +6,8 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { isTabVisible } from './Navigation';
 import { useStore } from '../store/useStore';
+import { useToast } from './ToastNotification';
+import api from '../lib/api';
 
 export interface Command {
   id: string;
@@ -23,6 +25,7 @@ interface CommandPaletteProps {
 }
 
 const CommandPalette: React.FC<CommandPaletteProps> = ({ commands: customCommands }) => {
+  const toast = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -220,8 +223,14 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ commands: customCommand
       description: 'Backup your database',
       icon: '💾',
       category: 'Quick Actions',
-      action: () => {
-        alert('Creating backup... (This would trigger backup service)');
+      action: async () => {
+        try {
+          toast.info('Creating backup…');
+          await api.post('/settings/backup');
+          toast.success('Backup created successfully');
+        } catch {
+          toast.error('Failed to create backup. Please try again.');
+        }
       },
       keywords: ['save', 'export']
     },
@@ -258,7 +267,7 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ commands: customCommand
       icon: '⚙️',
       category: 'Settings',
       action: () => {
-        alert('Settings feature - Coming soon!');
+        window.dispatchEvent(new CustomEvent('navigate', { detail: 'settings' }));
       },
       keywords: ['account', 'user', 'preferences']
     }

@@ -26,6 +26,7 @@ import {
   KitManagementView,
   LeadPipelineView,
   ProjectStagesView,
+  FranchiseView,
   MobileSyncDashboard,
   OrderingView,
   PurchaseOrdersView,
@@ -184,6 +185,7 @@ export function AppViewRouter({
       {activeTab === 'assets' && <AssetManagementView />}
       {activeTab === 'van-stock' && <VanStockView />}
       {activeTab === 'sync-dashboard' && <MobileSyncDashboard />}
+      {activeTab === 'franchise' && <FranchiseView />}
       {activeTab === 'developer' && <DeveloperView />}
       {activeTab === 'settings' && <SettingsView onSave={onSettingsSaved} />}
       {activeTab === 'analytics' && <AnalyticsView />}

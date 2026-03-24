@@ -10,8 +10,11 @@ import { sendInvoiceEmail } from '../services/emailService.js';
 
 const router = express.Router();
 
+// All routes require authentication
+router.use(authenticateToken);
+
 // Get all invoices for user
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', async (req, res) => {
   const userId = req.user.userId;
   const { status, contact_id, limit = 50, offset = 0 } = req.query;
   
@@ -49,7 +52,7 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // Get invoice statistics
-router.get('/stats/summary', authenticateToken, async (req, res) => {
+router.get('/stats/summary', async (req, res) => {
   const userId = req.user.userId;
   
   try {
@@ -75,7 +78,7 @@ router.get('/stats/summary', authenticateToken, async (req, res) => {
 });
 
 // Get single invoice
-router.get('/:id', authenticateToken, async (req, res) => {
+router.get('/:id', async (req, res) => {
   const userId = req.user.userId;
   const { id } = req.params;
   
@@ -138,7 +141,7 @@ async function generateInvoiceNumber(userId) {
 }
 
 // Create invoice
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/', async (req, res) => {
   const userId = req.user.userId;
   const {
     contact_id,
@@ -229,7 +232,7 @@ router.post('/', authenticateToken, async (req, res) => {
 });
 
 // Update invoice
-router.put('/:id', authenticateToken, async (req, res) => {
+router.put('/:id', async (req, res) => {
   const userId = req.user.userId;
   const { id } = req.params;
   const { due_date, notes, terms, items } = req.body;
@@ -324,7 +327,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
 });
 
 // Send invoice to customer
-router.post('/:id/send', authenticateToken, async (req, res) => {
+router.post('/:id/send', async (req, res) => {
   const userId = req.user.userId;
   const { id } = req.params;
   
@@ -391,7 +394,7 @@ router.post('/:id/send', authenticateToken, async (req, res) => {
 });
 
 // Record payment
-router.post('/:id/payments', authenticateToken, async (req, res) => {
+router.post('/:id/payments', async (req, res) => {
   const userId = req.user.userId;
   const { id } = req.params;
   const { amount, payment_method, payment_date, reference, notes } = req.body;
@@ -467,7 +470,7 @@ router.post('/:id/payments', authenticateToken, async (req, res) => {
 });
 
 // Delete invoice (draft only)
-router.delete('/:id', authenticateToken, async (req, res) => {
+router.delete('/:id', async (req, res) => {
   const userId = req.user.userId;
   const { id } = req.params;
   
@@ -492,7 +495,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 });
 
 // Stripe: Create payment intent
-router.post('/:id/payment-intent', authenticateToken, async (req, res) => {
+router.post('/:id/payment-intent', async (req, res) => {
   const userId = req.user.userId;
   const { id } = req.params;
   
@@ -515,13 +518,27 @@ router.post('/:id/payment-intent', authenticateToken, async (req, res) => {
     }
     
     const invoice = result.rows[0];
-    
+
+    // Resolve currency: prefer request body, then user preference, then default AUD
+    let currency = (req.body?.currency || 'aud').toLowerCase();
+    try {
+      const prefResult = await pool.query(
+        'SELECT currency_code FROM users WHERE id = $1',
+        [userId]
+      );
+      if (prefResult.rows.length > 0 && prefResult.rows[0].currency_code) {
+        currency = prefResult.rows[0].currency_code.toLowerCase();
+      }
+    } catch {
+      // Column may not exist yet; fall back to 'aud'
+    }
+
     // Lazy load Stripe
     const stripe = (await import('stripe')).default(process.env.STRIPE_SECRET_KEY);
-    
+
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round((invoice.total_amount - invoice.amount_paid) * 100), // Convert to cents
-      currency: 'aud', // TODO: Make configurable
+      currency,
       automatic_payment_methods: { enabled: true },
       metadata: {
         invoice_id: invoice.id,

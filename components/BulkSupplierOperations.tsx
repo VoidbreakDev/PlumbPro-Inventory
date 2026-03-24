@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Upload, Download, Edit2, Trash2, CheckSquare, X, AlertCircle, FileSpreadsheet } from 'lucide-react';
 import { itemSuppliersAPI } from '../lib/supplierAPI';
 import { Contact, InventoryItem } from '../types';
+import { useToast } from './ToastNotification';
 
 interface BulkSupplierOperationsProps {
   items: InventoryItem[];
@@ -28,6 +29,7 @@ export const BulkSupplierOperations: React.FC<BulkSupplierOperationsProps> = ({
   suppliers,
   onComplete
 }) => {
+  const toast = useToast();
   const [operations, setOperations] = useState<BulkOperation[]>([]);
   const [processing, setProcessing] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
@@ -83,7 +85,7 @@ export const BulkSupplierOperations: React.FC<BulkSupplierOperationsProps> = ({
         setShowPreview(true);
       } catch (error) {
         console.error('CSV parse error:', error);
-        alert('Failed to parse CSV file. Please check the format.');
+        toast.error('Failed to parse CSV file. Please check the format.');
       }
     };
 

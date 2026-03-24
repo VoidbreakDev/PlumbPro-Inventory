@@ -1,7 +1,10 @@
+import { createRequire } from 'module';
+
+const require = createRequire(import.meta.url);
+
 export async function createPostgresDatabase() {
   try {
-    const { default: pg } = await import('pg');
-    const { Pool: PgPool } = pg;
+    const { Pool: PgPool } = require('pg');
 
     const pool = new PgPool({
       host: process.env.DB_HOST || 'localhost',

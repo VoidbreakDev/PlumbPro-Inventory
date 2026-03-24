@@ -23,6 +23,7 @@ import {
 import purchaseOrdersAPI, { PurchaseOrder, POStats, CreatePORequest } from '../lib/purchaseOrdersAPI';
 import { useStore } from '../store/useStore';
 import { getErrorMessage } from '../lib/errors';
+import { ConfirmationModal } from '../components/ConfirmationModal';
 import type { Contact, InventoryItem, Job } from '../types';
 
 // Create/Edit PO Modal Component
@@ -777,6 +778,11 @@ export function PurchaseOrdersView() {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showReceiveModal, setShowReceiveModal] = useState(false);
   const [editingOrder, setEditingOrder] = useState<PurchaseOrder | null>(null);
+  const [confirmModal, setConfirmModal] = useState<{
+    title: string;
+    description: string;
+    onConfirm: () => void;
+  } | null>(null);
 
   const setError = useStore((state) => state.setError);
   const contacts = useStore((state) => state.contacts);
@@ -825,15 +831,20 @@ export function PurchaseOrdersView() {
     }
   };
 
-  const handleSendOrder = async (orderId: string) => {
-    if (!confirm('Send this purchase order to the supplier?')) return;
-
-    try {
-      await purchaseOrdersAPI.send(orderId);
-      loadData();
-    } catch (error) {
-      setError(getErrorMessage(error, 'Failed to send purchase order'));
-    }
+  const handleSendOrder = (orderId: string) => {
+    setConfirmModal({
+      title: 'Send Purchase Order',
+      description: 'Send this purchase order to the supplier?',
+      onConfirm: async () => {
+        setConfirmModal(null);
+        try {
+          await purchaseOrdersAPI.send(orderId);
+          loadData();
+        } catch (error) {
+          setError(getErrorMessage(error, 'Failed to send purchase order'));
+        }
+      }
+    });
   };
 
   const handleCancelOrder = async (orderId: string) => {
@@ -848,15 +859,20 @@ export function PurchaseOrdersView() {
     }
   };
 
-  const handleDeleteOrder = async (orderId: string) => {
-    if (!confirm('Delete this draft purchase order? This cannot be undone.')) return;
-
-    try {
-      await purchaseOrdersAPI.delete(orderId);
-      loadData();
-    } catch (error) {
-      setError(getErrorMessage(error, 'Failed to delete purchase order'));
-    }
+  const handleDeleteOrder = (orderId: string) => {
+    setConfirmModal({
+      title: 'Delete Purchase Order',
+      description: 'Delete this draft purchase order? This cannot be undone.',
+      onConfirm: async () => {
+        setConfirmModal(null);
+        try {
+          await purchaseOrdersAPI.delete(orderId);
+          loadData();
+        } catch (error) {
+          setError(getErrorMessage(error, 'Failed to delete purchase order'));
+        }
+      }
+    });
   };
 
   const getStatusBadge = (status: string) => {
@@ -1362,6 +1378,16 @@ export function PurchaseOrdersView() {
           setError={setError}
         />
       )}
+
+      <ConfirmationModal
+        isOpen={confirmModal !== null}
+        title={confirmModal?.title ?? ''}
+        description={confirmModal?.description ?? ''}
+        confirmLabel="Confirm"
+        variant="danger"
+        onConfirm={() => confirmModal?.onConfirm()}
+        onClose={() => setConfirmModal(null)}
+      />
     </div>
   );
 }

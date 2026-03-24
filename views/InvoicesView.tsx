@@ -30,6 +30,7 @@ import { contactsAPI, jobsAPI } from '../lib/api';
 import { getErrorMessage } from '../lib/errors';
 import { useStore } from '../store/useStore';
 import type { Job as AppJob } from '../types';
+import { ConfirmationModal } from '../components/ConfirmationModal';
 
 interface Contact {
   id: string;
@@ -44,6 +45,17 @@ interface Job {
   builder?: string;
 }
 
+function getAppCurrency(): string {
+  try {
+    const raw = localStorage.getItem('plumbpro-settings');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return parsed?.appearance?.currency ?? 'AUD';
+    }
+  } catch { /* ignore */ }
+  return 'AUD';
+}
+
 export default function InvoicesView() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [stats, setStats] = useState<InvoiceStats | null>(null);
@@ -52,7 +64,13 @@ export default function InvoicesView() {
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
-  
+  const [confirmModal, setConfirmModal] = useState<{
+    title: string;
+    description: string;
+    onConfirm: () => void;
+  } | null>(null);
+  const appCurrency = getAppCurrency();
+
   const setGlobalError = useStore((state) => state.setError);
 
   useEffect(() => {
@@ -94,21 +112,26 @@ export default function InvoicesView() {
     }
   };
 
-  const handleDeleteInvoice = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this draft invoice?')) return;
-    
-    try {
-      await invoicesAPI.deleteInvoice(id);
-      await loadData();
-    } catch (err) {
-      setGlobalError(getErrorMessage(err, 'Failed to delete invoice'));
-    }
+  const handleDeleteInvoice = (id: string) => {
+    setConfirmModal({
+      title: 'Delete Invoice',
+      description: 'Are you sure you want to delete this draft invoice?',
+      onConfirm: async () => {
+        setConfirmModal(null);
+        try {
+          await invoicesAPI.deleteInvoice(id);
+          await loadData();
+        } catch (err) {
+          setGlobalError(getErrorMessage(err, 'Failed to delete invoice'));
+        }
+      }
+    });
   };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-AU', {
       style: 'currency',
-      currency: 'AUD'
+      currency: appCurrency
     }).format(amount);
   };
 
@@ -623,6 +646,7 @@ function InvoiceDetailModal({ invoice, onClose, onUpdate }: InvoiceDetailModalPr
     reference: '',
     notes: ''
   });
+  const detailCurrency = getAppCurrency();
 
   const handleRecordPayment = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -641,7 +665,7 @@ function InvoiceDetailModal({ invoice, onClose, onUpdate }: InvoiceDetailModalPr
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-AU', {
       style: 'currency',
-      currency: 'AUD'
+      currency: detailCurrency
     }).format(amount);
   };
 
@@ -835,6 +859,16 @@ function InvoiceDetailModal({ invoice, onClose, onUpdate }: InvoiceDetailModalPr
           )}
         </div>
       </div>
+
+      <ConfirmationModal
+        isOpen={confirmModal !== null}
+        title={confirmModal?.title ?? ''}
+        description={confirmModal?.description ?? ''}
+        confirmLabel="Confirm"
+        variant="danger"
+        onConfirm={() => confirmModal?.onConfirm()}
+        onClose={() => setConfirmModal(null)}
+      />
     </div>
   );
 }

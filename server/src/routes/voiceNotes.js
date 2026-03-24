@@ -14,12 +14,23 @@ import {
   toJson,
   toNullableNumber
 } from './domainUtils.js';
+import { ValidationError } from '../utils/apiErrors.js';
 
 const router = express.Router();
 
 router.use(authenticateToken);
 
 const uploadsDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../uploads/voice-notes');
+
+const ALLOWED_AUDIO_MIME_TYPES = new Set([
+  'audio/webm',
+  'audio/mp4',
+  'audio/mpeg',
+  'audio/ogg',
+  'audio/wav',
+  'audio/aac',
+  'audio/x-m4a',
+]);
 
 const storage = multer.diskStorage({
   destination: async (_req, _file, callback) => {
@@ -31,12 +42,25 @@ const storage = multer.diskStorage({
     }
   },
   filename: (_req, file, callback) => {
+    // Always use a UUID filename — never trust the original filename
     const extension = path.extname(file.originalname || '') || '.webm';
     callback(null, `${createId()}${extension}`);
   }
 });
 
-const upload = multer({ storage });
+const upload = multer({
+  storage,
+  limits: { fileSize: 25 * 1024 * 1024 }, // 25 MB max
+  fileFilter: (_req, file, cb) => {
+    if (ALLOWED_AUDIO_MIME_TYPES.has(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new ValidationError(
+        `Invalid file type "${file.mimetype}". Only audio files are accepted (webm, mp4, mpeg, ogg, wav, aac).`
+      ));
+    }
+  },
+});
 
 const voiceNoteTableStatements = [
   `CREATE TABLE IF NOT EXISTS voice_notes (

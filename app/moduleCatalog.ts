@@ -71,9 +71,11 @@ export const MODULE_CATALOG: ModuleCatalogEntry[] = [
   {
     id: 'franchise',
     label: 'Franchise',
-    surface: 'deferred',
-    status: 'deferred',
-    notes: 'Deferred from the main shell until role gating, readiness criteria, and user journeys are defined more clearly.'
+    surface: 'advanced',
+    status: 'active',
+    route: 'franchise',
+    roles: ['owner', 'admin'],
+    notes: 'Franchise network management — accessible to owner and admin roles via the Advanced group.'
   }
 ];
 

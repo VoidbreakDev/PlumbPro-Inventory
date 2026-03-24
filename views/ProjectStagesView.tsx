@@ -34,6 +34,7 @@ import {
 import { useStore } from '../store/useStore';
 import { Badge } from '../components/Shared';
 import { useToast } from '../components/ToastNotification';
+import { ConfirmationModal } from '../components/ConfirmationModal';
 
 type ProjectFormState = Omit<CreateDevelopmentProjectInput, 'skippedStageTypes'> & {
   skippedStageTypes: DevelopmentStageType[];
@@ -110,6 +111,11 @@ export function ProjectStagesView() {
   const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
   const [projectForm, setProjectForm] = useState<ProjectFormState>(createProjectForm);
   const [stageDrafts, setStageDrafts] = useState<Record<string, StageDraft>>({});
+  const [confirmModal, setConfirmModal] = useState<{
+    title: string;
+    description: string;
+    onConfirm: () => void;
+  } | null>(null);
 
   const plumbers = useMemo(
     () => contacts.filter((contact) => contact.type === 'Plumber'),
@@ -392,19 +398,23 @@ export function ProjectStagesView() {
     }
   };
 
-  const handleDeleteProject = async () => {
-    if (!selectedProject || !confirm(`Delete "${selectedProject.title}"?`)) {
-      return;
-    }
-
-    try {
-      await deleteDevelopmentProject(selectedProject.id);
-      const nextProject = useStore.getState().developmentProjects[0];
-      setSelectedProjectId(nextProject?.id || null);
-      toast.success('Development project deleted');
-    } catch {
-      // Store handles global error state.
-    }
+  const handleDeleteProject = () => {
+    if (!selectedProject) return;
+    setConfirmModal({
+      title: 'Delete Project',
+      description: `Delete "${selectedProject.title}"?`,
+      onConfirm: async () => {
+        setConfirmModal(null);
+        try {
+          await deleteDevelopmentProject(selectedProject.id);
+          const nextProject = useStore.getState().developmentProjects[0];
+          setSelectedProjectId(nextProject?.id || null);
+          toast.success('Development project deleted');
+        } catch {
+          // Store handles global error state.
+        }
+      }
+    });
   };
 
   const handleSaveStage = async (
@@ -1196,6 +1206,15 @@ export function ProjectStagesView() {
           </div>
         </div>
       )}
+      <ConfirmationModal
+        isOpen={confirmModal !== null}
+        title={confirmModal?.title ?? ''}
+        description={confirmModal?.description ?? ''}
+        confirmLabel="Confirm"
+        variant="danger"
+        onConfirm={() => confirmModal?.onConfirm()}
+        onClose={() => setConfirmModal(null)}
+      />
     </div>
   );
 }

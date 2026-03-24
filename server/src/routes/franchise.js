@@ -1,8 +1,12 @@
 import express from 'express';
 import pool from '../config/database.js';
 import { v4 as uuidv4 } from 'uuid';
+import { authenticateToken, authorizeRole } from '../middleware/auth.js';
 
 const router = express.Router();
+
+// All franchise routes require authentication and owner/admin role
+router.use(authenticateToken, authorizeRole('owner', 'admin'));
 
 // Helper for database queries
 const db = {

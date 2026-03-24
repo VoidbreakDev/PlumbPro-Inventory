@@ -1394,4 +1394,119 @@ router.post('/from-job/:jobId', async (req, res) => {
   }
 });
 
+/**
+ * POST /api/quotes/:id/convert
+ * Convert a quote to an invoice
+ */
+router.post('/:id/convert', async (req, res) => {
+  const client = await db.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    const userId = req.user.userId;
+    const { id } = req.params;
+
+    // Fetch the quote
+    const quoteResult = await client.query(
+      `SELECT * FROM quotes WHERE id = $1 AND user_id = $2`,
+      [id, userId]
+    );
+
+    if (quoteResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Quote not found' });
+    }
+
+    const quote = quoteResult.rows[0];
+
+    // Fetch quote items
+    const itemsResult = await client.query(
+      `SELECT * FROM quote_items WHERE quote_id = $1 ORDER BY sort_order ASC`,
+      [id]
+    );
+
+    // Generate invoice number
+    const date = new Date();
+    const prefix = `INV-${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}`;
+    const countResult = await client.query(
+      `SELECT COUNT(*) as count FROM invoices WHERE user_id = $1 AND invoice_number LIKE $2`,
+      [userId, `${prefix}%`]
+    );
+    const count = parseInt(countResult.rows[0].count) + 1;
+    const invoiceNumber = `${prefix}-${String(count).padStart(4, '0')}`;
+
+    const dueDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
+    // Compute totals from items (quote row may not have pre-computed totals)
+    const subtotal = itemsResult.rows.reduce((sum, item) => sum + (item.line_total || 0), 0);
+    const taxRate = quote.tax_rate || 0;
+    const taxAmount = quote.tax_amount ?? (subtotal * taxRate / 100);
+    const totalAmount = quote.total || quote.total_amount || (subtotal + taxAmount);
+
+    // Create invoice
+    const invoiceResult = await client.query(
+      `INSERT INTO invoices (
+        user_id, contact_id, quote_id, invoice_number, customer_name,
+        subtotal, tax_amount, total_amount, status, issue_date, due_date, notes, terms
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'draft', $9, $10, $11, $12)
+      RETURNING *`,
+      [
+        userId,
+        quote.customer_id || null,
+        id,
+        invoiceNumber,
+        quote.customer_name || null,
+        subtotal,
+        taxAmount,
+        totalAmount,
+        new Date().toISOString().split('T')[0],
+        dueDate.toISOString().split('T')[0],
+        quote.notes || null,
+        quote.terms || null
+      ]
+    );
+
+    const invoice = invoiceResult.rows[0];
+
+    // Create invoice items from quote items
+    for (const item of itemsResult.rows) {
+      await client.query(
+        `INSERT INTO invoice_items (invoice_id, description, quantity, unit_price, tax_rate, line_total)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [
+          invoice.id,
+          item.item_name || item.description,
+          item.quantity,
+          item.unit_price,
+          item.tax_rate || 0,
+          item.line_total || item.total || (item.quantity * item.unit_price)
+        ]
+      );
+    }
+
+    // Mark quote as converted
+    await client.query(
+      `UPDATE quotes SET status = 'converted', converted_to_invoice_id = $2 WHERE id = $1`,
+      [id, invoice.id]
+    );
+
+    await client.query(
+      `INSERT INTO quote_history (quote_id, user_id, action, old_status, new_status, notes)
+       VALUES ($1, $2, 'converted', $3, 'converted', 'Converted to invoice')`,
+      [id, userId, quote.status]
+    );
+
+    await client.query('COMMIT');
+
+    res.status(201).json(invoice);
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Error converting quote to invoice:', error);
+    res.status(500).json({ error: 'Failed to convert quote to invoice' });
+  } finally {
+    client.release();
+  }
+});
+
 export default router;

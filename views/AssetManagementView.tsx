@@ -21,6 +21,7 @@ import { getErrorMessage } from '../lib/errors';
 import { useStore } from '../store/useStore';
 import type { Asset, AssetAllocation, AssetCondition, AssetStatus, AssetType, MaintenanceRecord } from '../types';
 import { Badge } from '../components/Shared';
+import { ConfirmationModal } from '../components/ConfirmationModal';
 
 type TabType = 'all' | 'vehicles' | 'tools' | 'equipment' | 'maintenance';
 
@@ -63,6 +64,11 @@ export function AssetManagementView() {
   const [maintenanceDraft, setMaintenanceDraft] = useState<Partial<MaintenanceRecord>>(emptyMaintenance());
   const [docDraft, setDocDraft] = useState({ title: '', type: 'other', expiryDate: '' });
   const [notice, setNotice] = useState<{ tone: 'success' | 'info'; text: string } | null>(null);
+  const [confirmModal, setConfirmModal] = useState<{
+    title: string;
+    description: string;
+    onConfirm: () => void;
+  } | null>(null);
 
   const loadData = async (background = false) => {
     try {
@@ -175,16 +181,21 @@ export function AssetManagementView() {
     }
   };
 
-  const deleteAsset = async (asset: Asset) => {
-    if (!confirm(`Delete ${asset.name}?`)) return;
-
-    try {
-      await assetAPI.deleteAsset(asset.id);
-      setNotice({ tone: 'info', text: `${asset.name} deleted` });
-      await loadData(true);
-    } catch (error) {
-      setError(getErrorMessage(error, 'Failed to delete asset'));
-    }
+  const deleteAsset = (asset: Asset) => {
+    setConfirmModal({
+      title: 'Delete Asset',
+      description: `Delete ${asset.name}?`,
+      onConfirm: async () => {
+        setConfirmModal(null);
+        try {
+          await assetAPI.deleteAsset(asset.id);
+          setNotice({ tone: 'info', text: `${asset.name} deleted` });
+          await loadData(true);
+        } catch (error) {
+          setError(getErrorMessage(error, 'Failed to delete asset'));
+        }
+      }
+    });
   };
 
   const saveMaintenance = async () => {
@@ -664,6 +675,15 @@ export function AssetManagementView() {
           </p>
         </div>
       </div>
+      <ConfirmationModal
+        isOpen={confirmModal !== null}
+        title={confirmModal?.title ?? ''}
+        description={confirmModal?.description ?? ''}
+        confirmLabel="Confirm"
+        variant="danger"
+        onConfirm={() => confirmModal?.onConfirm()}
+        onClose={() => setConfirmModal(null)}
+      />
     </div>
   );
 }

@@ -1,12 +1,12 @@
 import express from 'express';
 import crypto from 'crypto';
 import pool from '../config/database.js';
-import { authenticateToken } from '../middleware/auth.js';
+import { authenticateToken, authorizeRole } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Apply authentication middleware to all routes
-router.use(authenticateToken);
+// Apply authentication and role restriction to all routes
+router.use(authenticateToken, authorizeRole('admin', 'owner'));
 
 // Helper to generate API key
 function generateApiKey(environment = 'production') {

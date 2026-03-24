@@ -6,13 +6,22 @@ import { getErrorMessage } from '../lib/errors';
 import { defaultSettings } from '../lib/settings';
 import { UpdatesPanel } from '../components/UpdatesPanel';
 import { xeroAPI, XeroConnection, XeroSyncLog, XeroSettings } from '../lib/xeroAPI';
+import { useToast } from '../components/ToastNotification';
+import { ConfirmationModal } from '../components/ConfirmationModal';
 
 interface SettingsViewProps {
   onSave?: (settings: any) => void;
 }
 
 export const SettingsView: React.FC<SettingsViewProps> = ({ onSave }) => {
+  const toast = useToast();
   const [activeSection, setActiveSection] = useState<'profile' | 'company' | 'notifications' | 'security' | 'data' | 'appearance' | 'ai' | 'integrations' | 'updates'>('profile');
+  const [showXeroDisconnectModal, setShowXeroDisconnectModal] = useState(false);
+  const [confirmModal, setConfirmModal] = useState<{
+    title: string;
+    description: string;
+    onConfirm: () => void;
+  } | null>(null);
   const setError = useStore((state) => state.setError);
 
   // Load settings from localStorage on mount
@@ -199,11 +208,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSave }) => {
             });
             // Clear URL params
             window.history.replaceState({}, '', window.location.pathname);
-            alert(`Successfully connected to Xero organization: ${result.tenantName}`);
+            toast.success(`Successfully connected to Xero organization: ${result.tenantName}`);
           }
         } catch (error: any) {
           console.error('Xero callback error:', error);
-          alert(`Failed to connect to Xero: ${error.message}`);
+          toast.error(`Failed to connect to Xero: ${error.message}`);
           window.history.replaceState({}, '', window.location.pathname);
         }
       })();
@@ -219,14 +228,16 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSave }) => {
     }
   };
 
-  const handleXeroDisconnect = async () => {
-    if (!confirm('Are you sure you want to disconnect from Xero? This will stop all syncing.')) {
-      return;
-    }
+  const handleXeroDisconnect = () => {
+    setShowXeroDisconnectModal(true);
+  };
+
+  const handleXeroDisconnectConfirmed = async () => {
+    setShowXeroDisconnectModal(false);
     try {
       await xeroAPI.disconnect();
       setXeroStatus({ connected: false, loading: false });
-      alert('Successfully disconnected from Xero');
+      toast.success('Successfully disconnected from Xero');
     } catch (error: any) {
       setError(getErrorMessage(error, 'Failed to disconnect from Xero'));
     }
@@ -241,7 +252,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSave }) => {
       } else {
         result = await xeroAPI.syncInvoices();
       }
-      alert(`Sync completed: ${result.synced} records synced (${result.created} created, ${result.updated} updated)`);
+      toast.success(`Sync completed: ${result.synced} records synced (${result.created} created, ${result.updated} updated)`);
       // Refresh status
       const status = await xeroAPI.getStatus();
       setXeroStatus({
@@ -260,7 +271,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSave }) => {
   const handleXeroSettingsSave = async () => {
     try {
       await xeroAPI.updateSettings(xeroSettings);
-      alert('Xero settings saved successfully');
+      toast.success('Xero settings saved successfully');
     } catch (error: any) {
       setError(getErrorMessage(error, 'Failed to save Xero settings'));
     }
@@ -290,6 +301,13 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSave }) => {
       onSave(allSettings);
     }
 
+    // Sync currency preference to backend
+    try {
+      await api.put('/settings/preferences', { currency_code: appearanceSettings.currency });
+    } catch {
+      // Non-fatal: local settings saved, backend sync optional
+    }
+
     let savedApiKey = false;
     const trimmedApiKey = aiSettings.geminiApiKey.trim();
     if (trimmedApiKey.length > 0) {
@@ -300,15 +318,15 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSave }) => {
         setAiSettings((prev) => ({ ...prev, geminiApiKey: '' }));
       } catch (error: any) {
         console.error('Failed to save Gemini API key:', error);
-        alert(`Failed to save Gemini API key: ${error.message || 'Unknown error'}`);
+        toast.error(`Failed to save Gemini API key: ${error.message || 'Unknown error'}`);
         return;
       }
     }
 
-    const alertMessage = savedApiKey
+    const successMessage = savedApiKey
       ? 'Settings saved successfully! Your Gemini API key was stored securely.'
       : 'Settings saved successfully!';
-    alert(alertMessage);
+    toast.success(successMessage);
   };
 
   const sections = [
@@ -326,33 +344,34 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSave }) => {
   const hasGeminiKey = aiSettings.geminiApiKey.trim().length > 0 || geminiKeyStatus.hasKey;
 
   return (
-    <div className="flex gap-6">
-      {/* Sidebar */}
-      <div className="w-64 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 p-4 h-fit">
-        <h3 className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-4">Settings</h3>
-        <nav className="space-y-1">
-          {sections.map(section => {
-            const Icon = section.icon;
-            return (
-              <button
-                key={section.id}
-                onClick={() => setActiveSection(section.id as any)}
-                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
-                  activeSection === section.id
-                    ? 'bg-blue-50 dark:bg-blue-900 text-blue-700 dark:text-blue-300 font-semibold'
-                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
-                }`}
-              >
-                <Icon className="w-5 h-5" />
-                <span>{section.label}</span>
-              </button>
-            );
-          })}
-        </nav>
-      </div>
+    <>
+      <div className="flex gap-6">
+        {/* Sidebar */}
+        <div className="w-64 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 p-4 h-fit">
+          <h3 className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-4">Settings</h3>
+          <nav className="space-y-1">
+            {sections.map(section => {
+              const Icon = section.icon;
+              return (
+                <button
+                  key={section.id}
+                  onClick={() => setActiveSection(section.id as any)}
+                  className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
+                    activeSection === section.id
+                      ? 'bg-blue-50 dark:bg-blue-900 text-blue-700 dark:text-blue-300 font-semibold'
+                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
+                  }`}
+                >
+                  <Icon className="w-5 h-5" />
+                  <span>{section.label}</span>
+                </button>
+              );
+            })}
+          </nav>
+        </div>
 
-      {/* Content */}
-      <div className="flex-1 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 p-6">
+        {/* Content */}
+        <div className="flex-1 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 p-6">
         {/* Profile Settings */}
         {activeSection === 'profile' && (
           <div className="space-y-6">
@@ -600,10 +619,15 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSave }) => {
                 </p>
                 <button
                   onClick={() => {
-                    if (confirm('Are you sure you want to clear all local data? This will reload the app with fresh data from the database.')) {
-                      localStorage.clear();
-                      location.reload();
-                    }
+                    setConfirmModal({
+                      title: 'Clear Local Data',
+                      description: 'Are you sure you want to clear all local data? This will reload the app with fresh data from the database.',
+                      onConfirm: () => {
+                        setConfirmModal(null);
+                        localStorage.clear();
+                        location.reload();
+                      }
+                    });
                   }}
                   className="px-4 py-2 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 flex items-center space-x-2"
                 >
@@ -1106,7 +1130,28 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSave }) => {
             <span>Save Changes</span>
           </button>
         </div>
+        </div>
       </div>
-    </div>
+
+      <ConfirmationModal
+        isOpen={showXeroDisconnectModal}
+        title="Disconnect from Xero"
+        description="Are you sure you want to disconnect from Xero? This will stop all syncing."
+        confirmLabel="Disconnect"
+        variant="danger"
+        onConfirm={handleXeroDisconnectConfirmed}
+        onClose={() => setShowXeroDisconnectModal(false)}
+      />
+
+      <ConfirmationModal
+        isOpen={confirmModal !== null}
+        title={confirmModal?.title ?? ''}
+        description={confirmModal?.description ?? ''}
+        confirmLabel="Confirm"
+        variant="danger"
+        onConfirm={() => confirmModal?.onConfirm()}
+        onClose={() => setConfirmModal(null)}
+      />
+    </>
   );
 };

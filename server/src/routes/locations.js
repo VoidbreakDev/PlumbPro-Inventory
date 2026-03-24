@@ -5,6 +5,9 @@ import { authenticateToken } from '../middleware/auth.js';
 
 const router = express.Router();
 
+// All routes require authentication
+router.use(authenticateToken);
+
 // Middleware to validate request
 const validate = (req, res, next) => {
   const errors = validationResult(req);
@@ -15,7 +18,7 @@ const validate = (req, res, next) => {
 };
 
 // GET /api/locations - Get all locations for user
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', async (req, res) => {
   const client = await pool.connect();
 
   try {
@@ -42,7 +45,6 @@ router.get('/', authenticateToken, async (req, res) => {
 
 // GET /api/locations/:id - Get single location
 router.get('/:id', [
-  authenticateToken,
   param('id').isUUID()
 ], async (req, res) => {
   const client = await pool.connect();
@@ -74,7 +76,6 @@ router.get('/:id', [
 
 // POST /api/locations - Create new location
 router.post('/', [
-  authenticateToken,
   body('name').trim().notEmpty().withMessage('Location name is required'),
   body('isDefault').optional().isBoolean(),
   validate
@@ -129,7 +130,6 @@ router.post('/', [
 
 // PUT /api/locations/:id - Update location
 router.put('/:id', [
-  authenticateToken,
   param('id').isUUID(),
   body('name').optional().trim().notEmpty(),
   body('isDefault').optional().isBoolean(),
@@ -229,7 +229,6 @@ router.put('/:id', [
 
 // DELETE /api/locations/:id - Delete location
 router.delete('/:id', [
-  authenticateToken,
   param('id').isUUID()
 ], async (req, res) => {
   const client = await pool.connect();
@@ -279,7 +278,6 @@ router.delete('/:id', [
 
 // GET /api/locations/:id/stock - Get stock at specific location
 router.get('/:id/stock', [
-  authenticateToken,
   param('id').isUUID()
 ], async (req, res) => {
   const client = await pool.connect();

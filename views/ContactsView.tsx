@@ -35,6 +35,7 @@ import { contactsAPI } from '../lib/api';
 import { useStore } from '../store/useStore';
 import { getErrorMessage } from '../lib/errors';
 import { Badge } from '../components/Shared';
+import { ConfirmationModal } from '../components/ConfirmationModal';
 import type {
   Contact,
   ContactType,
@@ -858,6 +859,11 @@ export const ContactsView: React.FC<ContactsViewProps> = ({
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
   const [showFormModal, setShowFormModal] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
+  const [confirmModal, setConfirmModal] = useState<{
+    title: string;
+    description: string;
+    onConfirm: () => void;
+  } | null>(null);
 
   const setError = useStore((state) => state.setError);
 
@@ -900,17 +906,23 @@ export const ContactsView: React.FC<ContactsViewProps> = ({
     }
   };
 
-  const handleDeleteContact = async (contact: Contact) => {
+  const handleDeleteContact = (contact: Contact) => {
     if (onDeleteContact) {
       onDeleteContact(contact);
     } else {
-      if (!confirm(`Delete ${contact.name}? This cannot be undone.`)) return;
-      try {
-        await contactsAPI.delete(contact.id);
-        loadData();
-      } catch (error) {
-        setError(getErrorMessage(error, 'Failed to delete contact'));
-      }
+      setConfirmModal({
+        title: 'Delete Contact',
+        description: `Delete ${contact.name}? This cannot be undone.`,
+        onConfirm: async () => {
+          setConfirmModal(null);
+          try {
+            await contactsAPI.delete(contact.id);
+            loadData();
+          } catch (error) {
+            setError(getErrorMessage(error, 'Failed to delete contact'));
+          }
+        }
+      });
     }
   };
 
@@ -1182,6 +1194,16 @@ export const ContactsView: React.FC<ContactsViewProps> = ({
           setError={setError}
         />
       )}
+
+      <ConfirmationModal
+        isOpen={confirmModal !== null}
+        title={confirmModal?.title ?? ''}
+        description={confirmModal?.description ?? ''}
+        confirmLabel="Confirm"
+        variant="danger"
+        onConfirm={() => confirmModal?.onConfirm()}
+        onClose={() => setConfirmModal(null)}
+      />
     </div>
   );
 };

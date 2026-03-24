@@ -34,7 +34,8 @@
     "node-cron": "^3.0.3",
     "nodemailer": "^8.0.2",
     "pg": "^8.11.3",
-    "stripe": "^20.3.0"
+    "stripe": "^20.3.0",
+    "winston": "^3.19.0"
   },
   "overrides": {
     "lodash": "^4.17.23",

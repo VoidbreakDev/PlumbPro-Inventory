@@ -23,6 +23,7 @@ import {
 import { voiceNotesAPI } from '../lib/voiceNotesAPI';
 import { useStore } from '../store/useStore';
 import { getErrorMessage } from '../lib/errors';
+import { ConfirmationModal } from './ConfirmationModal';
 import type { VoiceNote } from '../types';
 import { VoiceNoteRecorder } from './VoiceNoteRecorder';
 
@@ -41,6 +42,11 @@ export function VoiceNotesList({ jobId, contactId, readOnly = false }: VoiceNote
   const [showRecorder, setShowRecorder] = useState(false);
   const [playingNoteId, setPlayingNoteId] = useState<string | null>(null);
   const [deletingNoteId, setDeletingNoteId] = useState<string | null>(null);
+  const [confirmModal, setConfirmModal] = useState<{
+    title: string;
+    description: string;
+    onConfirm: () => void;
+  } | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
@@ -87,18 +93,23 @@ export function VoiceNotesList({ jobId, contactId, readOnly = false }: VoiceNote
     }
   };
 
-  const handleDeleteNote = async (noteId: string) => {
-    if (!confirm('Are you sure you want to delete this voice note?')) return;
-    
-    setDeletingNoteId(noteId);
-    try {
-      await voiceNotesAPI.deleteVoiceNote(noteId);
-      setNotes(prev => prev.filter(n => n.id !== noteId));
-    } catch (err) {
-      setError(getErrorMessage(err, 'Failed to delete voice note'));
-    } finally {
-      setDeletingNoteId(null);
-    }
+  const handleDeleteNote = (noteId: string) => {
+    setConfirmModal({
+      title: 'Delete Voice Note',
+      description: 'Are you sure you want to delete this voice note?',
+      onConfirm: async () => {
+        setConfirmModal(null);
+        setDeletingNoteId(noteId);
+        try {
+          await voiceNotesAPI.deleteVoiceNote(noteId);
+          setNotes(prev => prev.filter(n => n.id !== noteId));
+        } catch (err) {
+          setError(getErrorMessage(err, 'Failed to delete voice note'));
+        } finally {
+          setDeletingNoteId(null);
+        }
+      }
+    });
   };
 
   const togglePlayback = (note: VoiceNote) => {
@@ -318,6 +329,16 @@ export function VoiceNotesList({ jobId, contactId, readOnly = false }: VoiceNote
           onSave={handleSaveVoiceNote}
         />
       )}
+
+      <ConfirmationModal
+        isOpen={confirmModal !== null}
+        title={confirmModal?.title ?? ''}
+        description={confirmModal?.description ?? ''}
+        confirmLabel="Confirm"
+        variant="danger"
+        onConfirm={() => confirmModal?.onConfirm()}
+        onClose={() => setConfirmModal(null)}
+      />
     </div>
   );
 }

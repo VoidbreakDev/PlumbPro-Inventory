@@ -20,6 +20,7 @@ import {
 import stockReturnsAPI, { StockReturn, StockReturnStats, CreateStockReturnRequest, AllocatedItem } from '../lib/stockReturnsAPI';
 import { useStore } from '../store/useStore';
 import { getErrorMessage } from '../lib/errors';
+import { ConfirmationModal } from '../components/ConfirmationModal';
 import type { Job } from '../types';
 
 export function StockReturnsView() {
@@ -30,6 +31,11 @@ export function StockReturnsView() {
   const [selectedReturn, setSelectedReturn] = useState<StockReturn | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const [confirmModal, setConfirmModal] = useState<{
+    title: string;
+    description: string;
+    onConfirm: () => void;
+  } | null>(null);
 
   const setError = useStore((state) => state.setError);
   const jobs = useStore((state) => state.jobs);
@@ -73,37 +79,52 @@ export function StockReturnsView() {
     }
   };
 
-  const handleConfirmReturn = async (returnId: string) => {
-    if (!confirm('Confirm this stock return? Items will be added back to inventory.')) return;
-
-    try {
-      await stockReturnsAPI.confirm(returnId);
-      loadData();
-    } catch (error) {
-      setError(getErrorMessage(error, 'Failed to confirm stock return'));
-    }
+  const handleConfirmReturn = (returnId: string) => {
+    setConfirmModal({
+      title: 'Confirm Stock Return',
+      description: 'Confirm this stock return? Items will be added back to inventory.',
+      onConfirm: async () => {
+        setConfirmModal(null);
+        try {
+          await stockReturnsAPI.confirm(returnId);
+          loadData();
+        } catch (error) {
+          setError(getErrorMessage(error, 'Failed to confirm stock return'));
+        }
+      }
+    });
   };
 
-  const handleCancelReturn = async (returnId: string) => {
-    if (!confirm('Cancel this stock return?')) return;
-
-    try {
-      await stockReturnsAPI.cancel(returnId);
-      loadData();
-    } catch (error) {
-      setError(getErrorMessage(error, 'Failed to cancel stock return'));
-    }
+  const handleCancelReturn = (returnId: string) => {
+    setConfirmModal({
+      title: 'Cancel Stock Return',
+      description: 'Cancel this stock return?',
+      onConfirm: async () => {
+        setConfirmModal(null);
+        try {
+          await stockReturnsAPI.cancel(returnId);
+          loadData();
+        } catch (error) {
+          setError(getErrorMessage(error, 'Failed to cancel stock return'));
+        }
+      }
+    });
   };
 
-  const handleDeleteReturn = async (returnId: string) => {
-    if (!confirm('Delete this stock return? This cannot be undone.')) return;
-
-    try {
-      await stockReturnsAPI.delete(returnId);
-      loadData();
-    } catch (error) {
-      setError(getErrorMessage(error, 'Failed to delete stock return'));
-    }
+  const handleDeleteReturn = (returnId: string) => {
+    setConfirmModal({
+      title: 'Delete Stock Return',
+      description: 'Delete this stock return? This cannot be undone.',
+      onConfirm: async () => {
+        setConfirmModal(null);
+        try {
+          await stockReturnsAPI.delete(returnId);
+          loadData();
+        } catch (error) {
+          setError(getErrorMessage(error, 'Failed to delete stock return'));
+        }
+      }
+    });
   };
 
   const getStatusBadge = (status: string) => {
@@ -403,6 +424,16 @@ export function StockReturnsView() {
           }}
         />
       )}
+
+      <ConfirmationModal
+        isOpen={confirmModal !== null}
+        title={confirmModal?.title ?? ''}
+        description={confirmModal?.description ?? ''}
+        confirmLabel="Confirm"
+        variant="danger"
+        onConfirm={() => confirmModal?.onConfirm()}
+        onClose={() => setConfirmModal(null)}
+      />
     </div>
   );
 }

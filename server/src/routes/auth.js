@@ -4,46 +4,25 @@ import { body } from 'express-validator';
 import pool from '../config/database.js';
 import { generateToken, authenticateToken } from '../middleware/auth.js';
 import { validate } from '../middleware/validation.js';
+import { addToDenylist } from '../services/tokenDenylist.js';
+import logger from '../utils/logger.js';
 
 const router = express.Router();
 
 // Password strength regex: at least 8 chars, 1 uppercase, 1 lowercase, 1 number, 1 special char
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 
-// In-memory store for failed login attempts (use Redis in production)
-const failedLoginAttempts = new Map();
-const MAX_LOGIN_ATTEMPTS = 5;
-const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
-
-// Helper function to check if account is locked
-const isAccountLocked = (email) => {
-  const attempts = failedLoginAttempts.get(email);
-  if (!attempts) return false;
-  
-  if (attempts.count >= MAX_LOGIN_ATTEMPTS) {
-    const timeSinceLastAttempt = Date.now() - attempts.lastAttempt;
-    if (timeSinceLastAttempt < LOCKOUT_DURATION_MS) {
-      return true;
-    }
-    // Reset after lockout duration
-    failedLoginAttempts.delete(email);
-  }
-  return false;
-};
-
-// Helper function to record failed login attempt
-const recordFailedLogin = (email) => {
-  const existing = failedLoginAttempts.get(email) || { count: 0, lastAttempt: 0 };
-  failedLoginAttempts.set(email, {
-    count: existing.count + 1,
-    lastAttempt: Date.now()
-  });
-};
-
-// Helper function to clear failed login attempts
-const clearFailedLogins = (email) => {
-  failedLoginAttempts.delete(email);
-};
+// Common breached passwords — rejected at registration regardless of complexity score.
+// All entries stored lowercase; comparison uses password.toLowerCase().
+const COMMON_PASSWORDS = new Set([
+  'password', 'password1', 'password12', 'password123', 'password1!',
+  'admin', 'admin123', 'admin123!', 'administrator',
+  'letmein', 'letmein1', 'welcome', 'welcome1!',
+  'plumbing1', 'plumbing1!', 'plumber1', 'qwerty',
+  'qwerty1!', '12345678', '123456789', '1234567890',
+  'iloveyou', 'sunshine', 'monkey', 'dragon',
+  'master', 'access', 'login', 'pass',
+]);
 
 // Register new user with strong password validation
 router.post('/register',
@@ -80,6 +59,15 @@ router.post('/register',
 
       const { email, password, fullName, companyName, inviteToken } = req.body;
 
+      // Reject commonly breached passwords
+      if (COMMON_PASSWORDS.has(password.toLowerCase())) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({
+          error: 'Password is too common. Please choose a more unique password.',
+          code: 'WEAK_PASSWORD',
+        });
+      }
+
       // Check if user already exists
       const existingUser = await client.query(
         'SELECT id FROM users WHERE email = $1',
@@ -88,7 +76,7 @@ router.post('/register',
 
       if (existingUser.rows.length > 0) {
         await client.query('ROLLBACK');
-        return res.status(409).json({ error: 'Email already registered' });
+        return res.status(409).json({ error: 'Email already registered', code: 'CONFLICT' });
       }
 
       let invitation = null;
@@ -104,18 +92,18 @@ router.post('/register',
 
         if (invitationResult.rows.length === 0) {
           await client.query('ROLLBACK');
-          return res.status(400).json({ error: 'Invitation is invalid or has expired' });
+          return res.status(400).json({ error: 'Invitation is invalid or has expired', code: 'INVALID_INVITE' });
         }
 
         invitation = invitationResult.rows[0];
 
         if (invitation.email.toLowerCase() !== email.toLowerCase()) {
           await client.query('ROLLBACK');
-          return res.status(400).json({ error: 'Registration email must match the invited email address' });
+          return res.status(400).json({ error: 'Registration email must match the invited email address', code: 'EMAIL_MISMATCH' });
         }
       }
 
-      // Hash password with higher cost factor
+      // Hash password with cost factor 12
       const passwordHash = await bcrypt.hash(password, 12);
 
       // Create user
@@ -167,15 +155,15 @@ router.post('/register',
 
     } catch (error) {
       await client.query('ROLLBACK');
-      console.error('Registration error:', error);
-      res.status(500).json({ error: 'Registration failed' });
+      logger.error('Registration error', { error: error.message });
+      res.status(500).json({ error: 'Registration failed', code: 'INTERNAL_ERROR' });
     } finally {
       client.release();
     }
   }
 );
 
-// Login with account lockout protection
+// Login — brute-force protection delegated to express-rate-limit authLimiter in app.js
 router.post('/login',
   [
     body('email')
@@ -193,16 +181,6 @@ router.post('/login',
     try {
       const { email, password } = req.body;
 
-      // Check if account is locked
-      if (isAccountLocked(email)) {
-        const attempts = failedLoginAttempts.get(email);
-        const remainingTime = Math.ceil((LOCKOUT_DURATION_MS - (Date.now() - attempts.lastAttempt)) / 60000);
-        return res.status(423).json({ 
-          error: 'Account temporarily locked due to too many failed login attempts',
-          retryAfterMinutes: remainingTime
-        });
-      }
-
       // Find user
       const result = await client.query(
         'SELECT * FROM users WHERE email = $1 AND is_active = true',
@@ -210,31 +188,18 @@ router.post('/login',
       );
 
       if (result.rows.length === 0) {
-        // Use consistent timing to prevent user enumeration
-        await bcrypt.compare(password, '$2a$12$abcdefghijklmnopqrstuuuuuuuuuuuuuuuuuuuuuuuuu'); // dummy hash
-        recordFailedLogin(email);
-        return res.status(401).json({ error: 'Invalid credentials' });
+        // Constant-time response to prevent user enumeration
+        await bcrypt.compare(password, '$2a$12$abcdefghijklmnopqrstuuuuuuuuuuuuuuuuuuuuuuuuu');
+        return res.status(401).json({ error: 'Invalid credentials', code: 'INVALID_CREDENTIALS' });
       }
 
       const user = result.rows[0];
 
-      // Verify password
       const isValidPassword = await bcrypt.compare(password, user.password_hash);
       if (!isValidPassword) {
-        recordFailedLogin(email);
-        const attempts = failedLoginAttempts.get(email);
-        const remainingAttempts = MAX_LOGIN_ATTEMPTS - attempts.count;
-        
-        return res.status(401).json({ 
-          error: 'Invalid credentials',
-          remainingAttempts: Math.max(0, remainingAttempts)
-        });
+        return res.status(401).json({ error: 'Invalid credentials', code: 'INVALID_CREDENTIALS' });
       }
 
-      // Clear failed login attempts on successful login
-      clearFailedLogins(email);
-
-      // Generate token
       const token = generateToken(user);
 
       res.json({
@@ -250,13 +215,24 @@ router.post('/login',
       });
 
     } catch (error) {
-      console.error('Login error:', error);
-      res.status(500).json({ error: 'Login failed' });
+      logger.error('Login error', { error: error.message });
+      res.status(500).json({ error: 'Login failed', code: 'INTERNAL_ERROR' });
     } finally {
       client.release();
     }
   }
 );
+
+// Logout — revoke the current token by adding it to the denylist
+router.post('/logout', authenticateToken, (req, res) => {
+  const token = req.headers['authorization']?.split(' ')[1];
+  if (token) {
+    // req.user.exp is the JWT expiry claim (seconds since epoch)
+    const expMs = (req.user.exp ?? 0) * 1000;
+    addToDenylist(token, expMs);
+  }
+  res.json({ message: 'Logged out successfully' });
+});
 
 // Get current user (requires authentication)
 router.get('/me', authenticateToken, async (req, res) => {
@@ -269,7 +245,7 @@ router.get('/me', authenticateToken, async (req, res) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(404).json({ error: 'User not found', code: 'NOT_FOUND' });
     }
 
     const user = result.rows[0];
@@ -283,8 +259,8 @@ router.get('/me', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Get user error:', error);
-    res.status(500).json({ error: 'Failed to fetch user' });
+    logger.error('Get user error', { error: error.message });
+    res.status(500).json({ error: 'Failed to fetch user', code: 'INTERNAL_ERROR' });
   } finally {
     client.release();
   }

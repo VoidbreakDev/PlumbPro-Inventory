@@ -16,6 +16,7 @@ import { kitAPI } from '../lib/kitAPI';
 import { getErrorMessage } from '../lib/errors';
 import { Badge } from '../components/Shared';
 import { useStore } from '../store/useStore';
+import { ConfirmationModal } from '../components/ConfirmationModal';
 import type { CreateKitInput, Kit, KitItem, KitStatus, KitType } from '../types';
 
 type ViewMode = 'grid' | 'list';
@@ -95,6 +96,13 @@ export const KitManagementView: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<KitFormState>(defaultForm);
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [confirmModal, setConfirmModal] = useState<{
+    title: string;
+    description: string;
+    onConfirm: () => void;
+  } | null>(null);
 
   const loadKits = async () => {
     setLoading(true);
@@ -224,23 +232,32 @@ export const KitManagementView: React.FC = () => {
     }
   };
 
-  const handleDelete = async (kit: Kit) => {
-    if (!confirm(`Delete ${kit.name}?`)) {
-      return;
-    }
-    try {
-      await kitAPI.deleteKit(kit.id);
-      await loadKits();
-    } catch (error) {
-      setError(getErrorMessage(error, 'Failed to delete kit'));
-    }
+  const handleDelete = (kit: Kit) => {
+    setConfirmModal({
+      title: 'Delete Kit',
+      description: `Delete ${kit.name}?`,
+      onConfirm: async () => {
+        setConfirmModal(null);
+        try {
+          await kitAPI.deleteKit(kit.id);
+          await loadKits();
+        } catch (error) {
+          setError(getErrorMessage(error, 'Failed to delete kit'));
+        }
+      }
+    });
   };
 
-  const handleCreateCategory = async () => {
-    const name = window.prompt('New category name');
-    if (!name) return;
+  const handleCreateCategory = () => {
+    setNewCategoryName('');
+    setShowCategoryModal(true);
+  };
+
+  const handleCreateCategoryConfirmed = async () => {
+    if (!newCategoryName.trim()) return;
+    setShowCategoryModal(false);
     try {
-      await kitAPI.createCategory(name.trim(), '#64748B');
+      await kitAPI.createCategory(newCategoryName.trim(), '#64748B');
       await loadKits();
     } catch (error) {
       setError(getErrorMessage(error, 'Failed to create category'));
@@ -537,6 +554,49 @@ export const KitManagementView: React.FC = () => {
           Creating or editing a kit here immediately feeds the live selector, deterministic recommendations, availability checks, and sync cache.
         </p>
       </div>
+
+      {/* Create Category Modal */}
+      {showCategoryModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6">
+            <h3 className="text-lg font-bold text-slate-800 mb-3">New Category</h3>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Category name</label>
+            <input
+              type="text"
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              value={newCategoryName}
+              onChange={(e) => setNewCategoryName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleCreateCategoryConfirmed()}
+              placeholder="e.g. Plumbing Fittings"
+              autoFocus
+            />
+            <div className="flex gap-3 mt-4">
+              <button
+                onClick={() => setShowCategoryModal(false)}
+                className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateCategoryConfirmed}
+                disabled={!newCategoryName.trim()}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              >
+                Create
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      <ConfirmationModal
+        isOpen={confirmModal !== null}
+        title={confirmModal?.title ?? ''}
+        description={confirmModal?.description ?? ''}
+        confirmLabel="Confirm"
+        variant="danger"
+        onConfirm={() => confirmModal?.onConfirm()}
+        onClose={() => setConfirmModal(null)}
+      />
     </div>
   );
 };

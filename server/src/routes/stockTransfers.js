@@ -5,6 +5,9 @@ import { authenticateToken } from '../middleware/auth.js';
 
 const router = express.Router();
 
+// All routes require authentication
+router.use(authenticateToken);
+
 // Middleware to validate request
 const validate = (req, res, next) => {
   const errors = validationResult(req);
@@ -16,7 +19,6 @@ const validate = (req, res, next) => {
 
 // GET /api/stock-transfers - Get all stock transfers with filtering
 router.get('/', [
-  authenticateToken,
   query('itemId').optional().isUUID(),
   query('locationId').optional().isUUID(),
   query('startDate').optional().isISO8601(),
@@ -110,7 +112,6 @@ router.get('/', [
 
 // POST /api/stock-transfers - Execute stock transfer
 router.post('/', [
-  authenticateToken,
   body('itemId').isUUID().withMessage('Valid item ID is required'),
   body('fromLocationId').isUUID().withMessage('Valid source location ID is required'),
   body('toLocationId').isUUID().withMessage('Valid destination location ID is required'),
