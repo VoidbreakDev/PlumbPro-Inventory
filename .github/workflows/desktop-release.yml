@@ -23,7 +23,7 @@ permissions:
 jobs:
   build:
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         include:
           - os: macos-latest
@@ -79,7 +79,6 @@ jobs:
       - name: Package desktop app (${{ matrix.platform }})
         working-directory: ./desktop
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # macOS code signing — only needed if you have these secrets set up
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}

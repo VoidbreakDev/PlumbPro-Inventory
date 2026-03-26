@@ -74,7 +74,7 @@ linux:
   target:
     - target: AppImage
       arch: [x64]
-  icon: resources/icons
+  icon: resources/icons/icon.png
   category: Office
   artifactName: ${productName}-${version}.${ext}
 
