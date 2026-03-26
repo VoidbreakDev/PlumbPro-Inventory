@@ -100,6 +100,8 @@ export interface ImportBatch {
   gross_total_ex_gst: number;
   credit_total_ex_gst: number;
   status: string;
+  review_status: 'pending' | 'in_progress' | 'complete';
+  unconfirmed_count: number;
 }
 
 export interface ImportSummary {
@@ -110,6 +112,29 @@ export interface ImportSummary {
   skippedCount: number;
   grossTotal: number;
   creditTotal: number;
+  unconfirmedCount: number;
+}
+
+export type OrderType = 'Job Delivery' | 'Stock Order' | 'Pickup' | 'Unknown';
+
+export interface ReviewInvoice {
+  invoiceNumber: string;
+  invoiceDate: string;
+  orderNo: string | null;
+  currentOrderType: OrderType;
+  orderTypeConfirmed: boolean;
+  lineCount: number;
+  totalExGST: number;
+  topProducts: string[];
+  hasDeliveryCharge: boolean;
+}
+
+export interface PendingBatch {
+  id: string;
+  filename: string;
+  imported_at: string;
+  unconfirmed_count: number;
+  review_status: string;
 }
 
 function fmt(p: Record<string, string | number | undefined>) {
@@ -182,6 +207,24 @@ export const purchaseAnalyticsAPI = {
 
   deleteBatch: async (id: string): Promise<void> => {
     await api.delete(`/import/batches/${id}`);
+  },
+
+  getPendingReview: async (): Promise<{ batches: PendingBatch[] }> => {
+    const { data } = await api.get('/import/review/pending');
+    return data;
+  },
+
+  getBatchReview: async (batchId: string): Promise<{ batchId: string; invoices: ReviewInvoice[] }> => {
+    const { data } = await api.get(`/import/batches/${batchId}/review`);
+    return data;
+  },
+
+  submitBatchReview: async (
+    batchId: string,
+    updates: Array<{ invoiceNumber: string; orderType: OrderType }>
+  ): Promise<{ updatedCount: number; remainingUnconfirmed: number }> => {
+    const { data } = await api.patch(`/import/batches/${batchId}/review`, { updates });
+    return data;
   },
 };
 

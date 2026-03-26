@@ -1,13 +1,14 @@
 // components/analytics/AnalyticsDashboard.tsx
 import React, { useState, useEffect, useCallback } from 'react';
-import { Upload, RefreshCw } from 'lucide-react';
+import { Upload, RefreshCw, ClipboardList } from 'lucide-react';
 import { StatCard } from './StatCard';
 import { SpendOverview } from './SpendOverview';
 import { InventoryInsights } from './InventoryInsights';
 import { PriceTrends } from './PriceTrends';
 import { DeliveryCosts } from './DeliveryCosts';
 import { ReeceImportModal } from '../import/ReeceImportModal';
-import { purchaseAnalyticsAPI, type PASummary } from '../../lib/purchaseAnalyticsAPI';
+import { InvoiceReviewModal } from '../import/InvoiceReviewModal';
+import { purchaseAnalyticsAPI, type PASummary, type PendingBatch } from '../../lib/purchaseAnalyticsAPI';
 import { format, subMonths } from 'date-fns';
 
 type Tab = 'spend' | 'inventory' | 'price-trends' | 'delivery';
@@ -40,6 +41,8 @@ export function AnalyticsDashboard() {
   const [activeTab, setActiveTab] = useState<Tab>(getTabFromUrl);
   const [summary, setSummary] = useState<PASummary | null>(null);
   const [showImport, setShowImport] = useState(false);
+  const [pendingBatches, setPendingBatches] = useState<PendingBatch[]>([]);
+  const [reviewBatchId, setReviewBatchId] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [dateRange] = useState({
     from: format(subMonths(new Date(), 12), 'yyyy-MM-dd'),
@@ -48,8 +51,12 @@ export function AnalyticsDashboard() {
 
   const loadSummary = useCallback(async () => {
     try {
-      const s = await purchaseAnalyticsAPI.getSummary();
+      const [s, pending] = await Promise.all([
+        purchaseAnalyticsAPI.getSummary(),
+        purchaseAnalyticsAPI.getPendingReview(),
+      ]);
       setSummary(s);
+      setPendingBatches(pending.batches);
     } catch (_) {
       setSummary(null);
     }
@@ -128,10 +135,37 @@ export function AnalyticsDashboard() {
       {activeTab === 'price-trends' && <PriceTrends refreshKey={refreshKey} />}
       {activeTab === 'delivery' && <DeliveryCosts refreshKey={refreshKey} />}
 
+      {/* Global pending review badge */}
+      {pendingBatches.length > 0 && (
+        <div className="flex items-center justify-between bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+          <div className="flex items-center gap-2 text-amber-700">
+            <ClipboardList size={16} />
+            <span className="text-sm font-medium">
+              {pendingBatches.length} batch{pendingBatches.length !== 1 ? 'es' : ''} need order type review
+              ({pendingBatches.reduce((sum, b) => sum + (b.unconfirmed_count || 0), 0)} invoices)
+            </span>
+          </div>
+          <button
+            onClick={() => setReviewBatchId(pendingBatches[0].id)}
+            className="text-xs font-semibold text-amber-700 hover:text-amber-900 underline whitespace-nowrap"
+          >
+            Review now →
+          </button>
+        </div>
+      )}
+
       {showImport && (
         <ReeceImportModal
           onClose={() => setShowImport(false)}
           onSuccess={handleImportSuccess}
+        />
+      )}
+
+      {reviewBatchId && (
+        <InvoiceReviewModal
+          batchId={reviewBatchId}
+          onClose={() => setReviewBatchId(null)}
+          onComplete={() => { setReviewBatchId(null); setRefreshKey(k => k + 1); }}
         />
       )}
     </div>

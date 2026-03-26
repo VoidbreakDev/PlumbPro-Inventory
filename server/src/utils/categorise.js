@@ -17,8 +17,13 @@ export function categoriseProduct(description) {
 
 export function classifyOrderType(orderNo) {
   const v = String(orderNo || '').trim();
-  if (['WAREHOUSE', '2021', '0', 'nan', '0101', '2001'].includes(v)) return 'Stock/Warehouse';
-  return 'Job Order';
+  // Known warehouse/stock placeholders — high confidence
+  if (['WAREHOUSE', '0101', '2001'].includes(v)) return { type: 'Stock Order', confirmed: true };
+  // Numeric job reference (6+ digits) — likely a real job PO number
+  if (/^\d{6,}$/.test(v)) return { type: 'Job Delivery', confirmed: false };
+  // '2021' was a legacy placeholder used for BOTH job and warehouse orders — cannot be trusted
+  // '0', blank, 'nan' — genuinely unknown
+  return { type: 'Unknown', confirmed: false };
 }
 
 export function isDeliveryItem(description) {

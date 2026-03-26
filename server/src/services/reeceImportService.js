@@ -48,6 +48,7 @@ export async function importReeceRows(client, userId, filename, rows) {
   let invoiceCount = 0;
   let creditCount = 0;
   let skippedCount = 0;
+  let unconfirmedCount = 0;
 
   // Price history accumulator: key = productCode:YYYY-MM-01
   const priceMap = new Map();
@@ -75,6 +76,8 @@ export async function importReeceRows(client, userId, filename, rows) {
     const category = categoriseProduct(description);
     const delivery = isDeliveryItem(description);
     const orderNo = (row['Order No'] || '').trim();
+    const { type: orderType, confirmed: orderTypeConfirmed } = classifyOrderType(orderNo);
+    if (!orderTypeConfirmed) unconfirmedCount++;
     const invoiceDateRaw = (row['Date'] || '').trim();
     const invoiceDate = parseAusDate(invoiceDateRaw);
     const unitPriceExGst = toNum(row['Unit Price GST Excl']);
@@ -85,13 +88,13 @@ export async function importReeceRows(client, userId, filename, rows) {
     await client.query(
       `INSERT INTO supplier_invoices (
         id, user_id, import_batch_id, supplier, invoice_date, invoice_number,
-        invoice_type, order_no, order_type, job_name, receiver,
+        invoice_type, order_no, order_type, order_type_confirmed, job_name, receiver,
         product_code, product_description, category, quantity, unit,
         unit_price_ex_gst, unit_price_inc_gst, line_total_ex_gst, line_total_gst,
         line_total_inc_gst, discount_pct, is_delivery_item, delivery_absorbed,
         billable_delivery, created_at
       ) VALUES (
-        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26
+        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27
       )`,
       [
         id, userId, batchId,
@@ -100,7 +103,8 @@ export async function importReeceRows(client, userId, filename, rows) {
         (row['Number'] || '').trim(),
         invoiceType,
         orderNo || null,
-        classifyOrderType(orderNo),
+        orderType,
+        orderTypeConfirmed ? 1 : 0,
         (row['Job Name'] || null),
         (row['Receiver'] || null),
         productCode,
@@ -162,12 +166,16 @@ export async function importReeceRows(client, userId, filename, rows) {
   const grossTotal = parseFloat(totalsResult.rows[0].gross);
   const creditTotal = parseFloat(totalsResult.rows[0].credits);
 
+  // Determine review status
+  const reviewStatus = unconfirmedCount > 0 ? 'pending' : 'complete';
+
   // Insert batch record
   await client.query(
-    `INSERT INTO import_batches (id,user_id,filename,imported_at,row_count,invoice_count,gross_total_ex_gst,credit_total_ex_gst,status)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'complete')`,
-    [batchId, userId, filename, now, rows.length, invoiceCount + creditCount, grossTotal, creditTotal]
+    `INSERT INTO import_batches
+       (id,user_id,filename,imported_at,row_count,invoice_count,gross_total_ex_gst,credit_total_ex_gst,status,review_status,unconfirmed_count)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'complete',$9,$10)`,
+    [batchId, userId, filename, now, rows.length, invoiceCount + creditCount, grossTotal, creditTotal, reviewStatus, unconfirmedCount]
   );
 
-  return { batchId, rowCount: rows.length, invoiceCount, creditCount, skippedCount, grossTotal, creditTotal };
+  return { batchId, rowCount: rows.length, invoiceCount, creditCount, skippedCount, grossTotal, creditTotal, unconfirmedCount };
 }

@@ -72,10 +72,18 @@ export async function ensurePurchaseAnalyticsTables() {
         )
       `);
 
-      // Migration: add override_charge if missing (for existing installs)
-      try {
-        await client.query('ALTER TABLE supplier_invoices ADD COLUMN override_charge REAL');
-      } catch (_) { /* already exists */ }
+      // Migrations: add columns if missing (safe to re-run)
+      const migrations = [
+        'ALTER TABLE supplier_invoices ADD COLUMN override_charge REAL',
+        'ALTER TABLE supplier_invoices ADD COLUMN order_type_confirmed INTEGER NOT NULL DEFAULT 0',
+        'ALTER TABLE import_batches ADD COLUMN review_status TEXT NOT NULL DEFAULT \'pending\'',
+        'ALTER TABLE import_batches ADD COLUMN unconfirmed_count INTEGER NOT NULL DEFAULT 0',
+        'ALTER TABLE import_batches ADD COLUMN reviewed_at TEXT',
+        'ALTER TABLE import_batches ADD COLUMN reviewed_by TEXT',
+      ];
+      for (const sql of migrations) {
+        try { await client.query(sql); } catch (_) { /* column already exists */ }
+      }
 
       await client.query(`CREATE INDEX IF NOT EXISTS idx_si_user_date ON supplier_invoices(user_id, invoice_date)`);
       await client.query(`CREATE INDEX IF NOT EXISTS idx_si_product ON supplier_invoices(user_id, product_code)`);

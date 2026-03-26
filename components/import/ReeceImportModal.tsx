@@ -1,7 +1,8 @@
 // components/import/ReeceImportModal.tsx
 import React, { useState, useRef } from 'react';
-import { X, Upload, AlertCircle, CheckCircle } from 'lucide-react';
+import { X, Upload, AlertCircle, CheckCircle, ClipboardList } from 'lucide-react';
 import { purchaseAnalyticsAPI, type ImportSummary } from '../../lib/purchaseAnalyticsAPI';
+import { InvoiceReviewModal } from './InvoiceReviewModal';
 
 interface Props {
   onClose: () => void;
@@ -14,6 +15,7 @@ export function ReeceImportModal({ onClose, onSuccess }: Props) {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ImportSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showReview, setShowReview] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleFile = (f: File) => {
@@ -92,17 +94,35 @@ export function ReeceImportModal({ onClose, onSuccess }: Props) {
 
           {/* Success summary */}
           {result && (
-            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
-              <div className="flex items-center gap-2 text-emerald-700 font-medium mb-3">
-                <CheckCircle size={16} /> Import complete
+            <div className="flex flex-col gap-3">
+              <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
+                <div className="flex items-center gap-2 text-emerald-700 font-medium mb-3">
+                  <CheckCircle size={16} /> Import complete
+                </div>
+                <dl className="grid grid-cols-2 gap-y-1 text-sm">
+                  <dt className="text-slate-500">Invoices imported</dt><dd className="font-medium text-slate-800">{result.invoiceCount}</dd>
+                  <dt className="text-slate-500">Credits found</dt><dd className="font-medium text-slate-800">{result.creditCount}</dd>
+                  <dt className="text-slate-500">Rows skipped</dt><dd className="font-medium text-slate-800">{result.skippedCount}</dd>
+                  <dt className="text-slate-500">Total spend (ex GST)</dt>
+                  <dd className="font-medium text-slate-800">${result.grossTotal.toLocaleString('en-AU', { maximumFractionDigits: 0 })}</dd>
+                </dl>
               </div>
-              <dl className="grid grid-cols-2 gap-y-1 text-sm">
-                <dt className="text-slate-500">Invoices imported</dt><dd className="font-medium text-slate-800">{result.invoiceCount}</dd>
-                <dt className="text-slate-500">Credits found</dt><dd className="font-medium text-slate-800">{result.creditCount}</dd>
-                <dt className="text-slate-500">Rows skipped</dt><dd className="font-medium text-slate-800">{result.skippedCount}</dd>
-                <dt className="text-slate-500">Total spend (ex GST)</dt>
-                <dd className="font-medium text-slate-800">${result.grossTotal.toLocaleString('en-AU', { maximumFractionDigits: 0 })}</dd>
-              </dl>
+              {result.unconfirmedCount > 0 && (
+                <div className="flex items-start justify-between gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+                  <div className="flex items-start gap-2 text-amber-700">
+                    <ClipboardList size={16} className="mt-0.5 flex-shrink-0" />
+                    <span className="text-sm font-medium">
+                      {result.unconfirmedCount} invoice{result.unconfirmedCount !== 1 ? 's' : ''} need order type review
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setShowReview(true)}
+                    className="text-xs font-semibold text-amber-700 hover:text-amber-900 whitespace-nowrap underline"
+                  >
+                    Review now →
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -126,6 +146,14 @@ export function ReeceImportModal({ onClose, onSuccess }: Props) {
           )}
         </div>
       </div>
+
+      {showReview && result && (
+        <InvoiceReviewModal
+          batchId={result.batchId}
+          onClose={() => setShowReview(false)}
+          onComplete={() => { setShowReview(false); onSuccess(); }}
+        />
+      )}
     </div>
   );
 }
