@@ -97,18 +97,19 @@ jobs:
           if-no-files-found: error
           retention-days: 7
           path: |
-            desktop/release/**/*.exe
-            desktop/release/**/*.dmg
-            desktop/release/**/*.AppImage
-            desktop/release/**/*.zip
-            desktop/release/**/*.yml
-            desktop/release/**/*.yaml
+            desktop/release/*/*.exe
+            desktop/release/*/*.dmg
+            desktop/release/*/*.AppImage
+            desktop/release/*/*.zip
+            desktop/release/*/*.blockmap
+            desktop/release/*/latest*.yml
+            desktop/release/*/latest*.yaml
 
   release:
     needs: build
     runs-on: ubuntu-latest
-    # Run on tag push OR manual dispatch — not just tags
-    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+    # Run on tag push, or manual dispatch only when a version is provided so we can create a proper release tag.
+    if: startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && inputs.version != '')
 
     steps:
       - name: Download all artifacts
@@ -119,6 +120,15 @@ jobs:
       - name: List artifacts (debug)
         run: find ./artifacts -type f | sort
 
+      - name: Determine release tag
+        id: release_tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=v${{ inputs.version }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -127,11 +137,12 @@ jobs:
             ./artifacts/**/*.dmg
             ./artifacts/**/*.AppImage
             ./artifacts/**/*.zip
-            ./artifacts/**/*.yml
-            ./artifacts/**/*.yaml
+            ./artifacts/**/*.blockmap
+            ./artifacts/**/latest*.yml
+            ./artifacts/**/latest*.yaml
           draft: true
           prerelease: false
           generate_release_notes: true
-          tag_name: ${{ github.ref_name }}
+          tag_name: ${{ steps.release_tag.outputs.tag }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
