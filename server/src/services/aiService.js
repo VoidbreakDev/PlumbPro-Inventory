@@ -1,28 +1,38 @@
 import db from '../config/database.js';
 import { generateCompletion, getProviderForFeature } from './aiProviders.js';
 
+export const normalizeMovementTimestamp = (timestamp) => {
+  const parsed = Number(timestamp);
+  if (!Number.isFinite(parsed)) {
+    return new Date(0);
+  }
+  return new Date(parsed);
+};
+
 /**
  * Predictive Stock Forecasting
  * Analyzes historical stock movements to predict future demand
  */
 export const forecastStockDemand = async (userId, itemId = null, daysAhead = 30) => {
   try {
+    const movementCutoff = Date.now() - (90 * 24 * 60 * 60 * 1000);
+
     // Get historical stock movement data (last 90 days)
     const query = itemId
       ? `SELECT sm.*, ii.name, ii.category, ii.quantity as current_stock, ii.reorder_level
          FROM stock_movements sm
          JOIN inventory_items ii ON sm.item_id = ii.id
          WHERE sm.user_id = $1 AND sm.item_id = $2
-         AND sm.timestamp >= NOW() - INTERVAL '90 days'
+         AND sm.timestamp >= $3
          ORDER BY sm.timestamp DESC`
       : `SELECT sm.*, ii.name, ii.category, ii.quantity as current_stock, ii.reorder_level
          FROM stock_movements sm
          JOIN inventory_items ii ON sm.item_id = ii.id
          WHERE sm.user_id = $1
-         AND sm.timestamp >= NOW() - INTERVAL '90 days'
+         AND sm.timestamp >= $2
          ORDER BY sm.item_id, sm.timestamp DESC`;
 
-    const params = itemId ? [userId, itemId] : [userId];
+    const params = itemId ? [userId, itemId, movementCutoff] : [userId, movementCutoff];
     const { rows: movements } = await db.query(query, params);
 
     if (movements.length === 0) {
@@ -56,7 +66,7 @@ export const forecastStockDemand = async (userId, itemId = null, daysAhead = 30)
 
       // Prepare data for AI analysis
       const movementSummary = itemData.movements.slice(0, 50).map(m => ({
-        date: m.timestamp.toISOString().split('T')[0],
+        date: normalizeMovementTimestamp(m.timestamp).toISOString().split('T')[0],
         type: m.type,
         quantity: m.quantity,
         notes: m.notes

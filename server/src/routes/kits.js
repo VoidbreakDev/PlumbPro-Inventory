@@ -136,6 +136,7 @@ const buildKit = (row) => ({
   tags: parseJson(row.tags_json, []),
   version: Number(row.version || 1),
   parentKitId: row.parent_kit_id || undefined,
+  salePrice: row.sale_price !== null && row.sale_price !== undefined ? Number(row.sale_price) : undefined,
   createdAt: row.created_at,
   updatedAt: row.updated_at,
   createdBy: row.created_by || undefined
@@ -217,10 +218,18 @@ const ensureTables = async () => {
         version INTEGER NOT NULL DEFAULT 1,
         parent_kit_id TEXT,
         created_by TEXT,
+        sale_price REAL,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL
       )
     `);
+
+    // Add sale_price column to existing tables that predate this field
+    try {
+      await db.query('ALTER TABLE kits ADD COLUMN sale_price REAL');
+    } catch (_) {
+      // Column already exists — ignore
+    }
 
     await db.query(`
       CREATE TABLE IF NOT EXISTS kit_applications (
@@ -341,6 +350,7 @@ const saveKit = async (userId, kitId, payload, existing = null) => {
     color: payload.color || existing?.color || '#2563EB',
     version: existing ? Number(existing.version || 1) + 1 : 1,
     usageCount: existing?.usageCount || 0,
+    salePrice: payload.salePrice !== undefined ? Number(payload.salePrice) : (existing?.salePrice ?? null),
     createdAt: existing?.createdAt || now,
     updatedAt: now,
     ...totals
@@ -371,7 +381,8 @@ const saveKit = async (userId, kitId, payload, existing = null) => {
           version = $22,
           parent_kit_id = $23,
           created_by = $24,
-          updated_at = $25
+          sale_price = $25,
+          updated_at = $26
       WHERE user_id = $1 AND id = $2
     `, [
       userId,
@@ -398,6 +409,7 @@ const saveKit = async (userId, kitId, payload, existing = null) => {
       kit.version,
       kit.parentKitId || null,
       kit.createdBy || null,
+      numberOrNull(kit.salePrice),
       now
     ]);
   } else {
@@ -407,14 +419,14 @@ const saveKit = async (userId, kitId, payload, existing = null) => {
         applicable_job_types_json, items_json, variations_json, total_cost_price,
         total_sell_price, total_labor_hours, default_markup_percentage, usage_count,
         last_used_at, average_job_profit, average_completion_time, tags_json, version,
-        parent_kit_id, created_by, created_at, updated_at
+        parent_kit_id, created_by, sale_price, created_at, updated_at
       )
       VALUES (
         $1, $2, $3, $4, $5, $6, $7, $8, $9,
         $10, $11, $12, $13,
         $14, $15, $16, $17,
         $18, $19, $20, $21, $22,
-        $23, $24, $25, $26
+        $23, $24, $25, $26, $27
       )
     `, [
       kitId,
@@ -441,6 +453,7 @@ const saveKit = async (userId, kitId, payload, existing = null) => {
       kit.version,
       kit.parentKitId || null,
       kit.createdBy || null,
+      numberOrNull(kit.salePrice),
       kit.createdAt,
       kit.updatedAt
     ]);

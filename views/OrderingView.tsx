@@ -111,7 +111,7 @@ export const OrderingView: React.FC<OrderingViewProps> = ({ inventory, jobs }) =
     setIsLoading(true);
     try {
       const data = await smartOrderingAPI.getAlerts();
-      setAlerts(data);
+      setAlerts(data.alerts);
     } catch (err) {
       setError(getErrorMessage(err, 'Failed to load alerts'));
     } finally {

@@ -7,7 +7,6 @@ import React, { useState, useEffect } from 'react';
 import {
   Truck,
   Package,
-  Plus,
   AlertTriangle,
   RefreshCw,
   AlertCircle,
@@ -17,7 +16,6 @@ import {
   TrendingDown,
   History,
   Search,
-  Trash2,
   Eye
 } from 'lucide-react';
 import { getErrorMessage } from '../lib/errors';
@@ -59,7 +57,6 @@ export function VanStockView() {
   const [vanStock, setVanStock] = useState<VanStockItem[]>([]);
 
   // Modal state
-  const [showCreateVanModal, setShowCreateVanModal] = useState(false);
   const [confirmation, setConfirmation] = useState<ConfirmationState | null>(null);
   const [isConfirmingAction, setIsConfirmingAction] = useState(false);
 
@@ -127,42 +124,13 @@ export function VanStockView() {
     }
   };
 
-  const requestDeleteVan = (van: ServiceVan) => {
-    setConfirmation({
-      title: `Delete ${van.name}?`,
-      description: `This removes ${van.name} and its tracked stock records. Use this only when the vehicle has been decommissioned or migrated.`,
-      confirmLabel: 'Delete Van',
-      processingLabel: 'Deleting...',
-      variant: 'danger',
-      errorMessage: 'Failed to delete van',
-      action: async () => {
-        await vanStockAPI.deleteVan(van.id);
-        setSuccess('Van deleted successfully');
-        await loadData();
-        if (selectedVan?.id === van.id) {
-          setSelectedVan(null);
-          setVanStock([]);
-        }
-      }
-    });
-  };
-
-  const handleUpdateStatus = async (vanId: string, status: ServiceVan['status']) => {
-    try {
-      await vanStockAPI.updateVan(vanId, { status });
-      setSuccess('Van status updated');
-      loadData();
-    } catch (err) {
-      setError(getErrorMessage(err, 'Failed to update status'));
-    }
-  };
-
   const getStatusColor = (status: ServiceVan['status']) => {
     switch (status) {
-      case 'available': return 'bg-green-100 text-green-700';
-      case 'in_use': return 'bg-blue-100 text-blue-700';
+      case 'active': return 'bg-green-100 text-green-700';
       case 'maintenance': return 'bg-yellow-100 text-yellow-700';
-      case 'out_of_service': return 'bg-red-100 text-red-700';
+      case 'retired': return 'bg-gray-100 text-gray-700';
+      case 'lost': return 'bg-red-100 text-red-700';
+      case 'stolen': return 'bg-red-100 text-red-700';
       default: return 'bg-gray-100 text-gray-700';
     }
   };
@@ -291,15 +259,6 @@ export function VanStockView() {
             <RefreshCw className="w-4 h-4" />
             Refresh
           </button>
-          {activeTab === 'vans' && (
-            <button
-              onClick={() => setShowCreateVanModal(true)}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
-            >
-              <Plus className="w-4 h-4" />
-              Add Van
-            </button>
-          )}
         </div>
       </div>
 
@@ -419,12 +378,9 @@ export function VanStockView() {
                 <div className="bg-white rounded-lg shadow p-8 text-center">
                   <Truck className="w-12 h-12 mx-auto text-gray-300 mb-3" />
                   <p className="text-gray-500">No vans found</p>
-                  <button
-                    onClick={() => setShowCreateVanModal(true)}
-                    className="mt-3 text-blue-600 hover:text-blue-800 text-sm font-medium"
-                  >
-                    Add your first van
-                  </button>
+                  <p className="text-sm text-gray-400 mt-1">
+                    Add a vehicle in the Assets section and set its type to Van.
+                  </p>
                 </div>
               )}
             </div>
@@ -436,24 +392,15 @@ export function VanStockView() {
               <div className="p-4 border-b border-gray-200">
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-semibold text-gray-900">{selectedVan.name}</h2>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => requestDeleteVan(selectedVan)}
-                      className="text-red-600 hover:text-red-800 p-2 rounded-lg hover:bg-red-50"
-                      title="Delete van"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => {
-                        setSelectedVan(null);
-                        setVanStock([]);
-                      }}
-                      className="text-gray-400 hover:text-gray-600 p-2"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => {
+                      setSelectedVan(null);
+                      setVanStock([]);
+                    }}
+                    className="text-gray-400 hover:text-gray-600 p-2"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
                 </div>
 
                 {/* Van Info */}
@@ -472,16 +419,9 @@ export function VanStockView() {
                   )}
                   <div>
                     <p className="text-gray-500">Status</p>
-                    <select
-                      value={selectedVan.status}
-                      onChange={(e) => handleUpdateStatus(selectedVan.id, e.target.value as ServiceVan['status'])}
-                      className={`mt-1 px-2 py-1 rounded text-xs font-medium border-0 ${getStatusColor(selectedVan.status)}`}
-                    >
-                      <option value="available">Available</option>
-                      <option value="in_use">In Use</option>
-                      <option value="maintenance">Maintenance</option>
-                      <option value="out_of_service">Out of Service</option>
-                    </select>
+                    <span className={`mt-1 inline-block px-2 py-1 rounded text-xs font-medium ${getStatusColor(selectedVan.status)}`}>
+                      {selectedVan.status}
+                    </span>
                   </div>
                   <div>
                     <p className="text-gray-500">Assigned To</p>
@@ -694,19 +634,6 @@ export function VanStockView() {
         </div>
       )}
 
-      {/* Create Van Modal */}
-      {showCreateVanModal && (
-        <CreateVanModal
-          onClose={() => setShowCreateVanModal(false)}
-          onSuccess={() => {
-            setShowCreateVanModal(false);
-            setSuccess('Van created successfully');
-            loadData();
-          }}
-          onError={(msg) => setError(msg)}
-        />
-      )}
-
       <ConfirmationModal
         isOpen={confirmation !== null}
         title={confirmation?.title || ''}
@@ -722,157 +649,3 @@ export function VanStockView() {
   );
 }
 
-// Create Van Modal
-function CreateVanModal({
-  onClose,
-  onSuccess,
-  onError
-}: {
-  onClose: () => void;
-  onSuccess: () => void;
-  onError: (msg: string) => void;
-}) {
-  const [name, setName] = useState('');
-  const [registration, setRegistration] = useState('');
-  const [make, setMake] = useState('');
-  const [model, setModel] = useState('');
-  const [year, setYear] = useState('');
-  const [color, setColor] = useState('');
-  const [notes, setNotes] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitting(true);
-
-    try {
-      await vanStockAPI.createVan({
-        name,
-        registration: registration || undefined,
-        make: make || undefined,
-        model: model || undefined,
-        year: year ? parseInt(year) : undefined,
-        color: color || undefined,
-        notes: notes || undefined
-      });
-      onSuccess();
-    } catch (err) {
-      onError(getErrorMessage(err, 'Failed to create van'));
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg">
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-gray-900">Add Service Van</h2>
-            <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg">
-              <X className="w-5 h-5 text-gray-500" />
-            </button>
-          </div>
-        </div>
-
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Van Name *</label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              placeholder="Van 1, Service Truck A, etc."
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Registration</label>
-              <input
-                type="text"
-                value={registration}
-                onChange={(e) => setRegistration(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                placeholder="ABC 123"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Color</label>
-              <input
-                type="text"
-                value={color}
-                onChange={(e) => setColor(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                placeholder="White"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Make</label>
-              <input
-                type="text"
-                value={make}
-                onChange={(e) => setMake(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                placeholder="Ford"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Model</label>
-              <input
-                type="text"
-                value={model}
-                onChange={(e) => setModel(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                placeholder="Transit"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Year</label>
-              <input
-                type="number"
-                value={year}
-                onChange={(e) => setYear(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                placeholder="2023"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={2}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              placeholder="Any additional notes..."
-            />
-          </div>
-
-          <div className="flex justify-end gap-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={submitting || !name.trim()}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50"
-            >
-              {submitting ? 'Creating...' : 'Add Van'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}

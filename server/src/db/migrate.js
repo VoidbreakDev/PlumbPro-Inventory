@@ -10,6 +10,27 @@ async function runMigration() {
   const client = await pool.connect();
 
   try {
+    const existingTables = await client.query(`
+      SELECT COUNT(*)::int AS count
+      FROM information_schema.tables
+      WHERE table_schema = 'public'
+        AND table_name IN (
+          'users',
+          'contacts',
+          'inventory_items',
+          'job_templates',
+          'jobs',
+          'purchase_orders',
+          'locations'
+        )
+    `);
+
+    if (existingTables.rows[0].count > 0 && process.env.ALLOW_DESTRUCTIVE_RESET !== 'true') {
+      throw new Error(
+        'Refusing to run destructive schema reset against a non-empty database. Use `npm run migrate` for additive upgrades or set ALLOW_DESTRUCTIVE_RESET=true to force a reset.'
+      );
+    }
+
     console.log('🚀 Starting database migration...');
 
     // Read schema file

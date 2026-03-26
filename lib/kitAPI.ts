@@ -3,7 +3,7 @@
  * Handles all operations for kit creation, management, and application
  */
 
-import api from './api';
+import api from './api/client';
 import type {
   Kit,
   KitCategory,
@@ -31,7 +31,7 @@ export interface KitFiltersResponse {
 }
 
 class KitAPI {
-  private baseUrl = '/api/kits';
+  private baseUrl = '/kits';
 
   // ==================== Kit CRUD Operations ====================
 

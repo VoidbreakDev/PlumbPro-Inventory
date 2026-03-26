@@ -26,7 +26,7 @@ export interface ComplianceSummary {
 }
 
 class SubcontractorAPI {
-  private baseUrl = '/api/subcontractors';
+  private baseUrl = '/subcontractors';
 
   // ==================== Subcontractor CRUD ====================
 

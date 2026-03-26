@@ -224,13 +224,13 @@ describe('useStore syncWithServer', () => {
     const cachedLastSync = 1750000000000;
 
     inventoryApiMock.getAll.mockRejectedValue(syncError);
-    contactsApiMock.getAll.mockResolvedValue([]);
-    jobsApiMock.getAll.mockResolvedValue([]);
-    developmentProjectsApiMock.getAll.mockResolvedValue([]);
-    templatesApiMock.getAll.mockResolvedValue([]);
-    kitApiMock.getKits.mockResolvedValue({ kits: [] });
-    movementsApiMock.getAll.mockResolvedValue([]);
-    locationsApiMock.getAll.mockResolvedValue([]);
+    contactsApiMock.getAll.mockRejectedValue(syncError);
+    jobsApiMock.getAll.mockRejectedValue(syncError);
+    developmentProjectsApiMock.getAll.mockRejectedValue(syncError);
+    templatesApiMock.getAll.mockRejectedValue(syncError);
+    kitApiMock.getKits.mockRejectedValue(syncError);
+    movementsApiMock.getAll.mockRejectedValue(syncError);
+    locationsApiMock.getAll.mockRejectedValue(syncError);
 
     storageMock.getInventory.mockResolvedValue(cachedInventory);
     storageMock.getContacts.mockResolvedValue(cachedContacts);
@@ -264,5 +264,61 @@ describe('useStore syncWithServer', () => {
 
     expect(storageMock.setInventory).not.toHaveBeenCalled();
     expect(storageMock.setLocations).not.toHaveBeenCalled();
+  });
+
+  it('keeps cached domains when part of the snapshot fails but still persists refreshed data', async () => {
+    const timestamp = 1765000000000;
+    vi.spyOn(Date, 'now').mockReturnValue(timestamp);
+
+    const cachedSnapshot = {
+      inventory: [{ id: 'item-cached', name: 'Cached Valve', quantity: 4 }],
+      contacts: [{ id: 'contact-cached', name: 'Cached Contact' }],
+      jobs: [{ id: 'job-cached', title: 'Cached Job' }],
+      developmentProjects: [{ id: 'project-cached', title: 'Cached Project', stages: [] }],
+      templates: [{ id: 'template-cached', name: 'Cached Template' }],
+      kits: [{ id: 'kit-cached', name: 'Cached Kit', items: [] }],
+      movements: [{ id: 'move-cached', itemId: 'item-cached', quantity: 1 }],
+      locations: [{ id: 'loc-cached', name: 'Cached Location' }],
+      lastSync: 1755000000000
+    };
+
+    inventoryApiMock.getAll.mockResolvedValue([{ id: 'item-live', name: 'Live Pipe', quantity: 8 }]);
+    contactsApiMock.getAll.mockResolvedValue([{ id: 'contact-live', name: 'Live Contact' }]);
+    jobsApiMock.getAll.mockRejectedValue(new Error('jobs endpoint unavailable'));
+    developmentProjectsApiMock.getAll.mockResolvedValue([{ id: 'project-live', title: 'Live Project', stages: [] }]);
+    templatesApiMock.getAll.mockResolvedValue([{ id: 'template-live', name: 'Live Template' }]);
+    kitApiMock.getKits.mockResolvedValue({ kits: [{ id: 'kit-live', name: 'Live Kit', items: [] }] });
+    movementsApiMock.getAll.mockResolvedValue([{ id: 'move-live', itemId: 'item-live', quantity: -2 }]);
+    locationsApiMock.getAll.mockResolvedValue([{ id: 'loc-live', name: 'Live Location' }]);
+
+    storageMock.getInventory.mockResolvedValue(cachedSnapshot.inventory);
+    storageMock.getContacts.mockResolvedValue(cachedSnapshot.contacts);
+    storageMock.getJobs.mockResolvedValue(cachedSnapshot.jobs);
+    storageMock.getDevelopmentProjects.mockResolvedValue(cachedSnapshot.developmentProjects);
+    storageMock.getTemplates.mockResolvedValue(cachedSnapshot.templates);
+    storageMock.getKits.mockResolvedValue(cachedSnapshot.kits);
+    storageMock.getMovements.mockResolvedValue(cachedSnapshot.movements);
+    storageMock.getLocations.mockResolvedValue(cachedSnapshot.locations);
+    storageMock.getLastSync.mockResolvedValue(cachedSnapshot.lastSync);
+
+    await useStore.getState().syncWithServer();
+
+    expect(useStore.getState()).toMatchObject({
+      inventory: [{ id: 'item-live', name: 'Live Pipe', quantity: 8 }],
+      contacts: [{ id: 'contact-live', name: 'Live Contact' }],
+      jobs: cachedSnapshot.jobs,
+      developmentProjects: [{ id: 'project-live', title: 'Live Project', stages: [] }],
+      templates: [{ id: 'template-live', name: 'Live Template' }],
+      kits: [{ id: 'kit-live', name: 'Live Kit', items: [] }],
+      movements: [{ id: 'move-live', itemId: 'item-live', quantity: -2 }],
+      locations: [{ id: 'loc-live', name: 'Live Location' }],
+      lastSync: timestamp,
+      isSyncing: false,
+      error: null
+    });
+
+    expect(logSyncFailureMock).not.toHaveBeenCalled();
+    expect(storageMock.setJobs).toHaveBeenCalledWith(cachedSnapshot.jobs);
+    expect(storageMock.setInventory).toHaveBeenCalledWith([{ id: 'item-live', name: 'Live Pipe', quantity: 8 }]);
   });
 });

@@ -9,22 +9,37 @@ router.use(authenticateToken);
 
 // ============ Service Vans ============
 
-// Get all vans
+// Get all vans (sourced from vehicle assets filtered to type = Van)
 router.get('/vans', async (req, res) => {
   try {
     const userId = req.user.userId;
 
     const result = await pool.query(`
       SELECT
-        v.*,
-        u.email as assigned_to_email,
-        u.first_name || ' ' || u.last_name as assigned_to_full_name,
-        (SELECT COUNT(*) FROM van_stock vs WHERE vs.van_id = v.id) as total_items,
-        (SELECT COUNT(*) FROM van_stock vs WHERE vs.van_id = v.id AND vs.quantity <= vs.min_quantity) as low_stock_items
-      FROM service_vans v
-      LEFT JOIN users u ON v.assigned_to_id = u.id
-      WHERE v.user_id = $1
-      ORDER BY v.name
+        a.id,
+        a.name,
+        a.vehicle_type,
+        a.registration_number AS registration,
+        a.manufacturer AS make,
+        a.model,
+        a.year,
+        a.assigned_to AS assigned_to_id,
+        a.assigned_to_name,
+        a.notes,
+        a.status,
+        a.created_at,
+        a.updated_at,
+        CASE WHEN a.status = 'active' THEN 1 ELSE 0 END AS is_active,
+        u.email AS assigned_to_email,
+        u.full_name AS assigned_to_full_name,
+        (SELECT COUNT(*) FROM van_stock vs WHERE vs.van_id = a.id) AS total_items,
+        (SELECT COUNT(*) FROM van_stock vs WHERE vs.van_id = a.id AND vs.quantity <= vs.min_quantity) AS low_stock_items
+      FROM assets a
+      LEFT JOIN users u ON u.id::text = a.assigned_to
+      WHERE a.user_id = $1
+        AND a.asset_type = 'vehicle'
+        AND a.vehicle_type = 'Van'
+      ORDER BY a.name
     `, [userId]);
 
     res.json({ vans: result.rows });
@@ -34,7 +49,7 @@ router.get('/vans', async (req, res) => {
   }
 });
 
-// Get single van with stock
+// Get single van with stock (sourced from vehicle assets)
 router.get('/vans/:id', async (req, res) => {
   try {
     const userId = req.user.userId;
@@ -42,12 +57,27 @@ router.get('/vans/:id', async (req, res) => {
 
     const vanResult = await pool.query(`
       SELECT
-        v.*,
-        u.email as assigned_to_email,
-        u.first_name || ' ' || u.last_name as assigned_to_full_name
-      FROM service_vans v
-      LEFT JOIN users u ON v.assigned_to_id = u.id
-      WHERE v.id = $1 AND v.user_id = $2
+        a.id,
+        a.name,
+        a.vehicle_type,
+        a.registration_number AS registration,
+        a.manufacturer AS make,
+        a.model,
+        a.year,
+        a.assigned_to AS assigned_to_id,
+        a.assigned_to_name,
+        a.notes,
+        a.status,
+        a.created_at,
+        a.updated_at,
+        CASE WHEN a.status = 'active' THEN 1 ELSE 0 END AS is_active,
+        u.email AS assigned_to_email,
+        u.full_name AS assigned_to_full_name
+      FROM assets a
+      LEFT JOIN users u ON u.id::text = a.assigned_to
+      WHERE a.id = $1 AND a.user_id = $2
+        AND a.asset_type = 'vehicle'
+        AND a.vehicle_type = 'Van'
     `, [id, userId]);
 
     if (vanResult.rows.length === 0) {
@@ -61,10 +91,10 @@ router.get('/vans/:id', async (req, res) => {
         i.name as item_name,
         i.sku,
         i.category,
-        i.unit,
+        NULL::text as unit,
         i.price
       FROM van_stock vs
-      JOIN inventory i ON vs.item_id = i.id
+      JOIN inventory_items i ON vs.item_id = i.id
       WHERE vs.van_id = $1
       ORDER BY i.category, i.name
     `, [id]);
@@ -76,145 +106,6 @@ router.get('/vans/:id', async (req, res) => {
   } catch (error) {
     console.error('Error fetching van:', error);
     res.status(500).json({ error: 'Failed to fetch van' });
-  }
-});
-
-// Create van
-router.post('/vans', async (req, res) => {
-  try {
-    const userId = req.user.userId;
-    const {
-      name,
-      registration,
-      make,
-      model,
-      year,
-      color,
-      assignedToId,
-      maxWeightKg,
-      maxVolumeM3,
-      notes
-    } = req.body;
-
-    // Get assigned user name if provided
-    let assignedToName = null;
-    if (assignedToId) {
-      const userResult = await pool.query(
-        'SELECT first_name || \' \' || last_name as name FROM users WHERE id = $1',
-        [assignedToId]
-      );
-      if (userResult.rows.length > 0) {
-        assignedToName = userResult.rows[0].name;
-      }
-    }
-
-    const result = await pool.query(`
-      INSERT INTO service_vans (
-        user_id, name, registration, make, model, year, color,
-        assigned_to_id, assigned_to_name, max_weight_kg, max_volume_m3, notes
-      )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-      RETURNING *
-    `, [
-      userId, name, registration, make, model, year, color,
-      assignedToId, assignedToName, maxWeightKg, maxVolumeM3, notes
-    ]);
-
-    res.status(201).json(result.rows[0]);
-  } catch (error) {
-    console.error('Error creating van:', error);
-    if (error.constraint === 'service_vans_user_id_name_key') {
-      res.status(400).json({ error: 'A van with this name already exists' });
-    } else {
-      res.status(500).json({ error: 'Failed to create van' });
-    }
-  }
-});
-
-// Update van
-router.put('/vans/:id', async (req, res) => {
-  try {
-    const userId = req.user.userId;
-    const { id } = req.params;
-    const updates = req.body;
-
-    // Build dynamic update
-    const allowedFields = [
-      'name', 'registration', 'make', 'model', 'year', 'color',
-      'assigned_to_id', 'status', 'max_weight_kg', 'max_volume_m3', 'notes',
-      'last_known_lat', 'last_known_lng', 'is_active'
-    ];
-
-    const setClauses = [];
-    const values = [id, userId];
-    let paramIndex = 3;
-
-    for (const [key, value] of Object.entries(updates)) {
-      const dbKey = key.replace(/([A-Z])/g, '_$1').toLowerCase();
-      if (allowedFields.includes(dbKey)) {
-        setClauses.push(`${dbKey} = $${paramIndex++}`);
-        values.push(value);
-      }
-    }
-
-    // Handle assigned_to_name if assigned_to_id changed
-    if (updates.assignedToId) {
-      const userResult = await pool.query(
-        'SELECT first_name || \' \' || last_name as name FROM users WHERE id = $1',
-        [updates.assignedToId]
-      );
-      if (userResult.rows.length > 0) {
-        setClauses.push(`assigned_to_name = $${paramIndex++}`);
-        values.push(userResult.rows[0].name);
-      }
-    }
-
-    if (updates.lastKnownLat || updates.lastKnownLng) {
-      setClauses.push(`last_location_update = CURRENT_TIMESTAMP`);
-    }
-
-    if (setClauses.length === 0) {
-      return res.status(400).json({ error: 'No valid updates provided' });
-    }
-
-    const result = await pool.query(`
-      UPDATE service_vans
-      SET ${setClauses.join(', ')}
-      WHERE id = $1 AND user_id = $2
-      RETURNING *
-    `, values);
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Van not found' });
-    }
-
-    res.json(result.rows[0]);
-  } catch (error) {
-    console.error('Error updating van:', error);
-    res.status(500).json({ error: 'Failed to update van' });
-  }
-});
-
-// Delete van
-router.delete('/vans/:id', async (req, res) => {
-  try {
-    const userId = req.user.userId;
-    const { id } = req.params;
-
-    const result = await pool.query(`
-      DELETE FROM service_vans
-      WHERE id = $1 AND user_id = $2
-      RETURNING id
-    `, [id, userId]);
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Van not found' });
-    }
-
-    res.json({ success: true });
-  } catch (error) {
-    console.error('Error deleting van:', error);
-    res.status(500).json({ error: 'Failed to delete van' });
   }
 });
 
@@ -234,11 +125,11 @@ router.get('/low-stock', async (req, res) => {
         i.sku,
         i.category
       FROM van_stock vs
-      JOIN service_vans v ON vs.van_id = v.id
-      JOIN inventory i ON vs.item_id = i.id
+      JOIN assets v ON vs.van_id = v.id AND v.asset_type = 'vehicle' AND v.vehicle_type = 'Van'
+      JOIN inventory_items i ON vs.item_id = i.id
       WHERE vs.user_id = $1
         AND vs.quantity <= vs.min_quantity
-        AND v.is_active = true
+        AND v.status = 'active'
       ORDER BY vs.quantity - vs.min_quantity, v.name, i.name
     `, [userId]);
 
@@ -272,7 +163,7 @@ router.post('/vans/:vanId/stock', async (req, res) => {
 
     // Check van ownership
     const vanCheck = await client.query(
-      'SELECT id FROM service_vans WHERE id = $1 AND user_id = $2',
+      'SELECT id FROM assets WHERE id = $1 AND user_id = $2 AND asset_type = \'vehicle\' AND vehicle_type = \'Van\'',
       [vanId, userId]
     );
     if (vanCheck.rows.length === 0) {
@@ -304,7 +195,7 @@ router.post('/vans/:vanId/stock', async (req, res) => {
 
     // Get performer name
     const performer = await client.query(
-      'SELECT first_name || \' \' || last_name as name FROM users WHERE id = $1',
+      'SELECT COALESCE(full_name, email) as name FROM users WHERE id = $1',
       [userId]
     );
 
@@ -348,7 +239,7 @@ router.post('/vans/:vanId/stock/bulk', async (req, res) => {
 
     // Check van ownership
     const vanCheck = await client.query(
-      'SELECT id FROM service_vans WHERE id = $1 AND user_id = $2',
+      'SELECT id FROM assets WHERE id = $1 AND user_id = $2 AND asset_type = \'vehicle\' AND vehicle_type = \'Van\'',
       [vanId, userId]
     );
     if (vanCheck.rows.length === 0) {
@@ -358,7 +249,7 @@ router.post('/vans/:vanId/stock/bulk', async (req, res) => {
 
     // Get performer name
     const performer = await client.query(
-      'SELECT first_name || \' \' || last_name as name FROM users WHERE id = $1',
+      'SELECT COALESCE(full_name, email) as name FROM users WHERE id = $1',
       [userId]
     );
 
@@ -434,7 +325,7 @@ router.post('/vans/:vanId/use', async (req, res) => {
     const currentStock = await client.query(`
       SELECT vs.quantity, i.name as item_name
       FROM van_stock vs
-      JOIN inventory i ON vs.item_id = i.id
+      JOIN inventory_items i ON vs.item_id = i.id
       WHERE vs.van_id = $1 AND vs.item_id = $2 AND vs.user_id = $3
     `, [vanId, itemId, userId]);
 
@@ -463,7 +354,7 @@ router.post('/vans/:vanId/use', async (req, res) => {
 
     // Get performer name
     const performer = await client.query(
-      'SELECT first_name || \' \' || last_name as name FROM users WHERE id = $1',
+      'SELECT COALESCE(full_name, email) as name FROM users WHERE id = $1',
       [userId]
     );
 
@@ -513,7 +404,7 @@ router.get('/restock-requests', async (req, res) => {
         (SELECT COUNT(*) FROM van_restock_items ri WHERE ri.request_id = r.id) as item_count,
         (SELECT SUM(ri.quantity_requested) FROM van_restock_items ri WHERE ri.request_id = r.id) as total_items
       FROM van_restock_requests r
-      JOIN service_vans v ON r.van_id = v.id
+      JOIN assets v ON r.van_id = v.id AND v.asset_type = 'vehicle' AND v.vehicle_type = 'Van'
       WHERE r.user_id = $1
     `;
     const params = [userId];
@@ -551,7 +442,7 @@ router.get('/restock-requests/:id', async (req, res) => {
         v.name as van_name,
         v.assigned_to_name
       FROM van_restock_requests r
-      JOIN service_vans v ON r.van_id = v.id
+      JOIN assets v ON r.van_id = v.id AND v.asset_type = 'vehicle' AND v.vehicle_type = 'Van'
       WHERE r.id = $1 AND r.user_id = $2
     `, [id, userId]);
 
@@ -569,7 +460,7 @@ router.get('/restock-requests/:id', async (req, res) => {
         vs.min_quantity,
         vs.max_quantity
       FROM van_restock_items ri
-      JOIN inventory i ON ri.item_id = i.id
+      JOIN inventory_items i ON ri.item_id = i.id
       LEFT JOIN van_stock vs ON vs.item_id = ri.item_id AND vs.van_id = $2
       WHERE ri.request_id = $1
     `, [id, requestResult.rows[0].van_id]);
@@ -595,7 +486,7 @@ router.post('/restock-requests', async (req, res) => {
 
     // Get requester name
     const performer = await client.query(
-      'SELECT first_name || \' \' || last_name as name FROM users WHERE id = $1',
+      'SELECT COALESCE(full_name, email) as name FROM users WHERE id = $1',
       [userId]
     );
 
@@ -695,7 +586,7 @@ router.post('/vans/:vanId/checkin', async (req, res) => {
 
     // Get performer name
     const performer = await client.query(
-      'SELECT first_name || \' \' || last_name as name FROM users WHERE id = $1',
+      'SELECT COALESCE(full_name, email) as name FROM users WHERE id = $1',
       [userId]
     );
 
@@ -728,7 +619,7 @@ router.post('/vans/:vanId/checkin', async (req, res) => {
         i.category,
         vs.bin_location
       FROM van_stock_checkin_items ci
-      JOIN inventory i ON ci.item_id = i.id
+      JOIN inventory_items i ON ci.item_id = i.id
       LEFT JOIN van_stock vs ON vs.item_id = ci.item_id AND vs.van_id = $2
       WHERE ci.checkin_id = $1
       ORDER BY i.category, i.name
@@ -789,7 +680,7 @@ router.post('/checkins/:checkinId/complete', async (req, res) => {
     const checkinResult = await client.query(`
       SELECT c.*, v.id as van_id
       FROM van_stock_checkins c
-      JOIN service_vans v ON c.van_id = v.id
+      JOIN assets v ON c.van_id = v.id AND v.asset_type = 'vehicle' AND v.vehicle_type = 'Van'
       WHERE c.id = $1 AND c.user_id = $2
     `, [checkinId, userId]);
 
@@ -822,7 +713,7 @@ router.post('/checkins/:checkinId/complete', async (req, res) => {
 
       // Get performer name
       const performer = await client.query(
-        'SELECT first_name || \' \' || last_name as name FROM users WHERE id = $1',
+        'SELECT COALESCE(full_name, email) as name FROM users WHERE id = $1',
         [userId]
       );
 
@@ -899,8 +790,8 @@ router.get('/movements', async (req, res) => {
         i.name as item_name,
         i.sku
       FROM van_stock_movements m
-      JOIN service_vans v ON m.van_id = v.id
-      JOIN inventory i ON m.item_id = i.id
+      JOIN assets v ON m.van_id = v.id AND v.asset_type = 'vehicle' AND v.vehicle_type = 'Van'
+      JOIN inventory_items i ON m.item_id = i.id
       WHERE m.user_id = $1
     `;
     const params = [userId];

@@ -87,8 +87,8 @@ function AppContent() {
   useEffect(() => {
     const fetchAlertCount = async () => {
       try {
-        const alerts = await smartOrderingAPI.getAlerts({ status: 'pending' });
-        setReorderAlertCount(alerts.length);
+        const response = await smartOrderingAPI.getAlerts({ status: 'pending' });
+        setReorderAlertCount(response.summary.total);
       } catch (error) {
         logger.debug('Failed to fetch reorder alerts:', error);
       }

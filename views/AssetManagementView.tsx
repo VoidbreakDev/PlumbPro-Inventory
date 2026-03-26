@@ -19,7 +19,7 @@ import {
 import { assetAPI } from '../lib/assetAPI';
 import { getErrorMessage } from '../lib/errors';
 import { useStore } from '../store/useStore';
-import type { Asset, AssetAllocation, AssetCondition, AssetStatus, AssetType, MaintenanceRecord } from '../types';
+import type { Asset, AssetAllocation, AssetCondition, AssetStatus, AssetType, MaintenanceRecord, VehicleType } from '../types';
 import { Badge } from '../components/Shared';
 import { ConfirmationModal } from '../components/ConfirmationModal';
 
@@ -28,11 +28,13 @@ type TabType = 'all' | 'vehicles' | 'tools' | 'equipment' | 'maintenance';
 const ASSET_TYPE_OPTIONS: AssetType[] = ['vehicle', 'tool', 'equipment', 'machinery'];
 const ASSET_STATUS_OPTIONS: AssetStatus[] = ['active', 'maintenance', 'retired', 'lost', 'stolen'];
 const ASSET_CONDITION_OPTIONS: AssetCondition[] = ['excellent', 'good', 'fair', 'poor', 'unusable'];
+const VEHICLE_TYPE_OPTIONS: VehicleType[] = ['Van', 'Ute', 'Truck', 'Trailer', 'Other'];
 
 const emptyAsset = (): Partial<Asset> => ({
   name: '',
   assetCode: '',
   assetType: 'tool',
+  vehicleType: 'Van',
   status: 'active',
   condition: 'good',
   tags: [],
@@ -500,6 +502,21 @@ export function AssetManagementView() {
                     ))}
                   </select>
                 </label>
+                {assetDraft.assetType === 'vehicle' && (
+                  <label className="text-sm text-slate-600">
+                    Vehicle Type <span className="text-red-500">*</span>
+                    <select
+                      value={assetDraft.vehicleType || 'Van'}
+                      onChange={(event) => setAssetDraft((current) => ({ ...current, vehicleType: event.target.value as VehicleType }))}
+                      className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-lg"
+                      required
+                    >
+                      {VEHICLE_TYPE_OPTIONS.map((option) => (
+                        <option key={option} value={option}>{option}</option>
+                      ))}
+                    </select>
+                  </label>
+                )}
                 <label className="text-sm text-slate-600">
                   Status
                   <select

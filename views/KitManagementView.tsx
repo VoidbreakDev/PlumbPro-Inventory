@@ -13,11 +13,12 @@ import {
   X,
 } from 'lucide-react';
 import { kitAPI } from '../lib/kitAPI';
+import { inventoryAPI } from '../lib/api/inventory';
 import { getErrorMessage } from '../lib/errors';
 import { Badge } from '../components/Shared';
 import { useStore } from '../store/useStore';
 import { ConfirmationModal } from '../components/ConfirmationModal';
-import type { CreateKitInput, Kit, KitItem, KitStatus, KitType } from '../types';
+import type { CreateKitInput, InventoryItem, Kit, KitItem, KitStatus, KitType } from '../types';
 
 type ViewMode = 'grid' | 'list';
 type ActiveTab = 'all' | 'active' | 'draft' | 'archived';
@@ -25,6 +26,7 @@ type ActiveTab = 'all' | 'active' | 'draft' | 'archived';
 interface ItemForm {
   id: string;
   itemType: KitItem['itemType'];
+  inventoryItemId: string;
   itemName: string;
   quantity: string;
   unit: string;
@@ -42,12 +44,14 @@ interface KitFormState {
   color: string;
   applicableJobTypes: string;
   tags: string;
+  salePrice: string;
   items: ItemForm[];
 }
 
 const defaultItem = (): ItemForm => ({
   id: crypto.randomUUID(),
   itemType: 'inventory',
+  inventoryItemId: '',
   itemName: '',
   quantity: '1',
   unit: 'EA',
@@ -64,11 +68,13 @@ const defaultForm: KitFormState = {
   color: '#2563EB',
   applicableJobTypes: '',
   tags: '',
+  salePrice: '',
   items: [defaultItem()]
 };
 
 const toItemInput = (item: ItemForm, index: number) => ({
   itemType: item.itemType,
+  inventoryItemId: item.inventoryItemId || undefined,
   itemName: item.itemName.trim() || `Item ${index + 1}`,
   quantity: Number(item.quantity || 0),
   unit: item.unit.trim() || 'EA',
@@ -88,6 +94,7 @@ export const KitManagementView: React.FC = () => {
   const setKitsState = useStore((state) => state.setKitsState);
 
   const [loading, setLoading] = useState(true);
+  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [activeTab, setActiveTab] = useState<ActiveTab>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -118,6 +125,7 @@ export const KitManagementView: React.FC = () => {
 
   useEffect(() => {
     loadKits();
+    inventoryAPI.getAll().then(setInventoryItems).catch(() => {});
   }, []);
 
   const categories = useMemo(() => {
@@ -169,9 +177,11 @@ export const KitManagementView: React.FC = () => {
       color: kit.color || '#2563EB',
       applicableJobTypes: kit.applicableJobTypes.join(', '),
       tags: kit.tags.join(', '),
+      salePrice: kit.salePrice !== undefined ? String(kit.salePrice) : '',
       items: kit.items.map((item) => ({
         id: item.id,
         itemType: item.itemType,
+        inventoryItemId: item.inventoryItemId || '',
         itemName: item.itemName,
         quantity: String(item.quantity),
         unit: item.unit,
@@ -205,7 +215,8 @@ export const KitManagementView: React.FC = () => {
         applicableJobTypes: form.applicableJobTypes.split(',').map((value) => value.trim()).filter(Boolean),
         tags: form.tags.split(',').map((value) => value.trim()).filter(Boolean),
         items: items.map(toItemInput),
-        status: form.status
+        status: form.status,
+        salePrice: form.salePrice ? Number(form.salePrice) : undefined
       };
 
       if (form.id) {
@@ -278,17 +289,6 @@ export const KitManagementView: React.FC = () => {
     }));
   };
 
-  const formTotals = useMemo(() => {
-    return form.items.reduce((totals, item) => {
-      const quantity = Number(item.quantity || 0);
-      const cost = Number(item.unitCost || 0);
-      const sell = Number(item.unitSellPrice || 0);
-      return {
-        cost: totals.cost + (quantity * cost),
-        sell: totals.sell + (quantity * sell)
-      };
-    }, { cost: 0, sell: 0 });
-  }, [form.items]);
 
   if (loading) {
     return (
@@ -390,8 +390,8 @@ export const KitManagementView: React.FC = () => {
                     <p className="font-medium text-slate-800">{kit.items.length}</p>
                   </div>
                   <div>
-                    <p className="text-slate-400">Sell</p>
-                    <p className="font-medium text-slate-800">{formatCurrency(kit.totalSellPrice)}</p>
+                    <p className="text-slate-400">Sale Price</p>
+                    <p className="font-medium text-slate-800">{formatCurrency(kit.salePrice ?? kit.totalSellPrice)}</p>
                   </div>
                   <div>
                     <p className="text-slate-400">Used</p>
@@ -421,7 +421,7 @@ export const KitManagementView: React.FC = () => {
                   <th className="px-4 py-3 text-left text-sm font-medium text-slate-600">Kit</th>
                   <th className="px-4 py-3 text-left text-sm font-medium text-slate-600">Type</th>
                   <th className="px-4 py-3 text-center text-sm font-medium text-slate-600">Items</th>
-                  <th className="px-4 py-3 text-right text-sm font-medium text-slate-600">Sell Price</th>
+                  <th className="px-4 py-3 text-right text-sm font-medium text-slate-600">Sale Price</th>
                   <th className="px-4 py-3 text-center text-sm font-medium text-slate-600">Usage</th>
                   <th className="px-4 py-3 text-right text-sm font-medium text-slate-600">Actions</th>
                 </tr>
@@ -435,7 +435,7 @@ export const KitManagementView: React.FC = () => {
                     </td>
                     <td className="px-4 py-4 text-sm text-slate-600">{kit.kitType}</td>
                     <td className="px-4 py-4 text-center text-sm text-slate-600">{kit.items.length}</td>
-                    <td className="px-4 py-4 text-right text-sm font-medium text-slate-800">{formatCurrency(kit.totalSellPrice)}</td>
+                    <td className="px-4 py-4 text-right text-sm font-medium text-slate-800">{formatCurrency(kit.salePrice ?? kit.totalSellPrice)}</td>
                     <td className="px-4 py-4 text-center text-sm text-slate-600">{kit.usageCount}</td>
                     <td className="px-4 py-4">
                       <div className="flex justify-end gap-2">
@@ -501,36 +501,60 @@ export const KitManagementView: React.FC = () => {
                 </div>
                 <div className="p-4 space-y-3">
                   {form.items.map((item) => (
-                    <div key={item.id} className="grid grid-cols-1 md:grid-cols-7 gap-3 items-center">
-                      <select value={item.itemType} onChange={(event) => updateItem(item.id, { itemType: event.target.value as KitItem['itemType'] })} className="px-3 py-2 border border-slate-200 rounded-lg text-sm">
+                    <div key={item.id} className="grid grid-cols-1 md:grid-cols-6 gap-3 items-center">
+                      <select value={item.itemType} onChange={(event) => updateItem(item.id, { itemType: event.target.value as KitItem['itemType'], inventoryItemId: '', itemName: '' })} className="px-3 py-2 border border-slate-200 rounded-lg text-sm">
                         <option value="inventory">Inventory</option>
                         <option value="labor">Labor</option>
                         <option value="subcontractor">Subcontractor</option>
                         <option value="sub-kit">Sub-Kit</option>
                       </select>
-                      <input value={item.itemName} onChange={(event) => updateItem(item.id, { itemName: event.target.value })} placeholder="Item name" className="px-3 py-2 border border-slate-200 rounded-lg text-sm md:col-span-2" />
+                      {item.itemType === 'inventory' ? (
+                        <select
+                          value={item.inventoryItemId}
+                          onChange={(event) => {
+                            const selected = inventoryItems.find((inv) => inv.id === event.target.value);
+                            updateItem(item.id, {
+                              inventoryItemId: event.target.value,
+                              itemName: selected?.name || '',
+                              unitCost: String(selected?.buyPriceExclGST ?? selected?.price ?? 0),
+                              unitSellPrice: String(selected?.sellPriceExclGST ?? selected?.price ?? 0)
+                            });
+                          }}
+                          className="px-3 py-2 border border-slate-200 rounded-lg text-sm md:col-span-2"
+                        >
+                          <option value="">— Select product —</option>
+                          {inventoryItems.map((inv) => (
+                            <option key={inv.id} value={inv.id}>{inv.name}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input value={item.itemName} onChange={(event) => updateItem(item.id, { itemName: event.target.value })} placeholder="Item name" className="px-3 py-2 border border-slate-200 rounded-lg text-sm md:col-span-2" />
+                      )}
                       <input value={item.quantity} onChange={(event) => updateItem(item.id, { quantity: event.target.value })} placeholder="Qty" className="px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                       <input value={item.unit} onChange={(event) => updateItem(item.id, { unit: event.target.value })} placeholder="Unit" className="px-3 py-2 border border-slate-200 rounded-lg text-sm" />
-                      <input value={item.unitCost} onChange={(event) => updateItem(item.id, { unitCost: event.target.value })} placeholder="Cost" className="px-3 py-2 border border-slate-200 rounded-lg text-sm" />
-                      <div className="flex gap-2">
-                        <input value={item.unitSellPrice} onChange={(event) => updateItem(item.id, { unitSellPrice: event.target.value })} placeholder="Sell" className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm" />
-                        <button onClick={() => removeItem(item.id)} className="px-3 py-2 border border-red-200 text-red-700 rounded-lg text-sm hover:bg-red-50">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
+                      <button onClick={() => removeItem(item.id)} className="px-3 py-2 border border-red-200 text-red-700 rounded-lg text-sm hover:bg-red-50 flex items-center justify-center">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-slate-50 rounded-xl p-4">
-                  <p className="text-sm text-slate-500">Total Cost</p>
-                  <p className="text-2xl font-bold text-slate-800">{formatCurrency(formTotals.cost)}</p>
-                </div>
-                <div className="bg-slate-50 rounded-xl p-4">
-                  <p className="text-sm text-slate-500">Total Sell</p>
-                  <p className="text-2xl font-bold text-slate-800">{formatCurrency(formTotals.sell)}</p>
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                <label className="block text-sm font-medium text-blue-900 mb-1">
+                  Kit Sale Price — charged to customer / home builder
+                </label>
+                <div className="relative mt-1">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">$</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={form.salePrice}
+                    onChange={(event) => setForm((current) => ({ ...current, salePrice: event.target.value }))}
+                    placeholder="0.00"
+                    className="w-full pl-7 pr-4 py-2 border border-blue-200 rounded-lg text-lg font-semibold focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                  />
                 </div>
               </div>
             </div>

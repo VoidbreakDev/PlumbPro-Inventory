@@ -15,6 +15,8 @@ dotenv.config();
 const router = express.Router();
 router.use(authenticateToken);
 
+const INVENTORY_SKU_SQL = "COALESCE(i.sku, i.supplier_code, i.barcode, '')";
+
 // ==========================================
 // REORDER ALERTS
 // ==========================================
@@ -35,7 +37,7 @@ router.get('/alerts', async (req, res) => {
         ra.*,
         i.name as item_name,
         i.category as item_category,
-        i.sku,
+        ${INVENTORY_SKU_SQL} as sku,
         i.price as unit_price,
         c.name as suggested_supplier_name,
         rr.lead_time_days,
@@ -282,7 +284,7 @@ router.get('/rules', async (req, res) => {
         i.name as item_name,
         i.category as item_category,
         i.quantity as current_quantity,
-        i.sku,
+        ${INVENTORY_SKU_SQL} as sku,
         c.name as preferred_supplier_name
       FROM reorder_rules rr
       JOIN inventory_items i ON rr.item_id = i.id

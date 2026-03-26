@@ -33,6 +33,7 @@ router.get('/dashboard', async (req, res) => {
     const days = parseInt(period);
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
+    const startTimestampMs = startDate.getTime();
 
     // Run all queries in parallel for performance
     const [
@@ -83,7 +84,7 @@ router.get('/dashboard', async (req, res) => {
       client.query(`
         SELECT
           COUNT(*) as total_items,
-          COALESCE(SUM(quantity * cost), 0) as total_value,
+          COALESCE(SUM(quantity * COALESCE(buy_price_excl_gst, buy_price_incl_gst, price, 0)), 0) as total_value,
           COUNT(CASE WHEN quantity <= reorder_level THEN 1 END) as low_stock_items,
           COALESCE(AVG(
             CASE WHEN quantity > 0 AND reorder_level > 0
@@ -100,17 +101,17 @@ router.get('/dashboard', async (req, res) => {
           ii.id,
           ii.name,
           ii.category,
-          COALESCE(SUM(sm.quantity), 0) as total_sold,
-          COALESCE(SUM(sm.quantity * sm.unit_cost), 0) as total_revenue
+          COALESCE(SUM(ABS(sm.quantity)), 0) as total_sold,
+          COALESCE(SUM(ABS(sm.quantity) * COALESCE(ii.sell_price_excl_gst, ii.sell_price_incl_gst, ii.price, 0)), 0) as total_revenue
         FROM inventory_items ii
-        LEFT JOIN stock_movements sm ON ii.id = sm.inventory_item_id
-          AND sm.movement_type IN ('Sale', 'Job Usage', 'Job Completion')
-          AND sm.created_at >= $2
+        LEFT JOIN stock_movements sm ON ii.id = sm.item_id
+          AND sm.type IN ('Out', 'Allocation')
+          AND sm.timestamp >= $2
         WHERE ii.user_id = $1
         GROUP BY ii.id, ii.name, ii.category
         ORDER BY total_sold DESC
         LIMIT 10
-      `, [userId, startDate]),
+      `, [userId, startTimestampMs]),
 
       // Top customers by revenue
       client.query(`
@@ -121,13 +122,13 @@ router.get('/dashboard', async (req, res) => {
           COALESCE(SUM(i.total_amount), 0) as total_revenue,
           COUNT(DISTINCT j.id) as job_count
         FROM contacts c
-        LEFT JOIN jobs j ON c.id = j.customer_id AND j.created_at >= $3
+        LEFT JOIN jobs j ON c.id = j.customer_id AND j.created_at >= $2
         LEFT JOIN invoices i ON j.id = i.job_id AND i.status = 'paid'
         WHERE c.user_id = $1 AND c.type IN ('Customer', 'Plumber')
         GROUP BY c.id, c.name, c.type
         ORDER BY total_revenue DESC
         LIMIT 10
-      `, [userId, startDate, startDate]),
+      `, [userId, startDate]),
 
       // Daily trends for chart
       client.query(`
@@ -144,7 +145,9 @@ router.get('/dashboard', async (req, res) => {
           COUNT(DISTINCT j.id) as jobs_completed
         FROM dates d
         LEFT JOIN invoices i ON DATE(i.created_at) = d.date AND i.user_id = $1
-        LEFT JOIN jobs j ON DATE(j.completed_at) = d.date AND j.user_id = $1 AND j.status = 'Completed'
+        LEFT JOIN jobs j ON DATE(COALESCE(j.completed_at, j.updated_at)) = d.date
+          AND j.user_id = $1
+          AND j.status = 'Completed'
         GROUP BY d.date
         ORDER BY d.date
       `, [userId, startDate]),
@@ -160,7 +163,7 @@ router.get('/dashboard', async (req, res) => {
             ELSE 'overdue_90_plus'
           END as aging_bucket,
           COUNT(*) as invoice_count,
-          COALESCE(SUM(total_amount - COALESCE(paid_amount, 0)), 0) as outstanding_amount
+          COALESCE(SUM(total_amount - COALESCE(amount_paid, 0)), 0) as outstanding_amount
         FROM invoices
         WHERE user_id = $1 AND status IN ('sent', 'partially_paid')
         GROUP BY aging_bucket

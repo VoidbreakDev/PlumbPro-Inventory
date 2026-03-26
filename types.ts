@@ -1144,7 +1144,7 @@ export interface RecordPaymentInput {
 // ====================================
 
 export type ReorderAlertStatus = 'pending' | 'acknowledged' | 'ordered' | 'dismissed';
-export type ReorderAlertPriority = 'critical' | 'high' | 'medium' | 'low';
+export type ReorderAlertPriority = 'critical' | 'high' | 'normal' | 'low';
 
 export interface ReorderRule {
   id: string;
@@ -1187,6 +1187,16 @@ export interface ReorderAlert {
   dismissedReason?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface SmartOrderingAlertsResponse {
+  alerts: ReorderAlert[];
+  summary: {
+    critical: number;
+    high: number;
+    normal: number;
+    total: number;
+  };
 }
 
 export interface UsageAnalytics {
@@ -1344,7 +1354,10 @@ export interface Kit {
   totalCostPrice: number;
   totalSellPrice: number;
   totalLaborHours: number;
-  
+
+  // Customer-facing price override (set manually; takes precedence over totalSellPrice when quoting)
+  salePrice?: number;
+
   // Markup settings
   defaultMarkupPercentage: number;
   
@@ -1642,6 +1655,7 @@ export interface CreateKitInput {
   variations?: CreateKitVariationInput[];
   defaultMarkupPercentage?: number;
   tags?: string[];
+  salePrice?: number;
 }
 
 export interface CreateKitItemInput {
@@ -1778,6 +1792,7 @@ export interface VoiceTranscriptionResult {
 // ====================================
 
 export type AssetType = 'vehicle' | 'tool' | 'equipment' | 'machinery';
+export type VehicleType = 'Van' | 'Ute' | 'Truck' | 'Trailer' | 'Other';
 export type AssetStatus = 'active' | 'maintenance' | 'retired' | 'lost' | 'stolen';
 export type AssetCondition = 'excellent' | 'good' | 'fair' | 'poor' | 'unusable';
 export type MaintenanceType = 'routine' | 'repair' | 'inspection' | 'test_tag' | 'compliance';
@@ -1811,6 +1826,7 @@ export interface Asset {
   assignedToName?: string;
   
   // For vehicles
+  vehicleType?: VehicleType;
   registrationNumber?: string;
   vin?: string;
   fuelType?: string;

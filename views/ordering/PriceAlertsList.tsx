@@ -32,7 +32,7 @@ const getPriorityColor = (priority: string) => {
   switch (priority) {
     case 'critical': return 'bg-red-100 text-red-800';
     case 'high': return 'bg-orange-100 text-orange-800';
-    case 'medium': return 'bg-yellow-100 text-yellow-800';
+    case 'normal': return 'bg-yellow-100 text-yellow-800';
     case 'low': return 'bg-blue-100 text-blue-800';
     default: return 'bg-slate-100 text-slate-800';
   }
@@ -79,7 +79,7 @@ export const PriceAlertsList: React.FC<PriceAlertsListProps> = ({
               <option value="">All Priorities</option>
               <option value="critical">Critical</option>
               <option value="high">High</option>
-              <option value="medium">Medium</option>
+              <option value="normal">Normal</option>
               <option value="low">Low</option>
             </select>
           </div>

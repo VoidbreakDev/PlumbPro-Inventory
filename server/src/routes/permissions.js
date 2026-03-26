@@ -12,6 +12,63 @@ const router = express.Router();
 // Apply auth middleware to all routes
 router.use(authenticateToken);
 
+const splitFullName = (fullName = '') => {
+  const trimmed = fullName.trim();
+  if (!trimmed) {
+    return { firstName: '', lastName: '' };
+  }
+
+  const parts = trimmed.split(/\s+/);
+  return {
+    firstName: parts[0] || '',
+    lastName: parts.slice(1).join(' ')
+  };
+};
+
+const toRoleTemplate = (row) => ({
+  id: row.id,
+  name: row.name,
+  displayName: row.display_name,
+  description: row.description,
+  level: row.level,
+  permissions: row.permissions || {},
+  quoteApprovalThreshold: row.quote_approval_threshold,
+  poApprovalThreshold: row.po_approval_threshold,
+  isSystem: Boolean(row.is_system_role),
+  createdAt: row.created_at,
+  updatedAt: row.updated_at
+});
+
+const toCustomRole = (row) => ({
+  id: row.id,
+  name: row.name,
+  displayName: row.display_name,
+  description: row.description,
+  baseTemplateId: row.base_template_id,
+  baseTemplateName: row.base_template_name,
+  permissions: row.permissions || {},
+  quoteApprovalThreshold: row.quote_approval_threshold,
+  poApprovalThreshold: row.po_approval_threshold,
+  userCount: Number(row.user_count || 0),
+  createdAt: row.created_at,
+  updatedAt: row.updated_at
+});
+
+const toPermissionWorkflow = (row) => ({
+  id: row.id,
+  entityType: row.entity_type,
+  name: row.name,
+  description: row.description,
+  thresholdMin: row.threshold_min,
+  thresholdMax: row.threshold_max,
+  requiredRoleLevel: row.required_role_level,
+  requiredRoleName: row.required_role_name,
+  requireMultipleApprovers: Boolean(row.require_multiple_approvers),
+  minApprovers: row.min_approvers,
+  isActive: Boolean(row.is_active),
+  createdAt: row.created_at
+});
+
 // ==========================================
 // ROLE TEMPLATES
 // ==========================================
@@ -34,7 +91,7 @@ router.get('/roles', async (req, res) => {
       ORDER BY level ASC
     `);
 
-    res.json({ roles: result.rows });
+    res.json({ roles: result.rows.map(toRoleTemplate) });
   } catch (error) {
     console.error('Get roles error:', error);
     res.status(500).json({ error: 'Failed to get roles' });
@@ -61,7 +118,7 @@ router.get('/roles/:id', async (req, res) => {
       return res.status(404).json({ error: 'Role not found' });
     }
 
-    res.json(result.rows[0]);
+    res.json(toRoleTemplate(result.rows[0]));
   } catch (error) {
     console.error('Get role error:', error);
     res.status(500).json({ error: 'Failed to get role' });
@@ -87,14 +144,17 @@ router.get('/custom-roles', async (req, res) => {
     const result = await client.query(`
       SELECT
         cr.*,
-        rt.display_name as base_template_name
+        rt.display_name as base_template_name,
+        COUNT(ura.id) FILTER (WHERE ura.is_active = true) as user_count
       FROM custom_roles cr
       LEFT JOIN role_templates rt ON cr.base_template_id = rt.id
+      LEFT JOIN user_role_assignments ura ON ura.custom_role_id = cr.id
       WHERE cr.user_id = $1
+      GROUP BY cr.id, rt.display_name
       ORDER BY cr.created_at DESC
     `, [userId]);
 
-    res.json({ customRoles: result.rows });
+    res.json({ roles: result.rows.map(toCustomRole) });
   } catch (error) {
     console.error('Get custom roles error:', error);
     res.status(500).json({ error: 'Failed to get custom roles' });
@@ -144,7 +204,7 @@ router.post('/custom-roles', async (req, res) => {
       VALUES ($1, 'role_assigned', $2)
     `, [userId, JSON.stringify({ action: 'created_custom_role', role_name: name })]);
 
-    res.status(201).json(result.rows[0]);
+    res.status(201).json(toCustomRole({ ...result.rows[0], user_count: 0 }));
   } catch (error) {
     console.error('Create custom role error:', error);
     if (error.code === '23505') {
@@ -186,7 +246,7 @@ router.put('/custom-roles/:id', async (req, res) => {
       return res.status(404).json({ error: 'Custom role not found' });
     }
 
-    res.json(result.rows[0]);
+    res.json(toCustomRole({ ...result.rows[0], user_count: 0 }));
   } catch (error) {
     console.error('Update custom role error:', error);
     res.status(500).json({ error: 'Failed to update custom role' });
@@ -249,17 +309,26 @@ router.get('/users', async (req, res) => {
 
   try {
     const userId = req.user.userId;
+    const currentUserResult = await client.query(
+      'SELECT team_id FROM users WHERE id = $1',
+      [userId]
+    );
+    const teamId = currentUserResult.rows[0]?.team_id || null;
+
+    const params = [userId];
+    let whereClause = 'u.id = $1';
+    if (teamId) {
+      params.push(teamId);
+      whereClause = '(u.id = $1 OR u.team_id = $2)';
+    }
 
     const result = await client.query(`
       SELECT
         u.id,
         u.email,
         u.full_name,
-        u.created_at as user_created_at,
-        ura.id as assignment_id,
-        ura.is_active as role_active,
         ura.assigned_at,
-        ura.valid_until,
+        ura.assigned_by,
         rt.id as role_template_id,
         rt.name as role_name,
         rt.display_name as role_display_name,
@@ -271,41 +340,29 @@ router.get('/users', async (req, res) => {
       LEFT JOIN user_role_assignments ura ON u.id = ura.assigned_user_id AND ura.is_active = true
       LEFT JOIN role_templates rt ON ura.role_template_id = rt.id
       LEFT JOIN custom_roles cr ON ura.custom_role_id = cr.id
-      WHERE u.id = $1 OR EXISTS (
-        SELECT 1 FROM team_members tm WHERE tm.user_id = $1 AND tm.member_user_id = u.id
-      )
+      WHERE ${whereClause}
       ORDER BY u.full_name
-    `, [userId]);
+    `, params);
 
-    // Group by user
-    const usersMap = new Map();
-    result.rows.forEach(row => {
-      if (!usersMap.has(row.id)) {
-        usersMap.set(row.id, {
+    res.json({
+      users: result.rows.map((row) => {
+        const { firstName, lastName } = splitFullName(row.full_name || row.email);
+        const roleType = row.role_template_id ? 'template' : row.custom_role_id ? 'custom' : null;
+        return {
           id: row.id,
           email: row.email,
-          fullName: row.full_name,
-          createdAt: row.user_created_at,
-          role: null
-        });
-      }
-
-      if (row.role_template_id || row.custom_role_id) {
-        usersMap.get(row.id).role = {
-          assignmentId: row.assignment_id,
-          isActive: row.role_active,
+          firstName,
+          lastName,
+          roleId: row.role_template_id || row.custom_role_id,
+          roleName: row.role_name || row.custom_role_name,
+          roleDisplayName: row.role_display_name || row.custom_role_display_name,
+          roleType,
+          roleLevel: Number(row.role_level || 0),
           assignedAt: row.assigned_at,
-          validUntil: row.valid_until,
-          templateId: row.role_template_id,
-          customRoleId: row.custom_role_id,
-          name: row.role_name || row.custom_role_name,
-          displayName: row.role_display_name || row.custom_role_display_name,
-          level: row.role_level
+          assignedBy: row.assigned_by
         };
-      }
+      })
     });
-
-    res.json({ users: Array.from(usersMap.values()) });
   } catch (error) {
     console.error('Get users with roles error:', error);
     res.status(500).json({ error: 'Failed to get users' });
@@ -324,9 +381,19 @@ router.post('/users/:userId/role', async (req, res) => {
   try {
     const assignerId = req.user.userId;
     const { userId } = req.params;
-    const { roleTemplateId, customRoleId, validUntil, permissionOverrides } = req.body;
+    const {
+      roleTemplateId,
+      customRoleId,
+      roleId,
+      roleType,
+      validUntil,
+      permissionOverrides
+    } = req.body;
 
-    if (!roleTemplateId && !customRoleId) {
+    const resolvedRoleTemplateId = roleType === 'template' ? roleId : roleTemplateId;
+    const resolvedCustomRoleId = roleType === 'custom' ? roleId : customRoleId;
+
+    if (!resolvedRoleTemplateId && !resolvedCustomRoleId) {
       return res.status(400).json({ error: 'Either roleTemplateId or customRoleId is required' });
     }
 
@@ -347,15 +414,15 @@ router.post('/users/:userId/role', async (req, res) => {
       )
       VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING *
-    `, [userId, roleTemplateId, customRoleId, assignerId, validUntil, permissionOverrides || {}]);
+    `, [userId, resolvedRoleTemplateId, resolvedCustomRoleId, assignerId, validUntil, permissionOverrides || {}]);
 
     // Log the action
     await client.query(`
       INSERT INTO permission_audit_log (user_id, action_type, target_user_id, details)
       VALUES ($1, 'role_assigned', $2, $3)
     `, [assignerId, userId, JSON.stringify({
-      role_template_id: roleTemplateId,
-      custom_role_id: customRoleId
+      role_template_id: resolvedRoleTemplateId,
+      custom_role_id: resolvedCustomRoleId
     })]);
 
     await client.query('COMMIT');
@@ -565,14 +632,25 @@ router.get('/workflows', async (req, res) => {
 
   try {
     const userId = req.user.userId;
+    const { entityType } = req.query;
 
-    const result = await client.query(`
-      SELECT * FROM approval_workflows
+    const params = [userId];
+    let query = `
+      SELECT *
+      FROM permission_workflows
       WHERE user_id = $1
-      ORDER BY priority DESC, created_at DESC
-    `, [userId]);
+    `;
 
-    res.json({ workflows: result.rows });
+    if (entityType) {
+      params.push(entityType);
+      query += ` AND entity_type = $2`;
+    }
+
+    query += ` ORDER BY created_at DESC`;
+
+    const result = await client.query(query, params);
+
+    res.json({ workflows: result.rows.map(toPermissionWorkflow) });
   } catch (error) {
     console.error('Get workflows error:', error);
     res.status(500).json({ error: 'Failed to get workflows' });
@@ -591,32 +669,42 @@ router.post('/workflows', async (req, res) => {
   try {
     const userId = req.user.userId;
     const {
-      workflowType,
-      triggerCondition,
-      approvalChain,
-      requireAllApprovers,
-      autoApproveAfterHours,
-      escalationHours,
-      priority
+      entityType,
+      name,
+      description,
+      thresholdMin,
+      thresholdMax,
+      requiredRoleLevel,
+      requiredRoleName,
+      requireMultipleApprovers,
+      minApprovers
     } = req.body;
 
-    if (!workflowType || !triggerCondition || !approvalChain) {
-      return res.status(400).json({ error: 'Workflow type, trigger condition, and approval chain are required' });
+    if (!entityType || !name || requiredRoleLevel === undefined || requiredRoleLevel === null) {
+      return res.status(400).json({ error: 'Entity type, name, and required role level are required' });
     }
 
     const result = await client.query(`
-      INSERT INTO approval_workflows (
-        user_id, workflow_type, trigger_condition, approval_chain,
-        require_all_approvers, auto_approve_after_hours, escalation_hours, priority
+      INSERT INTO permission_workflows (
+        user_id, entity_type, name, description, threshold_min, threshold_max,
+        required_role_level, required_role_name, require_multiple_approvers, min_approvers
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       RETURNING *
     `, [
-      userId, workflowType, triggerCondition, approvalChain,
-      requireAllApprovers || false, autoApproveAfterHours, escalationHours, priority || 0
+      userId,
+      entityType,
+      name,
+      description || null,
+      thresholdMin ?? null,
+      thresholdMax ?? null,
+      requiredRoleLevel,
+      requiredRoleName || null,
+      Boolean(requireMultipleApprovers),
+      requireMultipleApprovers ? (minApprovers || 2) : 1
     ]);
 
-    res.status(201).json(result.rows[0]);
+    res.status(201).json(toPermissionWorkflow(result.rows[0]));
   } catch (error) {
     console.error('Create workflow error:', error);
     res.status(500).json({ error: 'Failed to create workflow' });
@@ -649,16 +737,44 @@ router.get('/pending-approvals', async (req, res) => {
     const result = await client.query(`
       SELECT
         pa.*,
-        u.full_name as requested_by_name
+        u.full_name as requested_by_name,
+        pw.name as workflow_name,
+        pw.min_approvers as required_approvals,
+        COALESCE((
+          SELECT COUNT(*)
+          FROM approval_history ah
+          WHERE ah.pending_approval_id = pa.id
+            AND ah.action = 'approved'
+        ), 0) as approval_count
       FROM pending_approvals pa
       JOIN users u ON pa.requested_by = u.id
+      LEFT JOIN permission_workflows pw ON pa.workflow_id = pw.id
       WHERE pa.user_id = $1
         AND pa.status = 'pending'
         AND (pa.expires_at IS NULL OR pa.expires_at > CURRENT_TIMESTAMP)
       ORDER BY pa.created_at DESC
     `, [userId]);
 
-    res.json({ pendingApprovals: result.rows, userRoleLevel: roleLevel });
+    res.json({
+      approvals: result.rows.map((row) => ({
+        id: row.id,
+        workflowId: row.workflow_id,
+        workflowName: row.workflow_name || 'Approval',
+        entityType: row.entity_type,
+        entityId: row.entity_id,
+        entityReference: row.approval_data?.reference || row.entity_id,
+        amount: row.approval_data?.amount ?? null,
+        requestedById: row.requested_by,
+        requestedByName: row.requested_by_name,
+        requestedAt: row.requested_at,
+        status: row.status,
+        notes: row.request_notes,
+        expiresAt: row.expires_at,
+        approvalCount: Number(row.approval_count || 0),
+        requiredApprovals: Number(row.required_approvals || 1),
+        userRoleLevel: roleLevel
+      }))
+    });
   } catch (error) {
     console.error('Get pending approvals error:', error);
     res.status(500).json({ error: 'Failed to get pending approvals' });
@@ -677,7 +793,7 @@ router.post('/pending-approvals/:id/approve', async (req, res) => {
   try {
     const userId = req.user.userId;
     const { id } = req.params;
-    const { notes } = req.body;
+    const notes = req.body.notes ?? req.body.comments ?? null;
 
     await client.query('BEGIN');
 
@@ -726,7 +842,7 @@ router.post('/pending-approvals/:id/reject', async (req, res) => {
   try {
     const userId = req.user.userId;
     const { id } = req.params;
-    const { notes } = req.body;
+    const notes = req.body.notes ?? req.body.comments ?? null;
 
     await client.query('BEGIN');
 
@@ -770,7 +886,8 @@ router.get('/audit-log', async (req, res) => {
     const userId = req.user.userId;
     const { limit = 50, offset = 0 } = req.query;
 
-    const result = await client.query(`
+    const [result, countResult] = await Promise.all([
+      client.query(`
       SELECT
         pal.*,
         u.full_name as performer_name,
@@ -781,9 +898,28 @@ router.get('/audit-log', async (req, res) => {
       WHERE pal.user_id = $1 OR pal.target_user_id = $1
       ORDER BY pal.created_at DESC
       LIMIT $2 OFFSET $3
-    `, [userId, parseInt(limit), parseInt(offset)]);
+    `, [userId, parseInt(limit), parseInt(offset)]),
+      client.query(`
+        SELECT COUNT(*)::int AS total
+        FROM permission_audit_log pal
+        WHERE pal.user_id = $1 OR pal.target_user_id = $1
+      `, [userId])
+    ]);
 
-    res.json({ auditLog: result.rows });
+    res.json({
+      entries: result.rows.map((row) => ({
+        id: row.id,
+        userId: row.user_id,
+        userName: row.performer_name,
+        action: row.action_type,
+        targetUserId: row.target_user_id,
+        targetUserName: row.target_user_name,
+        details: row.details || {},
+        ipAddress: row.ip_address,
+        createdAt: row.created_at
+      })),
+      total: Number(countResult.rows[0]?.total || 0)
+    });
   } catch (error) {
     console.error('Get audit log error:', error);
     res.status(500).json({ error: 'Failed to get audit log' });

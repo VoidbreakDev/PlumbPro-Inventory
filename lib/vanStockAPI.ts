@@ -15,7 +15,7 @@ export interface ServiceVan {
   assignedToEmail?: string;
   assignedToFullName?: string;
   isActive: boolean;
-  status: 'available' | 'in_use' | 'maintenance' | 'out_of_service';
+  status: 'active' | 'maintenance' | 'retired' | 'lost' | 'stolen';
   lastKnownLat: number | null;
   lastKnownLng: number | null;
   lastLocationUpdate: string | null;

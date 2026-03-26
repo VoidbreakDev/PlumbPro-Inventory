@@ -88,6 +88,7 @@ const mapAsset = (row) => {
     currentLocation: row.current_location || undefined,
     assignedTo: row.assigned_to || undefined,
     assignedToName: row.assigned_to_name || undefined,
+    vehicleType: row.vehicle_type || undefined,
     registrationNumber: row.registration_number || undefined,
     vin: row.vin || undefined,
     fuelType: row.fuel_type || undefined,
@@ -192,6 +193,7 @@ const ensureTables = async () => {
         insurance_provider TEXT,
         insurance_policy_number TEXT,
         insurance_expiry TEXT,
+        vehicle_type TEXT,
         compliance_documents_json TEXT,
         photos_json TEXT,
         maintenance_schedule_json TEXT,
@@ -256,6 +258,13 @@ const ensureTables = async () => {
       )
     `);
 
+    // Add vehicle_type column to existing tables that were created before this field existed
+    try {
+      await db.query('ALTER TABLE assets ADD COLUMN vehicle_type TEXT');
+    } catch (_) {
+      // Column already exists — ignore
+    }
+
     await db.query('CREATE INDEX IF NOT EXISTS idx_assets_user_updated ON assets (user_id, updated_at)');
     await db.query('CREATE INDEX IF NOT EXISTS idx_assets_maintenance_user_asset ON asset_maintenance_records (user_id, asset_id)');
     await db.query('CREATE INDEX IF NOT EXISTS idx_assets_allocations_user_asset ON asset_allocations (user_id, asset_id)');
@@ -314,6 +323,7 @@ const saveAsset = async (userId, assetId, payload, existing = null) => {
     status: payload.status || existing?.status || 'active',
     condition: payload.condition || existing?.condition || 'good',
     assetType: payload.assetType || existing?.assetType || 'tool',
+    vehicleType: payload.vehicleType || existing?.vehicleType || undefined,
     complianceDocuments: (payload.complianceDocuments || existing?.complianceDocuments || []).map((document) => ({
       ...document,
       status: computeDocumentStatus(document)
@@ -360,7 +370,8 @@ const saveAsset = async (userId, assetId, payload, existing = null) => {
           maintenance_schedule_json = $32,
           notes = $33,
           tags_json = $34,
-          updated_at = $35
+          vehicle_type = $35,
+          updated_at = $36
       WHERE user_id = $1 AND id = $2
     `, [
       userId,
@@ -397,6 +408,7 @@ const saveAsset = async (userId, assetId, payload, existing = null) => {
       asset.maintenanceSchedule ? JSON.stringify(asset.maintenanceSchedule) : null,
       asset.notes || null,
       JSON.stringify(asset.tags || []),
+      asset.vehicleType || null,
       now
     ]);
   } else {
@@ -408,7 +420,7 @@ const saveAsset = async (userId, assetId, payload, existing = null) => {
         registration_number, vin, fuel_type, current_odometer, last_service_odometer,
         next_service_odometer, insurance_provider, insurance_policy_number, insurance_expiry,
         compliance_documents_json, photos_json, maintenance_schedule_json, notes, tags_json,
-        created_at, updated_at
+        created_at, updated_at, vehicle_type
       )
       VALUES (
         $1, $2, $3, $4, $5, $6, $7, $8,
@@ -417,7 +429,7 @@ const saveAsset = async (userId, assetId, payload, existing = null) => {
         $21, $22, $23, $24, $25,
         $26, $27, $28, $29,
         $30, $31, $32, $33, $34,
-        $35, $36
+        $35, $36, $37
       )
     `, [
       userId,
@@ -455,7 +467,8 @@ const saveAsset = async (userId, assetId, payload, existing = null) => {
       asset.notes || null,
       JSON.stringify(asset.tags || []),
       asset.createdAt,
-      asset.updatedAt
+      asset.updatedAt,
+      asset.vehicleType || null
     ]);
   }
 

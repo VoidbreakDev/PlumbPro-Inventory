@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="PlumbPro icon">
+  <defs>
+    <linearGradient id="bg" x1="0%" x2="100%" y1="0%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#2563eb" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="120" fill="url(#bg)" />
+  <path
+    d="M192 112c17.7 0 32 14.3 32 32v44h64v-44c0-17.7 14.3-32 32-32s32 14.3 32 32v60c0 17.7-14.3 32-32 32h-20v72.6c36.5 13.2 64 48.2 64 89.4 0 52.9-43.1 96-96 96s-96-43.1-96-96c0-41.2 27.5-76.2 64-89.4V236h-20c-17.7 0-32-14.3-32-32v-60c0-17.7 14.3-32 32-32Zm64 256c-17.7 0-32 14.3-32 32 0 17.7 14.3 32 32 32s32-14.3 32-32c0-17.7-14.3-32-32-32Z"
+    fill="#f8fafc"
+  />
+</svg>
