@@ -123,6 +123,8 @@ export const AIAssistant = lazy(async () => {
 
 export const WorkflowAutomationView = lazy(() => import('../views/WorkflowAutomationView'));
 
+export const PurchaseAnalyticsView = lazy(() => import('../views/PurchaseAnalyticsView'));
+
 export const StockTransferModal = lazy(async () => {
   const module = await import('../components/StockTransferModal');
   return { default: module.StockTransferModal };

@@ -22,7 +22,7 @@ export type NavTab =
   | 'supplier-dashboard' | 'quotes' | 'invoices' | 'reports' | 'team' 
   | 'settings' | 'analytics' | 'ai-forecast' | 'workflows' | 'kits' | 'assets' 
   | 'performance' | 'leads' | 'subcontractors' | 'van-stock' | 'sync-dashboard'
-  | 'franchise' | 'developer';
+  | 'franchise' | 'developer' | 'purchase-analytics';
 
 export interface NavChildItem {
   id: NavTab;
@@ -126,6 +126,7 @@ export const NAVIGATION_CONFIG: NavigationItem[] = [
       { id: 'analytics', label: 'Analytics' },
       { id: 'performance', label: 'Team Performance' },
       { id: 'ai-forecast', label: 'AI Forecast' },
+      { id: 'purchase-analytics', label: 'Purchase Analytics' },
     ]
   },
   

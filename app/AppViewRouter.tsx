@@ -39,7 +39,8 @@ import {
   TeamManagementView,
   TechnicianPerformanceView,
   VanStockView,
-  WorkflowAutomationView
+  WorkflowAutomationView,
+  PurchaseAnalyticsView
 } from './lazyViews';
 
 type InventorySortConfig = { key: keyof InventoryItem; direction: 'asc' | 'desc' } | null;
@@ -192,6 +193,7 @@ export function AppViewRouter({
       {activeTab === 'performance' && <TechnicianPerformanceView />}
       {activeTab === 'ai-forecast' && <AIForecastView />}
       {activeTab === 'workflows' && <WorkflowAutomationView />}
+      {activeTab === 'purchase-analytics' && <PurchaseAnalyticsView />}
     </Suspense>
   );
 }
