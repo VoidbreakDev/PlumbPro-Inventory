@@ -51,14 +51,16 @@ export function AnalyticsDashboard() {
 
   const loadSummary = useCallback(async () => {
     try {
-      const [s, pending] = await Promise.all([
-        purchaseAnalyticsAPI.getSummary(),
-        purchaseAnalyticsAPI.getPendingReview(),
-      ]);
+      const s = await purchaseAnalyticsAPI.getSummary();
       setSummary(s);
-      setPendingBatches(pending.batches);
     } catch (_) {
       setSummary(null);
+    }
+    try {
+      const pending = await purchaseAnalyticsAPI.getPendingReview();
+      setPendingBatches(pending.batches);
+    } catch (_) {
+      setPendingBatches([]);
     }
   }, []);
 
