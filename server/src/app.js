@@ -45,6 +45,8 @@ import subcontractorsRoutes from './routes/subcontractors.js';
 import leadsRoutes from './routes/leads.js';
 import kitsRoutes from './routes/kits.js';
 import voiceNotesRoutes from './routes/voiceNotes.js';
+import importRoutes from './routes/import.js';
+import purchaseAnalyticsRoutes from './routes/purchaseAnalytics.js';
 
 const DEFAULT_ALLOWED_DEV_ORIGINS = [
   'http://localhost:3000',
@@ -59,8 +61,6 @@ export function createApp({
   pool,
   nodeEnv = process.env.NODE_ENV || 'development',
   corsOrigin = process.env.CORS_ORIGIN,
-  rateLimitWindowMs = process.env.RATE_LIMIT_WINDOW_MS,
-  rateLimitMaxRequests = process.env.RATE_LIMIT_MAX_REQUESTS,
   uploadsDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../uploads')
 } = {}) {
   if (!pool) {
@@ -118,18 +118,6 @@ export function createApp({
       preload: true
     }
   }));
-
-  const limiter = rateLimit({
-    windowMs: parseInt(rateLimitWindowMs) || 15 * 60 * 1000,
-    max: parseInt(rateLimitMaxRequests) || 100,
-    message: {
-      error: 'Too many requests from this IP, please try again later.'
-    },
-    standardHeaders: true,
-    legacyHeaders: false,
-    skip: (req) => req.path === '/health' || nodeEnv === 'test'
-  });
-  app.use('/api/', limiter);
 
   const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
@@ -299,6 +287,8 @@ export function createApp({
   app.use('/api/leads', leadsRoutes);
   app.use('/api/kits', kitsRoutes);
   app.use('/api/voice-notes', voiceNotesRoutes);
+  app.use('/api/import', importRoutes);
+  app.use('/api/purchase-analytics', purchaseAnalyticsRoutes);
 
   app.use((req, res) => {
     res.status(404).json({ error: 'Route not found', code: 'NOT_FOUND' });
