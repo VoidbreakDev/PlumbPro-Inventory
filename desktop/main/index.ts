@@ -3,7 +3,7 @@ import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import path from 'path';
 import { startEmbeddedServer, stopEmbeddedServer, getServerPort } from '../server/embedded';
-import { configureAutoUpdater, checkForUpdates, downloadUpdate, installUpdate, getUpdateStatus } from './updater';
+import { configureAutoUpdater, checkForUpdates, downloadUpdate, installUpdate, getUpdateStatus, isUpdateInstallInProgress } from './updater';
 import { createWindow, getMainWindow } from './window';
 import { setupMenu } from './menu';
 
@@ -47,7 +47,12 @@ async function initialize(): Promise<void> {
   const mainWindow = await createWindow(serverPort);
 
   // Configure auto-updater
-  configureAutoUpdater(mainWindow);
+  configureAutoUpdater(mainWindow, {
+    beforeInstall: async () => {
+      log.info('Preparing application for update install...');
+      await stopEmbeddedServer();
+    }
+  });
 
   // Check for updates after window is ready (only in production)
   if (!app.isPackaged) {
@@ -131,7 +136,9 @@ app.whenReady().then(async () => {
 // Quit when all windows are closed (except on macOS)
 app.on('window-all-closed', async () => {
   log.info('All windows closed');
-  await stopEmbeddedServer();
+  if (!isUpdateInstallInProgress()) {
+    await stopEmbeddedServer();
+  }
 
   if (process.platform !== 'darwin') {
     app.quit();
@@ -139,9 +146,18 @@ app.on('window-all-closed', async () => {
 });
 
 // Cleanup before quit
-app.on('before-quit', async () => {
+app.on('before-quit', async (event) => {
   log.info('Application quitting...');
-  await stopEmbeddedServer();
+  if (getUpdateStatus().downloaded && !isUpdateInstallInProgress()) {
+    log.info('Downloaded update detected during quit, switching to install flow...');
+    event.preventDefault();
+    await installUpdate();
+    return;
+  }
+
+  if (!isUpdateInstallInProgress()) {
+    await stopEmbeddedServer();
+  }
 });
 
 // Handle uncaught exceptions

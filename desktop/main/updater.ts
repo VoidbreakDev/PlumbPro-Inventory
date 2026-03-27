@@ -13,6 +13,10 @@ export interface UpdateStatus {
   releaseNotes: string | null;
 }
 
+interface AutoUpdaterOptions {
+  beforeInstall?: () => Promise<void>;
+}
+
 let updateStatus: UpdateStatus = {
   checking: false,
   available: false,
@@ -25,13 +29,16 @@ let updateStatus: UpdateStatus = {
 };
 
 let mainWindowRef: BrowserWindow | null = null;
+let beforeInstallHandler: (() => Promise<void>) | null = null;
+let installInProgress = false;
 
-export function configureAutoUpdater(mainWindow: BrowserWindow): void {
+export function configureAutoUpdater(mainWindow: BrowserWindow, options: AutoUpdaterOptions = {}): void {
   mainWindowRef = mainWindow;
+  beforeInstallHandler = options.beforeInstall ?? null;
 
   // Configure updater settings
   autoUpdater.autoDownload = false; // Manual download control
-  autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.autoInstallOnAppQuit = false;
   autoUpdater.allowDowngrade = false;
 
   // Use GitHub provider with private token if available
@@ -126,6 +133,7 @@ export function configureAutoUpdater(mainWindow: BrowserWindow): void {
   // Event: Error
   autoUpdater.on('error', (error: Error) => {
     log.error('Update error:', error);
+    installInProgress = false;
     updateStatus = {
       ...updateStatus,
       checking: false,
@@ -210,11 +218,40 @@ export function downloadUpdate(): void {
   autoUpdater.downloadUpdate();
 }
 
-export function installUpdate(): void {
+export async function installUpdate(): Promise<void> {
+  if (installInProgress) {
+    log.info('Update install already in progress');
+    return;
+  }
+
+  installInProgress = true;
   log.info('Installing update and restarting...');
-  autoUpdater.quitAndInstall(false, true);
+
+  try {
+    if (beforeInstallHandler) {
+      log.info('Running pre-install shutdown tasks...');
+      await beforeInstallHandler();
+    }
+
+    setImmediate(() => {
+      autoUpdater.quitAndInstall(false, true);
+    });
+  } catch (error) {
+    installInProgress = false;
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    log.error('Failed to prepare update install:', error);
+    updateStatus = {
+      ...updateStatus,
+      error: `Failed to install update: ${message}`
+    };
+    sendStatusToWindow();
+  }
 }
 
 export function getUpdateStatus(): UpdateStatus {
   return updateStatus;
+}
+
+export function isUpdateInstallInProgress(): boolean {
+  return installInProgress;
 }
