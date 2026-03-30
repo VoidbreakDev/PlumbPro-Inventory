@@ -24,6 +24,9 @@ async function bundle() {
       target: 'node20',
       outfile: 'dist/server.bundle.mjs',  // ESM format
       format: 'esm',  // Use ESM for top-level await support
+      banner: {
+        js: 'import * as __plumbproModule from "module"; const require = __plumbproModule.createRequire(import.meta.url);'
+      },
       external: [
         // Native modules - don't bundle these
         'better-sqlite3',
@@ -59,8 +62,12 @@ async function bundle() {
       }
     }
 
-    // Copy better-sqlite3 native module
-    const betterSqlite3Path = path.dirname(require.resolve('better-sqlite3/package.json'));
+    // Prefer the desktop app's rebuilt native module when available so the
+    // embedded server uses an Electron-compatible better-sqlite3 binary.
+    const desktopBetterSqlite3Package = path.join(__dirname, '../desktop/node_modules/better-sqlite3/package.json');
+    const betterSqlite3Path = fs.existsSync(desktopBetterSqlite3Package)
+      ? path.dirname(desktopBetterSqlite3Package)
+      : path.dirname(require.resolve('better-sqlite3/package.json'));
     const buildPath = path.join(betterSqlite3Path, 'build');
     if (fs.existsSync(buildPath)) {
       fs.cpSync(buildPath, 'dist/node_modules/better-sqlite3/build', { recursive: true });

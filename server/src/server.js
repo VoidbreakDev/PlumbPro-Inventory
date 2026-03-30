@@ -3,7 +3,6 @@ import path from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
 import pool from './config/database.js';
 import { createApp } from './app.js';
-import { startScheduler } from './scheduler.js';
 
 dotenv.config();
 
@@ -61,15 +60,20 @@ export function createServer(options = {}) {
   };
 }
 
-export function startServer(options = {}) {
+export async function startServer(options = {}) {
   validateEnvironment();
   const serverConfig = createServer(options);
   const notificationsEnabled = options.notificationsEnabled ?? process.env.ENABLE_NOTIFICATIONS !== 'false';
-  const scheduler = startScheduler({
-    pool: serverConfig.pool,
-    enabled: notificationsEnabled,
-    isDevelopment: serverConfig.nodeEnv === 'development'
-  });
+  let scheduler = [];
+
+  if (notificationsEnabled) {
+    const { startScheduler } = await import('./scheduler.js');
+    scheduler = startScheduler({
+      pool: serverConfig.pool,
+      enabled: notificationsEnabled,
+      isDevelopment: serverConfig.nodeEnv === 'development'
+    });
+  }
 
   const server = serverConfig.app.listen(serverConfig.port, '0.0.0.0', () => {
     console.log('');
@@ -95,7 +99,7 @@ export function startServer(options = {}) {
 
 if (isMainModule()) {
   try {
-    startServer();
+    await startServer();
   } catch (error) {
     console.error('❌ Failed to start PlumbPro Inventory Server:', error);
     process.exit(1);

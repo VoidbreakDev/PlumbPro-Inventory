@@ -1,4 +1,5 @@
 import { fork, ChildProcess } from 'child_process';
+import fs from 'fs';
 import path from 'path';
 import { app } from 'electron';
 import log from 'electron-log';
@@ -30,9 +31,7 @@ export async function startEmbeddedServer(): Promise<number> {
 
   // Determine server path based on packaged state
   // In production, use the desktop server; in dev, use the source
-  const serverPath = app.isPackaged
-    ? path.join(process.resourcesPath, 'server', 'src', 'server.js')
-    : path.join(__dirname, '../../server/src/server.js');
+  const serverPath = resolveServerPath();
 
   log.info(`Server path: ${serverPath}`);
 
@@ -49,6 +48,8 @@ export async function startEmbeddedServer(): Promise<number> {
     // Use the user data directory for logs and uploads
     LOG_DIR: path.join(app.getPath('userData'), 'logs'),
     UPLOAD_DIR: path.join(app.getPath('userData'), 'uploads'),
+    // Desktop runs as a local embedded app; skip server-side cron jobs.
+    ENABLE_NOTIFICATIONS: 'false',
     // Disable interactive prompts
     FORCE_COLOR: '0',
     NO_UPDATE_NOTIFIER: '1'
@@ -56,8 +57,8 @@ export async function startEmbeddedServer(): Promise<number> {
 
   // Ensure data directory exists
   const dataDir = path.join(app.getPath('userData'), 'data');
-  if (!require('fs').existsSync(dataDir)) {
-    require('fs').mkdirSync(dataDir, { recursive: true });
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
   }
 
   return new Promise((resolve, reject) => {
@@ -235,4 +236,19 @@ export function isServerRunning(): boolean {
 export async function restartServer(): Promise<number> {
   await stopEmbeddedServer();
   return startEmbeddedServer();
+}
+
+function resolveServerPath(): string {
+  if (!app.isPackaged) {
+    return path.join(__dirname, '../../server/src/server.js');
+  }
+
+  const packagedCandidates = [
+    path.join(process.resourcesPath, 'server', 'server.bundle.mjs'),
+    path.join(process.resourcesPath, 'server', 'server.bundle.cjs'),
+    path.join(process.resourcesPath, 'server', 'src', 'server.js')
+  ];
+
+  const resolvedPath = packagedCandidates.find(candidate => fs.existsSync(candidate));
+  return resolvedPath ?? packagedCandidates[0];
 }
