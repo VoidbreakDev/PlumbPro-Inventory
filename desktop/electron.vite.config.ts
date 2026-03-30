@@ -1,5 +1,7 @@
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite';
 import { resolve } from 'path';
+import autoprefixer from 'autoprefixer';
+import tailwindcss from 'tailwindcss';
 
 export default defineConfig({
   main: {
@@ -26,6 +28,14 @@ export default defineConfig({
   },
   renderer: {
     root: resolve(__dirname, '..'),
+    css: {
+      postcss: {
+        plugins: [
+          tailwindcss({ config: resolve(__dirname, '../tailwind.config.js') }),
+          autoprefixer()
+        ]
+      }
+    },
     build: {
       outDir: resolve(__dirname, 'dist/renderer'),
       rollupOptions: {
