@@ -3,6 +3,20 @@ const esbuild = require('esbuild');
 const fs = require('fs');
 const path = require('path');
 
+function resolvePackageJson(packageName, searchPaths) {
+  return require.resolve(`${packageName}/package.json`, { paths: searchPaths });
+}
+
+function copyPackage(packageName, searchPaths, distNodeModulesDir) {
+  const packageJsonPath = resolvePackageJson(packageName, searchPaths);
+  const packageRoot = path.dirname(packageJsonPath);
+  const targetDir = path.join(distNodeModulesDir, packageName);
+
+  fs.mkdirSync(path.dirname(targetDir), { recursive: true });
+  fs.rmSync(targetDir, { recursive: true, force: true });
+  fs.cpSync(packageRoot, targetDir, { recursive: true });
+}
+
 async function bundle() {
   console.log('Bundling server...');
   
@@ -15,6 +29,9 @@ async function bundle() {
   if (!fs.existsSync('dist/data')) {
     fs.mkdirSync('dist/data', { recursive: true });
   }
+
+  // Avoid stale runtime dependencies surviving between builds.
+  fs.rmSync('dist/node_modules', { recursive: true, force: true });
 
   try {
     await esbuild.build({
@@ -62,28 +79,26 @@ async function bundle() {
       }
     }
 
-    // Prefer the desktop app's rebuilt native module when available so the
-    // embedded server uses an Electron-compatible better-sqlite3 binary.
-    const desktopBetterSqlite3Package = path.join(__dirname, '../desktop/node_modules/better-sqlite3/package.json');
-    const betterSqlite3Path = fs.existsSync(desktopBetterSqlite3Package)
-      ? path.dirname(desktopBetterSqlite3Package)
-      : path.dirname(require.resolve('better-sqlite3/package.json'));
-    const buildPath = path.join(betterSqlite3Path, 'build');
-    if (fs.existsSync(buildPath)) {
-      fs.cpSync(buildPath, 'dist/node_modules/better-sqlite3/build', { recursive: true });
-      console.log('Copied: better-sqlite3 native bindings');
+    // Prefer the desktop app's rebuilt native module tree when available so
+    // the embedded server uses Electron-compatible better-sqlite3 bindings.
+    const packageSearchPaths = [
+      path.join(__dirname, '../desktop'),
+      __dirname
+    ];
+    const distNodeModulesDir = path.join(__dirname, 'dist/node_modules');
+    for (const runtimePackage of ['better-sqlite3', 'bindings', 'file-uri-to-path']) {
+      copyPackage(runtimePackage, packageSearchPaths, distNodeModulesDir);
     }
-
-    // Copy better-sqlite3 package.json and main file
-    fs.cpSync(
-      path.join(betterSqlite3Path, 'lib'),
-      'dist/node_modules/better-sqlite3/lib',
-      { recursive: true }
-    );
-    fs.copyFileSync(
-      path.join(betterSqlite3Path, 'package.json'),
-      'dist/node_modules/better-sqlite3/package.json'
-    );
+    const betterSqlite3Root = path.dirname(resolvePackageJson('better-sqlite3', packageSearchPaths));
+    const betterSqlite3BuildDir = path.join(betterSqlite3Root, 'build');
+    if (fs.existsSync(betterSqlite3BuildDir)) {
+      fs.cpSync(
+        betterSqlite3BuildDir,
+        path.join(distNodeModulesDir, 'better-sqlite3/build'),
+        { recursive: true }
+      );
+    }
+    console.log('Copied: better-sqlite3 runtime dependencies');
 
     // Create a minimal package.json for the bundled server
     const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));

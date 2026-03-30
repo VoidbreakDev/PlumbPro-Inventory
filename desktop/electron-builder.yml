@@ -18,8 +18,29 @@ extraResources:
   - from: ../server/dist
     to: server
     filter:
+      - "server.bundle.mjs"
+      - "server.bundle.cjs"
+      - "package.json"
+      - ".env.example"
+      - "migrations/**/*"
+  - from: ../server/dist/node_modules/better-sqlite3/lib
+    to: server/node_modules/better-sqlite3/lib
+    filter:
       - "**/*"
-      - "!**/.env"
+  - from: ../server/dist/node_modules/better-sqlite3/build
+    to: server/node_modules/better-sqlite3/build
+    filter:
+      - "**/*"
+  - from: ../server/dist/node_modules/better-sqlite3/package.json
+    to: server/node_modules/better-sqlite3/package.json
+  - from: ../server/dist/node_modules/bindings
+    to: server/node_modules/bindings
+    filter:
+      - "**/*"
+  - from: ../server/dist/node_modules/file-uri-to-path
+    to: server/node_modules/file-uri-to-path
+    filter:
+      - "**/*"
 
 asar: true
 compression: maximum
