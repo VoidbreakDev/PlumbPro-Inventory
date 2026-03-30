@@ -50,6 +50,8 @@ export async function startEmbeddedServer(): Promise<number> {
     UPLOAD_DIR: path.join(app.getPath('userData'), 'uploads'),
     // Desktop runs as a local embedded app; skip server-side cron jobs.
     ENABLE_NOTIFICATIONS: 'false',
+    // Requests from the packaged Electron renderer may omit an Origin header.
+    ALLOW_ORIGINLESS_REQUESTS: 'true',
     // Disable interactive prompts
     FORCE_COLOR: '0',
     NO_UPDATE_NOTIFIER: '1'

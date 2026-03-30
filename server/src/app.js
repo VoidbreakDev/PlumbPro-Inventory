@@ -61,6 +61,7 @@ export function createApp({
   pool,
   nodeEnv = process.env.NODE_ENV || 'development',
   corsOrigin = process.env.CORS_ORIGIN,
+  allowMissingOrigin = process.env.ALLOW_ORIGINLESS_REQUESTS === 'true',
   uploadsDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../uploads')
 } = {}) {
   if (!pool) {
@@ -78,10 +79,11 @@ export function createApp({
   app.use(cors({
     origin: (origin, callback) => {
       // Requests without an Origin header (e.g. server-to-server, curl, integration tests)
-      // are allowed outside of production. In production, all browser requests carry
-      // an Origin header; a missing one indicates a non-browser client or misconfiguration.
-      if (!origin) {
-        if (nodeEnv !== 'production') return callback(null, true);
+      // are allowed outside of production. The embedded Electron desktop app also
+      // talks to the local API without an Origin header, so it opts in via
+      // ALLOW_ORIGINLESS_REQUESTS=true.
+      if (!origin || origin === 'null') {
+        if (nodeEnv !== 'production' || allowMissingOrigin) return callback(null, true);
         return callback(new Error('CORS: missing origin header'));
       }
 
