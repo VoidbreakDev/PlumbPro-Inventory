@@ -10,8 +10,18 @@ ALTER TABLE jobs
 CREATE INDEX IF NOT EXISTS idx_jobs_scheduled_start ON jobs(scheduled_start);
 
 -- 2. Extend the status CHECK constraint to include 'On Hold', 'Unscheduled', 'Invoiced'
---    PostgreSQL requires drop + re-add (constraint name is auto-generated as jobs_status_check)
-ALTER TABLE jobs DROP CONSTRAINT IF EXISTS jobs_status_check;
+--    Drop any existing status CHECK (name may vary on different DB histories)
+DO $$
+DECLARE r RECORD;
+BEGIN
+  FOR r IN
+    SELECT conname FROM pg_constraint
+    WHERE conrelid = 'jobs'::regclass AND contype = 'c'
+      AND pg_get_constraintdef(oid) LIKE '%Scheduled%'
+  LOOP
+    EXECUTE format('ALTER TABLE jobs DROP CONSTRAINT %I', r.conname);
+  END LOOP;
+END$$;
 ALTER TABLE jobs ADD CONSTRAINT jobs_status_check
   CHECK (status IN ('Unscheduled', 'Scheduled', 'In Progress', 'On Hold', 'Completed', 'Cancelled', 'Invoiced'));
 
@@ -19,7 +29,7 @@ ALTER TABLE jobs ADD CONSTRAINT jobs_status_check
 CREATE TABLE IF NOT EXISTS job_notes (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   job_id      UUID NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
-  user_id     UUID NOT NULL REFERENCES users(id),
+  user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   note        TEXT NOT NULL,
   created_at  TIMESTAMPTZ DEFAULT NOW()
 );
@@ -29,7 +39,7 @@ CREATE INDEX IF NOT EXISTS idx_job_notes_job ON job_notes(job_id);
 CREATE TABLE IF NOT EXISTS job_photos (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   job_id      UUID NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
-  user_id     UUID NOT NULL REFERENCES users(id),
+  user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   file_path   TEXT NOT NULL,
   caption     TEXT,
   created_at  TIMESTAMPTZ DEFAULT NOW()
