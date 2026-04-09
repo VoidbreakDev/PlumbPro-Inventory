@@ -8,7 +8,8 @@ const __dirname = path.dirname(__filename);
 
 const additiveMigrations = [
   path.resolve(__dirname, '../../migrations/006_restore_development_projects_and_inventory_sku.sql'),
-  path.resolve(__dirname, '../../migrations/007_restore_permissions_settings_and_van_stock.sql')
+  path.resolve(__dirname, '../../migrations/007_restore_permissions_settings_and_van_stock.sql'),
+  path.resolve(__dirname, '../../migrations/20260409_120000_job_notes_photos_recurring.sql')
 ];
 
 async function runAdditiveMigrations() {
