@@ -257,7 +257,7 @@ export interface InventoryItem {
   lastMovementDate?: string;
 }
 
-export type JobStatus = 'Scheduled' | 'In Progress' | 'Completed' | 'Cancelled';
+export type JobStatus = 'Unscheduled' | 'Scheduled' | 'In Progress' | 'On Hold' | 'Completed' | 'Cancelled' | 'Invoiced';
 
 export type DevelopmentProjectStatus = 'Planning' | 'Active' | 'Completed' | 'On Hold' | 'Cancelled';
 
@@ -319,6 +319,8 @@ export interface Job {
   assignedWorkerIds: string[]; // Updated to multiple workers
   status: JobStatus;
   date: string;
+  scheduledStart?: string;   // ISO datetime e.g. "2026-04-09T08:00:00Z"
+  scheduledEnd?: string;     // ISO datetime e.g. "2026-04-09T11:00:00Z"
   jobAddress?: string;
   developmentProjectId?: string;
   developmentStageId?: string;
@@ -326,6 +328,25 @@ export interface Job {
   allocatedItems: AllocatedItem[];
   isPicked: boolean; // Tracking if stock has been removed from inventory
 }
+
+export interface JobNote {
+  id: string;
+  jobId: string;
+  userId: string;
+  note: string;
+  createdAt: string;
+}
+
+export interface JobPhoto {
+  id: string;
+  jobId: string;
+  userId: string;
+  filePath: string;
+  caption?: string;
+  createdAt: string;
+}
+
+export type RecurrenceFrequency = 'daily' | 'weekly' | 'fortnightly' | 'monthly' | 'quarterly';
 
 export interface AllocatedItem {
   itemId: string;
