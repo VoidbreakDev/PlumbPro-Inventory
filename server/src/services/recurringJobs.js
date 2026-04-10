@@ -26,9 +26,10 @@ async function generateDueRecurringJobs() {
     `, [today]);
 
     for (const rule of due.rows) {
-      await client.query('BEGIN');
+      const txClient = await pool.connect();
       try {
-        const newJob = await client.query(`
+        await txClient.query('BEGIN');
+        const newJob = await txClient.query(`
           INSERT INTO jobs (user_id, title, job_type, status, date)
           VALUES ($1, $2, $3, 'Unscheduled', $4)
           RETURNING id
@@ -36,17 +37,19 @@ async function generateDueRecurringJobs() {
 
         const nextDue = addInterval(rule.next_due, rule.frequency);
 
-        await client.query(`
+        await txClient.query(`
           UPDATE job_recurring
           SET next_due = $1, last_generated = $2
           WHERE id = $3
         `, [nextDue, today, rule.id]);
 
-        await client.query('COMMIT');
+        await txClient.query('COMMIT');
         console.log(`[recurringJobs] Generated job ${newJob.rows[0].id} from rule ${rule.id}`);
       } catch (err) {
-        await client.query('ROLLBACK');
+        await txClient.query('ROLLBACK');
         console.error(`[recurringJobs] Failed to generate from rule ${rule.id}:`, err.message);
+      } finally {
+        txClient.release();
       }
     }
   } catch (error) {
@@ -58,6 +61,12 @@ async function generateDueRecurringJobs() {
 
 export function startRecurringJobsCron() {
   // Run at 6am every day
-  cron.schedule('0 6 * * *', generateDueRecurringJobs);
+  cron.schedule('0 6 * * *', async () => {
+    try {
+      await generateDueRecurringJobs();
+    } catch (err) {
+      console.error('[recurringJobs] Unhandled cron error:', err.message);
+    }
+  });
   console.log('[recurringJobs] Cron scheduled (daily at 6am)');
 }
