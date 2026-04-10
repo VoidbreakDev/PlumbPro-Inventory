@@ -3,6 +3,7 @@ import path from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
 import pool from './config/database.js';
 import { createApp } from './app.js';
+import { startRecurringJobsCron } from './services/recurringJobs.js';
 
 dotenv.config();
 
@@ -88,6 +89,8 @@ export async function startServer(options = {}) {
     console.log('⏱️  Rate Limiting: Enabled');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log('');
+
+    startRecurringJobsCron();
   });
 
   return {
