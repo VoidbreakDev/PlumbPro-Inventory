@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import {
   format, startOfWeek, endOfWeek, startOfMonth, endOfMonth,
@@ -45,9 +45,9 @@ function navigate(mode: ViewMode, date: Date, dir: 1 | -1): Date {
 
 // Month grid — preserved from existing implementation, enhanced to use scheduledStart
 function MonthGrid({ date, jobs, onDayClick }: {
-  date: Date; jobs: Job[]; contacts: Contact[]; onDayClick: (job: Job) => void;
+  date: Date; jobs: Job[]; onDayClick: (job: Job) => void;
 }) {
-  const today = new Date();
+  const today = useMemo(() => new Date(), []);
   const daysInMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
   const firstDay = new Date(date.getFullYear(), date.getMonth(), 1).getDay();
   const calDays: (number | null)[] = [
@@ -108,16 +108,11 @@ function MonthGrid({ date, jobs, onDayClick }: {
 }
 
 export const CalendarView: React.FC<CalendarViewProps> = ({ jobs, contacts }) => {
-  const user = useStore(s => s.user);
-  const {
-    fetchJobsForRange,
-    startCalendarPolling,
-    stopCalendarPolling,
-    calendarJobs,
-    calendarPollFailures,
-    updateJobStatus,
-    assignJob,
-  } = useStore();
+  const user                 = useStore(s => s.user);
+  const calendarJobs         = useStore(s => s.calendarJobs);
+  const calendarPollFailures = useStore(s => s.calendarPollFailures);
+  const updateJobStatus      = useStore(s => s.updateJobStatus);
+  const assignJob            = useStore(s => s.assignJob);
 
   const userRole = user?.role ?? 'technician';
   const userId   = user?.id ?? '';
@@ -141,6 +136,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ jobs, contacts }) =>
   );
 
   useEffect(() => {
+    const { fetchJobsForRange, startCalendarPolling, stopCalendarPolling } = useStore.getState();
     fetchJobsForRange(rangeStart, rangeEnd);
     startCalendarPolling(rangeStart, rangeEnd);
     return () => stopCalendarPolling();
@@ -150,15 +146,23 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ jobs, contacts }) =>
   const displayJobs = calendarJobs.length > 0 ? calendarJobs : jobs;
 
   const handleStatusChange = async (jobId: string, status: JobStatus) => {
-    await updateJobStatus(jobId, status);
-    if (selectedJob?.id === jobId) {
-      setSelectedJob(prev => prev ? { ...prev, status } : null);
+    try {
+      await updateJobStatus(jobId, status);
+      if (selectedJob?.id === jobId) {
+        setSelectedJob(prev => prev ? { ...prev, status } : null);
+      }
+    } catch (err) {
+      console.error('[CalendarView] Failed to update job status:', err);
     }
   };
 
   const handleReschedule = async (jobId: string, newDate: string) => {
     const existingWorkers = displayJobs.find(j => j.id === jobId)?.assignedWorkerIds ?? [];
-    await assignJob(jobId, existingWorkers, `${newDate}T08:00:00`, `${newDate}T17:00:00`);
+    try {
+      await assignJob(jobId, existingWorkers, `${newDate}T08:00:00`, `${newDate}T17:00:00`);
+    } catch (err) {
+      console.error('[CalendarView] Failed to reschedule job:', err);
+    }
   };
 
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
@@ -252,7 +256,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ jobs, contacts }) =>
             <MonthGrid
               date={currentDate}
               jobs={displayJobs}
-              contacts={contacts}
               onDayClick={setSelectedJob}
             />
           )}
