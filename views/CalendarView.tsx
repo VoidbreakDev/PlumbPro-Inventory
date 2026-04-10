@@ -286,6 +286,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ jobs, contacts }) =>
           // Stub: open reassign modal — wired in Phase 2
           console.log('Reassign', job.id);
         }}
+        onViewFullJob={() => setSelectedJob(null)}
       />
     </div>
   );

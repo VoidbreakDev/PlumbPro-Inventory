@@ -14,12 +14,13 @@ interface JobDetailSheetProps {
   onStatusChange: (jobId: string, status: JobStatus) => Promise<void>;
   onReschedule?: (job: Job) => void;
   onReassign?: (job: Job) => void;
+  onViewFullJob?: (job: Job) => void;
 }
 
 const ALL_STATUSES: JobStatus[] = ['Unscheduled', 'Scheduled', 'In Progress', 'On Hold', 'Completed', 'Cancelled'];
 
 export const JobDetailSheet: React.FC<JobDetailSheetProps> = ({
-  job, contacts, userRole, userId, onClose, onStatusChange, onReschedule, onReassign
+  job, contacts, userRole, userId, onClose, onStatusChange, onReschedule, onReassign, onViewFullJob
 }) => {
   const [notes, setNotes] = useState<JobNote[]>([]);
   const [newNote, setNewNote] = useState('');
@@ -305,12 +306,12 @@ export const JobDetailSheet: React.FC<JobDetailSheetProps> = ({
           </div>
 
           {/* View full job */}
-          <a
-            href={`#jobs/${job.id}`}
+          <button
+            onClick={() => { onViewFullJob ? onViewFullJob(job) : onClose(); }}
             className="block w-full text-center py-2 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50"
           >
             View Full Job →
-          </a>
+          </button>
         </div>
       </div>
     </>
