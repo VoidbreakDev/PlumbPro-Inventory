@@ -2,6 +2,84 @@ import bcrypt from 'bcryptjs';
 
 // UUID v4-compatible default for SQLite (matches PostgreSQL gen_random_uuid() format)
 const UUID_DEFAULT = "(lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))), 2, 3) || '-' || substr('89ab', abs(random()) % 4 + 1, 1) || substr(lower(hex(randomblob(2))), 2, 3) || '-' || lower(hex(randomblob(6))))";
+const DEMO_DESKTOP_USER = {
+  email: 'demo@plumbpro.com',
+  password: 'demo123',
+  firstName: 'Demo',
+  lastName: 'User',
+  fullName: 'Demo User',
+  role: 'admin',
+};
+const LEGACY_DESKTOP_USER = {
+  email: 'admin@plumbpro.local',
+  firstName: 'Admin',
+  lastName: 'User',
+  fullName: 'Admin User',
+  role: 'admin',
+};
+
+function createDefaultDesktopUser(db) {
+  const hashedPassword = bcrypt.hashSync(DEMO_DESKTOP_USER.password, 10);
+
+  db.prepare(`
+    INSERT INTO users (email, password_hash, first_name, last_name, full_name, role)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).run(
+    DEMO_DESKTOP_USER.email,
+    hashedPassword,
+    DEMO_DESKTOP_USER.firstName,
+    DEMO_DESKTOP_USER.lastName,
+    DEMO_DESKTOP_USER.fullName,
+    DEMO_DESKTOP_USER.role,
+  );
+
+  console.log(`✅ Default demo user created (${DEMO_DESKTOP_USER.email} / ${DEMO_DESKTOP_USER.password})`);
+}
+
+function upgradeLegacyDesktopUser(db) {
+  const demoUser = db.prepare('SELECT id FROM users WHERE email = ?').get(DEMO_DESKTOP_USER.email);
+  if (demoUser) {
+    return false;
+  }
+
+  const legacyUser = db.prepare(`
+    SELECT id, first_name, last_name, full_name, role
+    FROM users
+    WHERE email = ?
+    LIMIT 1
+  `).get(LEGACY_DESKTOP_USER.email);
+
+  if (!legacyUser) {
+    return false;
+  }
+
+  const matchesLegacySeed = legacyUser.role === LEGACY_DESKTOP_USER.role
+    && (legacyUser.first_name ?? '') === LEGACY_DESKTOP_USER.firstName
+    && (legacyUser.last_name ?? '') === LEGACY_DESKTOP_USER.lastName
+    && (legacyUser.full_name ?? '') === LEGACY_DESKTOP_USER.fullName;
+
+  if (!matchesLegacySeed) {
+    return false;
+  }
+
+  const hashedPassword = bcrypt.hashSync(DEMO_DESKTOP_USER.password, 10);
+
+  db.prepare(`
+    UPDATE users
+    SET email = ?, password_hash = ?, first_name = ?, last_name = ?, full_name = ?, updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+  `).run(
+    DEMO_DESKTOP_USER.email,
+    hashedPassword,
+    DEMO_DESKTOP_USER.firstName,
+    DEMO_DESKTOP_USER.lastName,
+    DEMO_DESKTOP_USER.fullName,
+    legacyUser.id,
+  );
+
+  console.log(`✅ Legacy desktop user updated to demo credentials (${DEMO_DESKTOP_USER.email} / ${DEMO_DESKTOP_USER.password})`);
+  return true;
+}
 
 export function initSQLiteSchema(db) {
   // Enable foreign keys
@@ -653,17 +731,12 @@ export function initSQLiteSchema(db) {
   try {
     const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get();
     if (userCount.count === 0) {
-      const hashedPassword = bcrypt.hashSync('admin123', 10);
-
-      db.prepare(`
-        INSERT INTO users (email, password_hash, first_name, last_name, full_name, role)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `).run('admin@plumbpro.local', hashedPassword, 'Admin', 'User', 'Admin User', 'admin');
-
-      console.log('✅ Default admin user created (admin@plumbpro.local / admin123)');
+      createDefaultDesktopUser(db);
+    } else {
+      upgradeLegacyDesktopUser(db);
     }
   } catch (err) {
-    console.error('Error creating admin user:', err.message);
+    console.error('Error ensuring desktop demo user:', err.message);
   }
 
   try {

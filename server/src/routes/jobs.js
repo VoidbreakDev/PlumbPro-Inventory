@@ -72,6 +72,8 @@ router.get('/calendar', async (req, res) => {
 
     const result = await client.query(`
       SELECT j.*,
+             j.scheduled_start AS "scheduledStart",
+             j.scheduled_end   AS "scheduledEnd",
              COALESCE(
                json_agg(jw.worker_id) FILTER (WHERE jw.worker_id IS NOT NULL),
                '[]'
@@ -561,8 +563,8 @@ router.post('/:id/assign', [
 
     await client.query(`
       UPDATE jobs
-      SET scheduled_start = $1,
-          scheduled_end   = $2,
+      SET scheduled_start = $1::timestamptz,
+          scheduled_end   = $2::timestamptz,
           status          = CASE WHEN $1 IS NOT NULL THEN 'Scheduled' ELSE status END,
           updated_at      = NOW()
       WHERE id = $3 AND user_id = $4
