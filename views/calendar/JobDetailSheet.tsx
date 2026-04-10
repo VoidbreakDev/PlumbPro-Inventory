@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { X, Plus, Camera, RotateCcw, UserPlus } from 'lucide-react';
+import { format } from 'date-fns';
 import type { Job, Contact, JobNote, JobStatus } from '../../types';
 import { canPerform } from '../../lib/permissions';
 import { jobsAPI } from '../../lib/api';
@@ -25,10 +26,21 @@ export const JobDetailSheet: React.FC<JobDetailSheetProps> = ({
   const [addingNote, setAddingNote] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [noteError, setNoteError] = useState<string | null>(null);
+  const [isOpen, setIsOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
+  const touchStartY = useRef(0);
+  const touchCurrentY = useRef(0);
 
   const isAssigned = job ? job.assignedWorkerIds.includes(userId) : false;
+
+  useEffect(() => {
+    if (job) {
+      requestAnimationFrame(() => setIsOpen(true));
+    } else {
+      setIsOpen(false);
+    }
+  }, [job]);
 
   useEffect(() => {
     if (!job) return;
@@ -40,6 +52,28 @@ export const JobDetailSheet: React.FC<JobDetailSheetProps> = ({
     document.addEventListener('keydown', handleKey);
     return () => document.removeEventListener('keydown', handleKey);
   }, [onClose]);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartY.current = e.touches[0].clientY;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    touchCurrentY.current = e.touches[0].clientY;
+    const delta = touchCurrentY.current - touchStartY.current;
+    if (delta > 0 && sheetRef.current) {
+      sheetRef.current.style.transform = `translateY(${delta}px)`;
+    }
+  };
+
+  const handleTouchEnd = () => {
+    const delta = touchCurrentY.current - touchStartY.current;
+    if (sheetRef.current) {
+      sheetRef.current.style.transform = '';
+    }
+    if (delta > 100) {
+      onClose();
+    }
+  };
 
   const handleAddNote = async () => {
     if (!job || !newNote.trim()) return;
@@ -88,13 +122,20 @@ export const JobDetailSheet: React.FC<JobDetailSheetProps> = ({
       <div
         ref={sheetRef}
         className={`
-          fixed z-50 bg-white shadow-2xl overflow-y-auto
+          fixed z-50 bg-white shadow-2xl overflow-y-auto transition-transform duration-300
           bottom-0 left-0 right-0 rounded-t-2xl max-h-[85vh]
+          ${isOpen ? 'translate-y-0' : 'translate-y-full'}
           lg:bottom-0 lg:top-0 lg:left-auto lg:right-0 lg:w-96 lg:rounded-none lg:max-h-full
+          ${isOpen ? 'lg:translate-x-0' : 'lg:translate-x-full'}
         `}
       >
         {/* Drag handle (mobile only) */}
-        <div className="flex justify-center pt-3 lg:hidden">
+        <div
+          className="flex justify-center pt-3 lg:hidden"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
           <div className="w-10 h-1 bg-slate-300 rounded-full" />
         </div>
 
@@ -114,6 +155,12 @@ export const JobDetailSheet: React.FC<JobDetailSheetProps> = ({
               <div className="flex items-center gap-2 mt-1">
                 <span className="text-xs bg-black/20 px-2 py-0.5 rounded-full">{job.status}</span>
                 {workerNames && <span className="text-xs opacity-80 truncate">{workerNames}</span>}
+                {(job.scheduledStart || job.scheduledEnd) && (
+                  <span className="text-xs opacity-80">
+                    {job.scheduledStart ? format(new Date(job.scheduledStart), 'h:mm a') : ''}
+                    {job.scheduledEnd ? ` – ${format(new Date(job.scheduledEnd), 'h:mm a')}` : ''}
+                  </span>
+                )}
               </div>
             </div>
             <button onClick={onClose} className="ml-2 p-1 hover:bg-white/20 rounded-lg flex-shrink-0">
@@ -144,7 +191,7 @@ export const JobDetailSheet: React.FC<JobDetailSheetProps> = ({
           {/* Manager-only actions */}
           {canPerform(userRole, 'reschedule', isAssigned) && (
             <div className="border border-slate-200 rounded-xl p-3 space-y-2">
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Manager actions</p>
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Manager Only</p>
               <div className="grid grid-cols-2 gap-2">
                 <button
                   onClick={() => onReschedule?.(job)}
