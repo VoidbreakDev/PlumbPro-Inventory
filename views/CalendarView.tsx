@@ -18,7 +18,6 @@ type ViewMode = 'day' | 'week' | 'month' | 'staff';
 interface CalendarViewProps {
   jobs: Job[];
   contacts: Contact[];
-  onJobClick?: (job: Job) => void;
 }
 
 function getDateRangeLabel(mode: ViewMode, date: Date): string {

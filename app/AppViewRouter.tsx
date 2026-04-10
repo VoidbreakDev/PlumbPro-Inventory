@@ -139,9 +139,6 @@ export function AppViewRouter({
         <CalendarView
           jobs={jobs}
           contacts={contacts}
-          onJobClick={() => {
-            onNavigate('job-planning');
-          }}
         />
       )}
       {activeTab === 'job-planning' && (
