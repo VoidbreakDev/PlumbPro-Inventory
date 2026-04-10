@@ -930,7 +930,7 @@ export function ProjectStagesView() {
                           <Package className="h-4 w-4 text-blue-600" />
                           <h4 className="text-sm font-black uppercase tracking-wider text-slate-600">Resolved Stock</h4>
                         </div>
-                        {stage.modifierSnapshot && (
+                        {stage.modifierSnapshot?.finalMultiplier != null && (
                           <div className="text-xs font-bold text-slate-500">
                             Multiplier {stage.modifierSnapshot.finalMultiplier.toFixed(2)}x
                           </div>
