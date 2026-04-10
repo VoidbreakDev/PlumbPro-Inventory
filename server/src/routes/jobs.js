@@ -457,16 +457,13 @@ router.get('/:id/photos', async (req, res) => {
 });
 
 // POST /api/jobs/:id/photos
-router.post('/:id/photos', upload.single('photo'), async (req, res) => {
-  const client = await pool.connect();
-  try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'No photo uploaded' });
-    }
-
-    const role = req.user.role;
-    const MANAGER_PLUS = ['admin', 'manager', 'office'];
-    if (!MANAGER_PLUS.includes(role)) {
+// Auth check before multer to prevent orphaned files on 403
+router.post('/:id/photos', async (req, res, next) => {
+  const role = req.user.role;
+  const MANAGER_PLUS = ['admin', 'manager', 'office'];
+  if (!MANAGER_PLUS.includes(role)) {
+    const client = await pool.connect();
+    try {
       const assigned = await client.query(
         `SELECT 1 FROM job_workers WHERE job_id = $1 AND worker_id = $2`,
         [req.params.id, req.user.userId]
@@ -474,6 +471,16 @@ router.post('/:id/photos', upload.single('photo'), async (req, res) => {
       if (assigned.rows.length === 0) {
         return res.status(403).json({ error: 'You are not assigned to this job' });
       }
+    } finally {
+      client.release();
+    }
+  }
+  next();
+}, upload.single('photo'), async (req, res) => {
+  const client = await pool.connect();
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No photo uploaded' });
     }
 
     const filePath = `/uploads/job-photos/${req.file.filename}`;
