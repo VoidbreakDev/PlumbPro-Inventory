@@ -22,9 +22,6 @@ function minutesFromStart(isoDatetime: string): number {
   return (d.getHours() - START_HOUR) * 60 + d.getMinutes();
 }
 
-function durationMinutes(start: string, end: string): number {
-  return (new Date(end).getTime() - new Date(start).getTime()) / 60_000;
-}
 
 function jobsForDay(jobs: Job[], date: Date): Job[] {
   const dateStr = format(date, 'yyyy-MM-dd');
@@ -34,7 +31,7 @@ function jobsForDay(jobs: Job[], date: Date): Job[] {
   });
 }
 
-export const DayView: React.FC<DayViewProps> = ({ date, jobs, contacts, onJobClick }) => {
+export const DayView: React.FC<DayViewProps> = ({ date, jobs, contacts, onJobClick, canDrag }) => {
   const hours = Array.from({ length: END_HOUR - START_HOUR }, (_, i) => START_HOUR + i);
   const dayJobs = jobsForDay(jobs, date);
 
@@ -71,8 +68,10 @@ export const DayView: React.FC<DayViewProps> = ({ date, jobs, contacts, onJobCli
         {dayJobs.map(job => {
           const start = job.scheduledStart ?? `${job.date}T${String(START_HOUR).padStart(2, '0')}:00:00`;
           const end   = job.scheduledEnd   ?? `${job.date}T${String(START_HOUR + 1).padStart(2, '0')}:00:00`;
-          const topPct   = (minutesFromStart(start) / TOTAL_MINUTES) * 100;
-          const heightPct = (durationMinutes(start, end) / TOTAL_MINUTES) * 100;
+          const startMins = Math.max(0, minutesFromStart(start));
+          const endMins   = Math.min(TOTAL_MINUTES, (new Date(end).getHours() - START_HOUR) * 60 + new Date(end).getMinutes());
+          const topPct    = (startMins / TOTAL_MINUTES) * 100;
+          const heightPct = Math.max(0, ((endMins - startMins) / TOTAL_MINUTES) * 100);
 
           return (
             <div
@@ -83,7 +82,7 @@ export const DayView: React.FC<DayViewProps> = ({ date, jobs, contacts, onJobCli
                 height: `${Math.max(heightPct, 3)}%`
               }}
             >
-              <JobCard job={job} contacts={contacts} onClick={onJobClick} />
+              <JobCard job={job} contacts={contacts} onClick={onJobClick} draggable={canDrag} />
             </div>
           );
         })}

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { format, startOfWeek, addDays, isSameDay } from 'date-fns';
+import React, { useState, useMemo } from 'react';
+import { format, addDays, isSameDay } from 'date-fns';
 import type { Job, Contact } from '../../types';
 import { JobCard } from './JobCard';
 
@@ -25,15 +25,20 @@ export const WeekView: React.FC<WeekViewProps> = ({
 }) => {
   const [draggingJobId, setDraggingJobId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<string | null>(null);
-  const today = new Date();
+  const today = useMemo(() => new Date(), []);
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
   const handleDrop = async (e: React.DragEvent, day: Date) => {
     e.preventDefault();
     setDropTarget(null);
     if (!draggingJobId || !onReschedule) return;
-    await onReschedule(draggingJobId, format(day, 'yyyy-MM-dd'));
-    setDraggingJobId(null);
+    try {
+      await onReschedule(draggingJobId, format(day, 'yyyy-MM-dd'));
+    } catch (err) {
+      console.error('[WeekView] Failed to reschedule job:', err);
+    } finally {
+      setDraggingJobId(null);
+    }
   };
 
   return (

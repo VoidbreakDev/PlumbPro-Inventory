@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { format } from 'date-fns';
 import type { Job, Contact } from '../../types';
 import { JobCard } from './JobCard';
@@ -25,28 +25,35 @@ function workerColour(index: number): string {
   return HOUR_COLOURS[index % HOUR_COLOURS.length];
 }
 
-function workerJobsForHour(jobs: Job[], workerId: string, date: Date, hour: number): Job[] {
-  const dateStr = format(date, 'yyyy-MM-dd');
-  return jobs.filter(j => {
-    if (!j.assignedWorkerIds.includes(workerId)) return false;
-    const src = j.scheduledStart ?? j.date;
-    if (!src?.startsWith(dateStr)) return false;
-    if (j.scheduledStart) {
-      const h = new Date(j.scheduledStart).getHours();
-      return h === hour;
-    }
-    return false;
-  });
-}
 
 export const StaffGridView: React.FC<StaffGridViewProps> = ({
   date, jobs, contacts, onJobClick, canDrag, onAssign
 }) => {
   const [draggingJobId, setDraggingJobId] = useState<string | null>(null);
 
-  const activeWorkers = contacts.filter(c =>
-    jobs.some(j => j.assignedWorkerIds.includes(c.id))
+  const activeWorkers = useMemo(() =>
+    contacts.filter(c =>
+      jobs.some(j => j.assignedWorkerIds.includes(c.id))
+    ),
+    [contacts, jobs]
   );
+
+  const jobsByWorkerHour = useMemo(() => {
+    const map = new Map<string, Job[]>();
+    const dateStr = format(date, 'yyyy-MM-dd');
+    for (const job of jobs) {
+      if (!job.scheduledStart) continue;
+      const src = job.scheduledStart;
+      if (!src.startsWith(dateStr)) continue;
+      const h = new Date(job.scheduledStart).getHours();
+      for (const wid of job.assignedWorkerIds) {
+        const key = `${wid}-${h}`;
+        if (!map.has(key)) map.set(key, []);
+        map.get(key)!.push(job);
+      }
+    }
+    return map;
+  }, [jobs, date]);
 
   if (activeWorkers.length === 0) {
     return (
@@ -86,7 +93,7 @@ export const StaffGridView: React.FC<StaffGridViewProps> = ({
 
             {/* Worker cells */}
             {activeWorkers.map((worker) => {
-              const cellJobs = workerJobsForHour(jobs, worker.id, date, hour);
+              const cellJobs = jobsByWorkerHour.get(`${worker.id}-${hour}`) ?? [];
 
               return (
                 <div
@@ -98,8 +105,13 @@ export const StaffGridView: React.FC<StaffGridViewProps> = ({
                     if (!draggingJobId) return;
                     const dateStr = format(date, 'yyyy-MM-dd');
                     const scheduledStart = `${dateStr}T${String(hour).padStart(2, '0')}:00:00`;
-                    await onAssign(draggingJobId, worker.id, scheduledStart);
-                    setDraggingJobId(null);
+                    try {
+                      await onAssign(draggingJobId, worker.id, scheduledStart);
+                    } catch (err) {
+                      console.error('[StaffGridView] Failed to assign job:', err);
+                    } finally {
+                      setDraggingJobId(null);
+                    }
                   } : undefined}
                 >
                   {cellJobs.map(job => (
