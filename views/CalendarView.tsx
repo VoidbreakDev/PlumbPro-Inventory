@@ -1,7 +1,19 @@
-import React, { useState } from 'react';
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Clock, User, MapPin } from 'lucide-react';
-import { Job, Contact } from '../types';
-import { Badge } from '../components/Shared';
+import React, { useEffect, useState } from 'react';
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import {
+  format, startOfWeek, endOfWeek, startOfMonth, endOfMonth,
+  addDays, addWeeks, addMonths, subDays, subWeeks, subMonths,
+  isSameDay,
+} from 'date-fns';
+import type { Job, Contact, JobStatus } from '../types';
+import { canPerform } from '../lib/permissions';
+import { DayView } from './calendar/DayView';
+import { WeekView } from './calendar/WeekView';
+import { StaffGridView } from './calendar/StaffGridView';
+import { JobDetailSheet } from './calendar/JobDetailSheet';
+import { useStore } from '../store/useStore';
+
+type ViewMode = 'day' | 'week' | 'month' | 'staff';
 
 interface CalendarViewProps {
   jobs: Job[];
@@ -9,267 +21,270 @@ interface CalendarViewProps {
   onJobClick?: (job: Job) => void;
 }
 
-export const CalendarView: React.FC<CalendarViewProps> = ({ jobs, contacts, onJobClick }) => {
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [view, setView] = useState<'month' | 'week' | 'day'>('month');
+function getDateRangeLabel(mode: ViewMode, date: Date): string {
+  switch (mode) {
+    case 'day':   return format(date, 'EEEE, d MMMM yyyy');
+    case 'week': {
+      const ws = startOfWeek(date, { weekStartsOn: 1 });
+      const we = endOfWeek(date, { weekStartsOn: 1 });
+      return `${format(ws, 'd MMM')} – ${format(we, 'd MMM yyyy')}`;
+    }
+    case 'month': return format(date, 'MMMM yyyy');
+    case 'staff': return format(date, 'EEEE, d MMMM yyyy');
+  }
+}
 
-  // Helper functions for calendar
-  const getDaysInMonth = (date: Date) => {
-    const year = date.getFullYear();
-    const month = date.getMonth();
-    return new Date(year, month + 1, 0).getDate();
-  };
+function navigate(mode: ViewMode, date: Date, dir: 1 | -1): Date {
+  switch (mode) {
+    case 'day':   return dir === 1 ? addDays(date, 1)   : subDays(date, 1);
+    case 'week':  return dir === 1 ? addWeeks(date, 1)  : subWeeks(date, 1);
+    case 'month': return dir === 1 ? addMonths(date, 1) : subMonths(date, 1);
+    case 'staff': return dir === 1 ? addDays(date, 1)   : subDays(date, 1);
+  }
+}
 
-  const getFirstDayOfMonth = (date: Date) => {
-    const year = date.getFullYear();
-    const month = date.getMonth();
-    return new Date(year, month, 1).getDay();
-  };
-
-  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'];
-
-  const daysInMonth = getDaysInMonth(currentDate);
-  const firstDay = getFirstDayOfMonth(currentDate);
-
-  const previousMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
-  };
-
-  const nextMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
-  };
-
+// Month grid — preserved from existing implementation, enhanced to use scheduledStart
+function MonthGrid({ date, jobs, onDayClick }: {
+  date: Date; jobs: Job[]; contacts: Contact[]; onDayClick: (job: Job) => void;
+}) {
   const today = new Date();
-  const isToday = (day: number) => {
-    return day === today.getDate() &&
-      currentDate.getMonth() === today.getMonth() &&
-      currentDate.getFullYear() === today.getFullYear();
-  };
+  const daysInMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+  const firstDay = new Date(date.getFullYear(), date.getMonth(), 1).getDay();
+  const calDays: (number | null)[] = [
+    ...Array(firstDay).fill(null),
+    ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
+  ];
 
-  // Get jobs for a specific date
   const getJobsForDate = (day: number) => {
-    const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    return jobs.filter(job => job.date === dateStr);
+    const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    return jobs.filter(j => (j.scheduledStart ?? j.date)?.startsWith(dateStr));
   };
-
-  // Generate calendar days
-  const calendarDays = [];
-  for (let i = 0; i < firstDay; i++) {
-    calendarDays.push(null);
-  }
-  for (let day = 1; day <= daysInMonth; day++) {
-    calendarDays.push(day);
-  }
-
-  // Get upcoming jobs (next 7 days)
-  const upcomingJobs = jobs
-    .filter(job => {
-      const jobDate = new Date(job.date);
-      const diffTime = jobDate.getTime() - today.getTime();
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      return diffDays >= 0 && diffDays <= 7 && job.status !== 'Completed';
-    })
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      {/* Calendar */}
-      <div className="lg:col-span-2">
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-          {/* Calendar Header */}
-          <div className="p-6 bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-2xl font-bold">
-                {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
-              </h2>
-              <div className="flex space-x-2">
-                <button
-                  onClick={previousMonth}
-                  className="p-2 hover:bg-white/20 rounded-lg transition-colors"
-                >
-                  <ChevronLeft className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={() => setCurrentDate(new Date())}
-                  className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors text-sm font-semibold"
-                >
-                  Today
-                </button>
-                <button
-                  onClick={nextMonth}
-                  className="p-2 hover:bg-white/20 rounded-lg transition-colors"
-                >
-                  <ChevronRight className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-
-            {/* View Toggle */}
-            <div className="flex space-x-2">
-              {['month', 'week', 'day'].map((v) => (
-                <button
-                  key={v}
-                  onClick={() => setView(v as any)}
-                  className={`px-4 py-2 rounded-lg text-sm font-semibold capitalize transition-colors ${
-                    view === v
-                      ? 'bg-white text-blue-600'
-                      : 'bg-white/20 hover:bg-white/30'
-                  }`}
-                >
-                  {v}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Calendar Grid */}
-          <div className="p-6">
-            {/* Day Names */}
-            <div className="grid grid-cols-7 gap-2 mb-2">
-              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-                <div key={day} className="text-center text-xs font-bold text-slate-500 uppercase tracking-wider py-2">
-                  {day}
-                </div>
-              ))}
-            </div>
-
-            {/* Calendar Days */}
-            <div className="grid grid-cols-7 gap-2">
-              {calendarDays.map((day, index) => {
-                if (!day) {
-                  return <div key={`empty-${index}`} className="aspect-square" />;
-                }
-
-                const dayJobs = getJobsForDate(day);
-                const hasJobs = dayJobs.length > 0;
-
-                return (
+    <div>
+      <div className="grid grid-cols-7 gap-1 mb-1">
+        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
+          <div key={d} className="text-center text-xs font-bold text-slate-500 uppercase py-2">{d}</div>
+        ))}
+      </div>
+      <div className="grid grid-cols-7 gap-1">
+        {calDays.map((day, i) => {
+          if (!day) return <div key={`e-${i}`} className="aspect-square" />;
+          const dayJobs = getJobsForDate(day);
+          const isToday = isSameDay(new Date(date.getFullYear(), date.getMonth(), day), today);
+          return (
+            <div
+              key={day}
+              className={`aspect-square border-2 rounded-xl p-1 transition-all cursor-pointer ${
+                isToday          ? 'border-blue-500 bg-blue-50' :
+                dayJobs.length > 0 ? 'border-blue-200 bg-blue-50/50 hover:bg-blue-100' :
+                'border-slate-100 hover:border-slate-200 hover:bg-slate-50'
+              }`}
+            >
+              <span className={`text-xs font-bold ${isToday ? 'text-blue-600' : 'text-slate-700'}`}>{day}</span>
+              <div className="mt-0.5 space-y-0.5">
+                {dayJobs.slice(0, 2).map(job => (
                   <div
-                    key={day}
-                    className={`aspect-square border-2 rounded-xl p-2 transition-all cursor-pointer ${
-                      isToday(day)
-                        ? 'border-blue-500 bg-blue-50'
-                        : hasJobs
-                        ? 'border-blue-200 bg-blue-50/50 hover:bg-blue-100'
-                        : 'border-slate-100 hover:border-slate-200 hover:bg-slate-50'
+                    key={job.id}
+                    onClick={() => onDayClick(job)}
+                    className={`text-[9px] px-1 rounded truncate text-white ${
+                      job.status === 'In Progress' ? 'bg-amber-500' :
+                      job.status === 'Completed'   ? 'bg-green-500' : 'bg-blue-500'
                     }`}
                   >
-                    <div className="flex flex-col h-full">
-                      <span className={`text-sm font-bold ${isToday(day) ? 'text-blue-600' : 'text-slate-700'}`}>
-                        {day}
-                      </span>
-                      {hasJobs && (
-                        <div className="mt-1 flex-1 overflow-hidden">
-                          {dayJobs.slice(0, 2).map((job, idx) => (
-                            <div
-                              key={job.id}
-                              onClick={() => onJobClick?.(job)}
-                              className="mb-1 truncate"
-                            >
-                              <div className={`text-[10px] px-1 py-0.5 rounded ${
-                                job.status === 'Scheduled' ? 'bg-blue-500 text-white' :
-                                job.status === 'In Progress' ? 'bg-amber-500 text-white' :
-                                'bg-green-500 text-white'
-                              }`}>
-                                {job.developmentStageType || job.title}
-                              </div>
-                            </div>
-                          ))}
-                          {dayJobs.length > 2 && (
-                            <div className="text-[9px] text-slate-500 font-semibold">
-                              +{dayJobs.length - 2} more
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
+                    {job.title}
                   </div>
-                );
-              })}
+                ))}
+                {dayJobs.length > 2 && (
+                  <div className="text-[8px] text-slate-500">+{dayJobs.length - 2} more</div>
+                )}
+              </div>
             </div>
-          </div>
-        </div>
+          );
+        })}
       </div>
+    </div>
+  );
+}
 
-      {/* Upcoming Jobs Sidebar */}
-      <div className="space-y-4">
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
-          <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center">
-            <Clock className="w-5 h-5 mr-2 text-blue-600" />
-            Upcoming Jobs
-          </h3>
+export const CalendarView: React.FC<CalendarViewProps> = ({ jobs, contacts }) => {
+  const user = useStore(s => s.user);
+  const {
+    fetchJobsForRange,
+    startCalendarPolling,
+    stopCalendarPolling,
+    calendarJobs,
+    calendarPollFailures,
+    updateJobStatus,
+    assignJob,
+  } = useStore();
 
-          {upcomingJobs.length === 0 ? (
-            <p className="text-slate-500 text-sm text-center py-8">No upcoming jobs in the next 7 days</p>
-          ) : (
-            <div className="space-y-3">
-              {upcomingJobs.map((job) => (
-                <div
-                  key={job.id}
-                  onClick={() => onJobClick?.(job)}
-                  className="p-4 border-2 border-slate-100 rounded-xl hover:border-blue-200 hover:bg-blue-50/50 transition-all cursor-pointer"
-                >
-                  <div className="flex justify-between items-start mb-2">
-                    <div className="space-y-2">
-                      <h4 className="font-bold text-slate-800 text-sm">{job.title}</h4>
-                      {job.developmentStageType && (
-                        <Badge variant="slate">{job.developmentStageType}</Badge>
-                      )}
-                    </div>
-                    <Badge variant={
-                      job.status === 'Scheduled' ? 'blue' :
-                      job.status === 'In Progress' ? 'yellow' :
-                      'green'
-                    }>
-                      {job.status}
-                    </Badge>
-                  </div>
-                  <div className="space-y-1 text-xs text-slate-600">
-                    <div className="flex items-center">
-                      <CalendarIcon className="w-3 h-3 mr-1" />
-                      {new Date(job.date).toLocaleDateString('en-AU', {
-                        weekday: 'short',
-                        month: 'short',
-                        day: 'numeric'
-                      })}
-                    </div>
-                    {(job.jobAddress || job.builder) && (
-                      <div className="flex items-center">
-                        <MapPin className="w-3 h-3 mr-1" />
-                        {job.jobAddress || job.builder}
-                      </div>
-                    )}
-                    <div className="flex items-center">
-                      <User className="w-3 h-3 mr-1" />
-                      {job.assignedWorkerIds.length} worker{job.assignedWorkerIds.length !== 1 ? 's' : ''}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+  const userRole = user?.role ?? 'technician';
+  const userId   = user?.id ?? '';
+
+  const [viewMode, setViewMode]       = useState<ViewMode>('week');
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+
+  // Compute date range for polling
+  const rangeStart = format(
+    viewMode === 'month' ? startOfMonth(currentDate) :
+    viewMode === 'week'  ? startOfWeek(currentDate, { weekStartsOn: 1 }) :
+    currentDate,
+    'yyyy-MM-dd'
+  );
+  const rangeEnd = format(
+    viewMode === 'month' ? endOfMonth(currentDate) :
+    viewMode === 'week'  ? endOfWeek(currentDate, { weekStartsOn: 1 }) :
+    currentDate,
+    'yyyy-MM-dd'
+  );
+
+  useEffect(() => {
+    fetchJobsForRange(rangeStart, rangeEnd);
+    startCalendarPolling(rangeStart, rangeEnd);
+    return () => stopCalendarPolling();
+  }, [rangeStart, rangeEnd]);
+
+  // Use calendarJobs if populated; fall back to jobs prop for initial render
+  const displayJobs = calendarJobs.length > 0 ? calendarJobs : jobs;
+
+  const handleStatusChange = async (jobId: string, status: JobStatus) => {
+    await updateJobStatus(jobId, status);
+    if (selectedJob?.id === jobId) {
+      setSelectedJob(prev => prev ? { ...prev, status } : null);
+    }
+  };
+
+  const handleReschedule = async (jobId: string, newDate: string) => {
+    const existingWorkers = displayJobs.find(j => j.id === jobId)?.assignedWorkerIds ?? [];
+    await assignJob(jobId, existingWorkers, `${newDate}T08:00:00`, `${newDate}T17:00:00`);
+  };
+
+  const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
+
+  return (
+    <div className="space-y-4">
+      {/* Poll failure banner */}
+      {calendarPollFailures >= 3 && (
+        <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-xl px-4 py-2 text-sm">
+          Connection issue — calendar may not be up to date. Retrying…
+        </div>
+      )}
+
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+        {/* Top bar */}
+        <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-3 flex-wrap">
+          <button
+            onClick={() => setCurrentDate(d => navigate(viewMode, d, -1))}
+            className="p-2 hover:bg-slate-100 rounded-lg text-slate-500"
+            aria-label="Previous"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+
+          <span className="font-semibold text-slate-800 min-w-0">
+            {getDateRangeLabel(viewMode, currentDate)}
+          </span>
+
+          <button
+            onClick={() => setCurrentDate(d => navigate(viewMode, d, 1))}
+            className="p-2 hover:bg-slate-100 rounded-lg text-slate-500"
+            aria-label="Next"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+
+          <button
+            onClick={() => setCurrentDate(new Date())}
+            className="px-3 py-1.5 text-sm border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-50"
+          >
+            Today
+          </button>
+
+          {/* View switcher */}
+          <div className="ml-auto flex gap-1 bg-slate-100 p-1 rounded-lg" role="group" aria-label="Calendar view">
+            {(['day', 'week', 'month', 'staff'] as ViewMode[]).map(mode => (
+              <button
+                key={mode}
+                onClick={() => setViewMode(mode)}
+                aria-pressed={viewMode === mode}
+                className={`px-3 py-1.5 rounded-md text-sm font-medium capitalize transition-colors ${
+                  viewMode === mode
+                    ? 'bg-white text-blue-600 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                {mode}
+              </button>
+            ))}
+          </div>
+
+          {canPerform(userRole, 'createJob', false) && (
+            <button className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">
+              <Plus className="w-4 h-4" aria-hidden="true" /> New Job
+            </button>
           )}
         </div>
 
-        {/* Quick Stats */}
-        <div className="bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl shadow-lg p-6 text-white">
-          <h3 className="text-sm font-bold uppercase tracking-wider mb-4 opacity-90">This Month</h3>
-          <div className="space-y-3">
-            <div>
-              <div className="text-3xl font-black">{jobs.filter(j => j.status === 'Scheduled').length}</div>
-              <div className="text-sm opacity-90">Scheduled Jobs</div>
-            </div>
-            <div>
-              <div className="text-3xl font-black">{jobs.filter(j => j.status === 'In Progress').length}</div>
-              <div className="text-sm opacity-90">In Progress</div>
-            </div>
-            <div>
-              <div className="text-3xl font-black">{jobs.filter(j => j.status === 'Completed').length}</div>
-              <div className="text-sm opacity-90">Completed</div>
-            </div>
-          </div>
+        {/* View content */}
+        <div className="p-4">
+          {viewMode === 'day' && (
+            <DayView
+              date={currentDate}
+              jobs={displayJobs}
+              contacts={contacts}
+              onJobClick={setSelectedJob}
+              canDrag={canPerform(userRole, 'reschedule', false)}
+            />
+          )}
+          {viewMode === 'week' && (
+            <WeekView
+              weekStart={weekStart}
+              jobs={displayJobs}
+              contacts={contacts}
+              onJobClick={setSelectedJob}
+              canDrag={canPerform(userRole, 'reschedule', false)}
+              onReschedule={handleReschedule}
+            />
+          )}
+          {viewMode === 'month' && (
+            <MonthGrid
+              date={currentDate}
+              jobs={displayJobs}
+              contacts={contacts}
+              onDayClick={setSelectedJob}
+            />
+          )}
+          {viewMode === 'staff' && (
+            <StaffGridView
+              date={currentDate}
+              jobs={displayJobs}
+              contacts={contacts}
+              onJobClick={setSelectedJob}
+              canDrag={canPerform(userRole, 'reschedule', false)}
+            />
+          )}
         </div>
       </div>
+
+      {/* Job detail sheet */}
+      <JobDetailSheet
+        job={selectedJob}
+        contacts={contacts}
+        userRole={userRole}
+        userId={userId}
+        onClose={() => setSelectedJob(null)}
+        onStatusChange={handleStatusChange}
+        onReschedule={(job) => {
+          // Stub: open reschedule modal — wired in Phase 2
+          console.log('Reschedule', job.id);
+        }}
+        onReassign={(job) => {
+          // Stub: open reassign modal — wired in Phase 2
+          console.log('Reassign', job.id);
+        }}
+      />
     </div>
   );
 };
