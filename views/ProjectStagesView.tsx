@@ -491,8 +491,10 @@ export function ProjectStagesView() {
       });
 
       toast.success(`${stage.stageType} saved`);
-    } catch {
-      // Store handles global error state.
+    } catch (err) {
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
+        ?? 'Failed to save stage';
+      toast.error(msg);
     }
   };
 
@@ -501,8 +503,13 @@ export function ProjectStagesView() {
     stage: DevelopmentStage,
     status: DevelopmentStageStatus
   ) => {
+    const draft = stageDrafts[stage.id];
+    if (['scheduled', 'in_progress', 'completed'].includes(status) && !draft?.plannedDate) {
+      toast.warning(`Set a planned date for ${stage.stageType} before marking it as ${DEVELOPMENT_STAGE_STATUS_LABELS[status].toLowerCase()}.`);
+      return;
+    }
     await handleSaveStage(project, stage, {
-      ...stageDrafts[stage.id],
+      ...draft,
       status
     });
   };
