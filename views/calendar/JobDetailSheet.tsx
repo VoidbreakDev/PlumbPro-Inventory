@@ -44,7 +44,11 @@ export const JobDetailSheet: React.FC<JobDetailSheetProps> = ({
 
   useEffect(() => {
     if (!job) return;
-    jobsAPI.getNotes(job.id).then(setNotes).catch(() => {});
+    let cancelled = false;
+    jobsAPI.getNotes(job.id)
+      .then(data => { if (!cancelled) setNotes(data); })
+      .catch(() => {});
+    return () => { cancelled = true; };
   }, [job?.id]);
 
   useEffect(() => {
@@ -116,11 +120,15 @@ export const JobDetailSheet: React.FC<JobDetailSheetProps> = ({
       <div
         className="fixed inset-0 bg-black/40 z-40 hidden lg:block"
         onClick={onClose}
+        role="presentation"
       />
 
       {/* Sheet panel */}
       <div
         ref={sheetRef}
+        role="dialog"
+        aria-label="Job details"
+        aria-modal="true"
         className={`
           fixed z-50 bg-white shadow-2xl overflow-y-auto transition-transform duration-300
           bottom-0 left-0 right-0 rounded-t-2xl max-h-[85vh]
@@ -163,7 +171,7 @@ export const JobDetailSheet: React.FC<JobDetailSheetProps> = ({
                 )}
               </div>
             </div>
-            <button onClick={onClose} className="ml-2 p-1 hover:bg-white/20 rounded-lg flex-shrink-0">
+            <button onClick={onClose} aria-label="Close job details" className="ml-2 p-1 hover:bg-white/20 rounded-lg flex-shrink-0">
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -228,6 +236,7 @@ export const JobDetailSheet: React.FC<JobDetailSheetProps> = ({
                 <button
                   onClick={handleAddNote}
                   disabled={addingNote || !newNote.trim()}
+                  aria-label="Add note"
                   className="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm disabled:opacity-50 hover:bg-blue-700"
                 >
                   <Plus className="w-4 h-4" />
@@ -265,13 +274,13 @@ export const JobDetailSheet: React.FC<JobDetailSheetProps> = ({
           {/* Stub buttons (coming soon) */}
           <div className="border border-slate-200 rounded-xl p-3 space-y-2">
             <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Field actions</p>
-            <button className="w-full text-left px-3 py-2 bg-slate-50 rounded-lg text-sm text-slate-400 cursor-not-allowed">
+            <button disabled className="w-full text-left px-3 py-2 bg-slate-50 rounded-lg text-sm text-slate-400 cursor-not-allowed">
               🕒 Clock In/Out — coming in Timesheets
             </button>
-            <button className="w-full text-left px-3 py-2 bg-slate-50 rounded-lg text-sm text-slate-400 cursor-not-allowed">
+            <button disabled className="w-full text-left px-3 py-2 bg-slate-50 rounded-lg text-sm text-slate-400 cursor-not-allowed">
               📦 Van Stock Used — coming in Van Stock
             </button>
-            <button className="w-full text-left px-3 py-2 bg-slate-50 rounded-lg text-sm text-slate-400 cursor-not-allowed">
+            <button disabled className="w-full text-left px-3 py-2 bg-slate-50 rounded-lg text-sm text-slate-400 cursor-not-allowed">
               📋 Complete SWMS — coming in Compliance
             </button>
           </div>
