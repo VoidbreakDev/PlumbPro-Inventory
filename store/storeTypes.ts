@@ -6,8 +6,12 @@ import type {
   InventoryItem,
   Contact,
   Job,
+  JobNote,
+  JobPhoto,
+  JobStatus,
   JobTemplate,
   Kit,
+  RecurrenceFrequency,
   StockMovement,
   SmartOrderSuggestion,
   Location,
@@ -36,6 +40,9 @@ export interface AppStateData {
   smartSuggestions: SmartOrderSuggestion[];
   locations: Location[];
   stockTransfers: StockTransfer[];
+  calendarJobs: Job[];
+  unscheduledJobs: Job[];
+  calendarPollFailures: number;
   isLoading: boolean;
   isSyncing: boolean;
   lastSync: number | null;
@@ -73,6 +80,17 @@ export interface AppState extends AppStateData {
   updateJob: (id: string, updates: Partial<Job>) => Promise<void>;
   pickJob: (id: string) => Promise<void>;
   deleteJob: (id: string) => Promise<void>;
+
+  // Calendar state actions
+  fetchJobsForRange: (start: string, end: string) => Promise<void>;
+  fetchUnscheduled: () => Promise<void>;
+  addJobNote: (jobId: string, note: string) => Promise<JobNote>;
+  addJobPhoto: (jobId: string, file: File, caption?: string) => Promise<JobPhoto>;
+  updateJobStatus: (jobId: string, status: JobStatus) => Promise<void>;
+  assignJob: (jobId: string, workerIds: string[], scheduledStart?: string, scheduledEnd?: string) => Promise<void>;
+  setJobRecurring: (jobId: string, frequency: RecurrenceFrequency, startDate: string) => Promise<void>;
+  startCalendarPolling: (start: string, end: string) => void;
+  stopCalendarPolling: () => void;
 
   // Development Project Actions
   fetchDevelopmentProjects: () => Promise<void>;
