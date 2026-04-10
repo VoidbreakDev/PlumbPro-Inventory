@@ -111,7 +111,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ inventory, jobs, c
             <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-lg font-bold text-slate-800">Upcoming Jobs</h3>
-                <button onClick={() => onNavigate('job-planning')} className="text-sm text-blue-600 font-semibold hover:underline">Full Schedule</button>
+                <button onClick={() => onNavigate('calendar')} className="text-sm text-blue-600 font-semibold hover:underline">Full Schedule</button>
               </div>
               <div className="space-y-4">
                 {activeJobs.slice(0, 3).map(job => (

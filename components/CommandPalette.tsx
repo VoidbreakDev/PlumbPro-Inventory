@@ -69,17 +69,6 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ commands: customCommand
       keywords: ['jobs', 'schedule', 'dates']
     },
     {
-      id: 'nav-job-planning',
-      label: 'Go to Job Planning',
-      description: 'Create and manage jobs',
-      icon: '🔧',
-      category: 'Navigation',
-      action: () => {
-        window.dispatchEvent(new CustomEvent('navigate', { detail: 'job-planning' }));
-      },
-      keywords: ['work', 'tasks', 'planning', 'create job']
-    },
-    {
       id: 'nav-project-stages',
       label: 'Go to Project Stages',
       description: 'Track house builds and plumbing stage progress',

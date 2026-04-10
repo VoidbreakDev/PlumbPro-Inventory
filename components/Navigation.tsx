@@ -16,11 +16,11 @@ import {
 // Types
 // ============================================================================
 
-export type NavTab = 
-  | 'dashboard' | 'inventory' | 'calendar' | 'job-planning' | 'project-stages' | 'contacts' 
-  | 'ordering' | 'history' | 'approvals' | 'purchase-orders' | 'stock-returns' 
-  | 'supplier-dashboard' | 'quotes' | 'invoices' | 'reports' | 'team' 
-  | 'settings' | 'analytics' | 'ai-forecast' | 'workflows' | 'kits' | 'assets' 
+export type NavTab =
+  | 'dashboard' | 'inventory' | 'calendar' | 'unscheduled-jobs' | 'project-stages' | 'contacts'
+  | 'ordering' | 'history' | 'approvals' | 'purchase-orders' | 'stock-returns'
+  | 'supplier-dashboard' | 'quotes' | 'invoices' | 'reports' | 'team'
+  | 'settings' | 'analytics' | 'ai-forecast' | 'workflows' | 'kits' | 'assets'
   | 'performance' | 'leads' | 'subcontractors' | 'van-stock' | 'sync-dashboard'
   | 'franchise' | 'developer' | 'purchase-analytics';
 
@@ -86,7 +86,7 @@ export const NAVIGATION_CONFIG: NavigationItem[] = [
     icon: ClipboardList,
     children: [
       { id: 'calendar', label: 'Calendar' },
-      { id: 'job-planning', label: 'Job Planning' },
+      { id: 'unscheduled-jobs', label: 'Unscheduled' },
       { id: 'project-stages', label: 'Project Stages' },
       { id: 'workflows', label: 'Workflows' },
     ]

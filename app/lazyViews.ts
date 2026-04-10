@@ -10,11 +10,6 @@ export const CalendarView = lazy(async () => {
   return { default: module.CalendarView };
 });
 
-export const JobPlanningView = lazy(async () => {
-  const module = await import('../views/JobPlanningView');
-  return { default: module.JobPlanningView };
-});
-
 export const ProjectStagesView = lazy(async () => {
   const module = await import('../views/ProjectStagesView');
   return { default: module.ProjectStagesView };
@@ -120,6 +115,8 @@ export const AIAssistant = lazy(async () => {
   const module = await import('../components/AIAssistant');
   return { default: module.AIAssistant };
 });
+
+export const UnscheduledJobsView = lazy(() => import('../views/UnscheduledJobsView'));
 
 export const WorkflowAutomationView = lazy(() => import('../views/WorkflowAutomationView'));
 

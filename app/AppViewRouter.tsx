@@ -22,7 +22,6 @@ import {
   HistoryView,
   InventoryView,
   InvoicesView,
-  JobPlanningView,
   KitManagementView,
   LeadPipelineView,
   ProjectStagesView,
@@ -38,6 +37,7 @@ import {
   SupplierDashboardView,
   TeamManagementView,
   TechnicianPerformanceView,
+  UnscheduledJobsView,
   VanStockView,
   WorkflowAutomationView,
   PurchaseAnalyticsView
@@ -141,23 +141,7 @@ export function AppViewRouter({
           contacts={contacts}
         />
       )}
-      {activeTab === 'job-planning' && (
-        <JobPlanningView
-          jobs={jobs}
-          contacts={contacts}
-          inventory={inventory}
-          templates={templates}
-          kits={kits}
-          onOpenNewJobModal={onOpenNewJobModal}
-          onConfirmPick={onConfirmPick}
-          onOpenAllocateModal={onOpenAllocateModal}
-          onOpenTemplateModal={onOpenTemplateModal}
-          onNavigate={onNavigate}
-          onAddTemplate={onAddTemplate}
-          onUpdateTemplate={onUpdateTemplate}
-          onDeleteTemplate={onDeleteTemplate}
-        />
-      )}
+      {activeTab === 'unscheduled-jobs' && <UnscheduledJobsView />}
       {activeTab === 'project-stages' && <ProjectStagesView />}
       {activeTab === 'kits' && <KitManagementView />}
       {activeTab === 'ordering' && <OrderingView inventory={inventory} jobs={jobs} />}

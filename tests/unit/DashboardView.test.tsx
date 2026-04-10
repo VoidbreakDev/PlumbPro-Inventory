@@ -36,7 +36,7 @@ describe('DashboardView', () => {
     { id: 'worker-1', name: 'Taylor Tech', type: 'Plumber' }
   ] as any;
 
-  it('navigates to job planning from the overview schedule action', async () => {
+  it('navigates to calendar from the overview schedule action', async () => {
     const user = userEvent.setup();
     const onNavigate = vi.fn();
 
@@ -51,7 +51,7 @@ describe('DashboardView', () => {
 
     await user.click(screen.getByRole('button', { name: 'Full Schedule' }));
 
-    expect(onNavigate).toHaveBeenCalledWith('job-planning');
+    expect(onNavigate).toHaveBeenCalledWith('calendar');
   });
 
   it('switches to the surfaced analytics dashboard mode', async () => {

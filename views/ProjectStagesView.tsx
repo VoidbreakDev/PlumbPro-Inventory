@@ -852,8 +852,8 @@ export function ProjectStagesView() {
                         {stage.linkedJobId && (
                           <button
                             onClick={() => {
-                              window.dispatchEvent(new CustomEvent('navigate', { detail: 'job-planning' }));
-                              toast.success('Opened Job Planning for linked job review');
+                              window.dispatchEvent(new CustomEvent('navigate', { detail: 'calendar' }));
+                              toast.success('Opened Calendar for linked job review');
                             }}
                             className="inline-flex items-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 transition-colors hover:border-blue-200 hover:text-blue-700"
                           >
