@@ -65,9 +65,7 @@ export const jobsAPI = {
     const form = new FormData();
     form.append('photo', file);
     if (caption) form.append('caption', caption);
-    const { data } = await api.post(`/jobs/${jobId}/photos`, form, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
+    const { data } = await api.post(`/jobs/${jobId}/photos`, form);
     return data.data;
   },
 
