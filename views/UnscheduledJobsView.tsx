@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { CalendarPlus, Search } from 'lucide-react';
-import { format } from 'date-fns';
+import { addHours, format, parseISO } from 'date-fns';
 import type { Job } from '../types';
 import { useStore } from '../store/useStore';
 
@@ -17,6 +17,7 @@ export default function UnscheduledJobsView() {
     date: string;
     startTime: string;
   } | null>(null);
+  const [scheduleError, setScheduleError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchUnscheduled().finally(() => setIsLoading(false));
@@ -30,16 +31,16 @@ export default function UnscheduledJobsView() {
   const handleSchedule = async () => {
     if (!scheduling) return;
     const { job, date, startTime } = scheduling;
-    const [hourStr] = startTime.split(':');
-    const endHour = String(Number(hourStr) + 2).padStart(2, '0');
-    const scheduledStart = `${date}T${startTime}:00`;
-    const scheduledEnd   = `${date}T${endHour}:00:00`;
+    const start = parseISO(`${date}T${startTime}:00`);
+    const end   = addHours(start, 2);
+    const scheduledStart = start.toISOString();
+    const scheduledEnd   = end.toISOString();
     try {
       await assignJob(job.id, job.assignedWorkerIds, scheduledStart, scheduledEnd);
       await fetchUnscheduled();
       setScheduling(null);
     } catch {
-      // error surfaced in store
+      setScheduleError('Failed to schedule job. Please try again.');
     }
   };
 
@@ -56,6 +57,7 @@ export default function UnscheduledJobsView() {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
+            aria-label="Search unscheduled jobs"
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search jobs…"
@@ -95,11 +97,14 @@ export default function UnscheduledJobsView() {
                   </div>
                 </div>
                 <button
-                  onClick={() => setScheduling({
-                    job,
-                    date: format(new Date(), 'yyyy-MM-dd'),
-                    startTime: '08:00',
-                  })}
+                  onClick={() => {
+                    setScheduleError(null);
+                    setScheduling({
+                      job,
+                      date: format(new Date(), 'yyyy-MM-dd'),
+                      startTime: '08:00',
+                    });
+                  }}
                   className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-xl text-sm hover:bg-blue-700 flex-shrink-0"
                 >
                   <CalendarPlus className="w-4 h-4" />
@@ -113,16 +118,23 @@ export default function UnscheduledJobsView() {
 
       {/* Schedule modal */}
       {scheduling && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div
+          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="schedule-modal-title"
+          onKeyDown={e => { if (e.key === 'Escape') setScheduling(null); }}
+        >
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4">
-            <h2 className="text-lg font-bold text-slate-800">Schedule Job</h2>
+            <h2 id="schedule-modal-title" className="text-lg font-bold text-slate-800">Schedule Job</h2>
             <p className="text-sm text-slate-500 truncate">{scheduling.job.title}</p>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">
+              <label htmlFor="schedule-date" className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">
                 Date
               </label>
               <input
+                id="schedule-date"
                 type="date"
                 value={scheduling.date}
                 onChange={e => setScheduling(s => s ? { ...s, date: e.target.value } : null)}
@@ -131,16 +143,21 @@ export default function UnscheduledJobsView() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">
+              <label htmlFor="schedule-start-time" className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">
                 Start Time
               </label>
               <input
+                id="schedule-start-time"
                 type="time"
                 value={scheduling.startTime}
                 onChange={e => setScheduling(s => s ? { ...s, startTime: e.target.value } : null)}
                 className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
+
+            {scheduleError && (
+              <p className="text-red-600 text-sm">{scheduleError}</p>
+            )}
 
             <div className="flex gap-3 pt-2">
               <button
