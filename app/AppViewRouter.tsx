@@ -37,6 +37,7 @@ import {
   SupplierDashboardView,
   TeamManagementView,
   TechnicianPerformanceView,
+  JobsView,
   UnscheduledJobsView,
   VanStockView,
   WorkflowAutomationView,
@@ -139,9 +140,11 @@ export function AppViewRouter({
         <CalendarView
           jobs={jobs}
           contacts={contacts}
+          onNavigate={onNavigate}
         />
       )}
       {activeTab === 'unscheduled-jobs' && <UnscheduledJobsView />}
+      {activeTab === 'jobs' && <JobsView jobs={jobs} contacts={contacts} onNavigate={onNavigate} />}
       {activeTab === 'project-stages' && <ProjectStagesView />}
       {activeTab === 'kits' && <KitManagementView />}
       {activeTab === 'ordering' && <OrderingView inventory={inventory} jobs={jobs} />}

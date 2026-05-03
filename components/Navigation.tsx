@@ -17,7 +17,7 @@ import {
 // ============================================================================
 
 export type NavTab =
-  | 'dashboard' | 'inventory' | 'calendar' | 'unscheduled-jobs' | 'project-stages' | 'contacts'
+  | 'dashboard' | 'inventory' | 'calendar' | 'unscheduled-jobs' | 'jobs' | 'project-stages' | 'contacts'
   | 'ordering' | 'history' | 'approvals' | 'purchase-orders' | 'stock-returns'
   | 'supplier-dashboard' | 'quotes' | 'invoices' | 'reports' | 'team'
   | 'settings' | 'analytics' | 'ai-forecast' | 'workflows' | 'kits' | 'assets'
@@ -87,6 +87,7 @@ export const NAVIGATION_CONFIG: NavigationItem[] = [
     children: [
       { id: 'calendar', label: 'Calendar' },
       { id: 'unscheduled-jobs', label: 'Unscheduled' },
+      { id: 'jobs', label: 'All Jobs' },
       { id: 'project-stages', label: 'Project Stages' },
       { id: 'workflows', label: 'Workflows' },
     ]

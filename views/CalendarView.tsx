@@ -6,6 +6,7 @@ import {
   isSameDay,
 } from 'date-fns';
 import type { Job, Contact, JobStatus } from '../types';
+import type { NavTab } from '../components/Navigation';
 import { canPerform } from '../lib/permissions';
 import { DayView } from './calendar/DayView';
 import { WeekView } from './calendar/WeekView';
@@ -18,6 +19,7 @@ type ViewMode = 'day' | 'week' | 'month' | 'staff';
 interface CalendarViewProps {
   jobs: Job[];
   contacts: Contact[];
+  onNavigate?: (tab: NavTab) => void;
 }
 
 function getDateRangeLabel(mode: ViewMode, date: Date): string {
@@ -106,7 +108,7 @@ function MonthGrid({ date, jobs, onDayClick }: {
   );
 }
 
-export const CalendarView: React.FC<CalendarViewProps> = ({ jobs, contacts }) => {
+export const CalendarView: React.FC<CalendarViewProps> = ({ jobs, contacts, onNavigate }) => {
   const user                 = useStore(s => s.user);
   const calendarJobs         = useStore(s => s.calendarJobs);
   const calendarPollFailures = useStore(s => s.calendarPollFailures);
@@ -286,7 +288,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ jobs, contacts }) =>
           // Stub: open reassign modal — wired in Phase 2
           console.log('Reassign', job.id);
         }}
-        onViewFullJob={() => setSelectedJob(null)}
+        onViewFullJob={() => { setSelectedJob(null); onNavigate?.('jobs'); }}
       />
     </div>
   );

@@ -118,6 +118,11 @@ export const AIAssistant = lazy(async () => {
 
 export const UnscheduledJobsView = lazy(() => import('../views/UnscheduledJobsView'));
 
+export const JobsView = lazy(async () => {
+  const module = await import('../views/JobsView');
+  return { default: module.JobsView };
+});
+
 export const WorkflowAutomationView = lazy(() => import('../views/WorkflowAutomationView'));
 
 export const PurchaseAnalyticsView = lazy(() => import('../views/PurchaseAnalyticsView'));
