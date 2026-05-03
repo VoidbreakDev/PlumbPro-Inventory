@@ -59,3 +59,18 @@ coverage/
 # Uploads (if any)
 uploads/
 public/uploads/
+
+# Desktop releases
+desktop/release/
+desktop/release*/
+releases/
+
+# Claude Code settings
+.claude/
+
+# Temp files
+tmp/
+
+# Server build artifacts
+server/dist/
+server/dist-prod/
